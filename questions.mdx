@@ -9,19 +9,19 @@ These are the questions engineering leaders, operators, and agents usually ask b
 
 ## 1. What is Aient?
 
-Aient is an AI operations layer for software teams. It ingests enough telemetry to detect when something goes wrong, groups related signals into a problem, explains what changed, and can drive remediation through Slack, GitHub, webhooks, and agent tools.
+Aient is an AI operations layer for software teams. It ingests telemetry, detects when something goes wrong, and groups related signals into a problem. From there, it explains what changed and drives remediation through Slack, GitHub, webhooks, and agent tools.
 
 ## 2. How can Aient know what goes wrong?
 
-Aient learns from the signals your applications emit: traces, logs, exceptions, browser errors, release metadata, and source maps. OpenTelemetry gives Aient the runtime context; source maps and commit metadata connect minified browser frames back to source; integrations such as GitHub and Slack give Aient the collaboration context needed to route and explain the issue.
+Aient learns from the signals your applications emit: traces, logs, exceptions, browser errors, release metadata, and source maps. OpenTelemetry provides the runtime context. Source maps and commit metadata connect minified browser frames back to source. Integrations such as GitHub and Slack add the collaboration context Aient needs to route and explain each issue.
 
 ## 3. What signals does Aient ingest?
 
-The public integration surface accepts OTLP HTTP traces and logs. The Aient SDKs configure the right endpoints, auth headers, service names, and release metadata for Node.js and browser apps. Webhook events, Slack, GitHub, and Linear integrations add lifecycle and collaboration context around the problems Aient creates.
+The public integration surface accepts OTLP HTTP traces and logs. The Aient SDKs configure the endpoints, auth headers, service names, and release metadata for Node.js and browser apps. Webhook events and the Slack, GitHub, and Linear integrations add lifecycle and collaboration context around each problem.
 
 ## 4. How do I add Aient to my services?
 
-Install `@aient/otel` in server services and `@aient/otel-browser` in browser apps, set an Aient publishable environment key, and pass stable `serviceName` plus release metadata. For browser apps, upload source maps from CI with `@aient/sourcemaps` using the same service name and commit SHA.
+Install `@aient/otel` in server services and `@aient/otel-browser` in browser apps. Set an Aient publishable environment key, and pass a stable `serviceName` plus release metadata. For browser apps, upload source maps from CI with `@aient/sourcemaps` using the same service name and commit SHA.
 
 ## 5. What happens after telemetry reaches Aient?
 
@@ -37,7 +37,7 @@ Aient treats repeated signals as evidence for the same problem when they share t
 
 ## 8. Can Aient fix problems automatically?
 
-Aient can investigate and prepare remediation work, including GitHub pull requests, when the integrations and policies allow it. It should not be treated as an auto-merge system. Humans keep review and merge authority unless you deliberately build a stronger approval workflow around it.
+Aient can investigate and prepare remediation work, including GitHub pull requests, when the integrations and policies allow it. Treat it as a draft author, not an auto-merge system. Humans keep review and merge authority unless you build a stronger approval workflow around it.
 
 ## 9. Will Aient change production by itself?
 
@@ -85,4 +85,4 @@ Start with one service and one environment. Send telemetry, upload source maps i
 
 ## 20. Can an agent buy and configure Aient for me?
 
-Yes, if we make the agent fill out the same setup intent a human fills out today and send payment through Stripe. Aient still needs a provisioning API that turns that intent into a safe onboarding run: plan selection, Stripe checkout or subscription state, GitHub repository choice, Slack/GitHub consent links, environment keys, and status tracking. See [Agent Purchase And Configuration](./agent-commerce).
+Yes, provided the agent fills out the same setup intent a human fills out today and sends payment through Stripe. Aient still needs a provisioning API that turns that intent into a safe onboarding run: plan selection, Stripe checkout or subscription state, GitHub repository choice, Slack/GitHub consent links, environment keys, and status tracking. See [Agent Purchase And Configuration](./agent-commerce).
