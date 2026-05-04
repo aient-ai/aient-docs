@@ -1,0 +1,23 @@
+---
+title: "@aient/otel-browser"
+description: "Reference for the Aient browser OpenTelemetry package."
+---
+
+# @aient/otel-browser
+
+`@aient/otel-browser` sends browser traces and logs to Aient using public OTLP HTTP endpoints. Use a publishable key and release metadata from your build environment.
+
+## Configuration
+
+| Option | Meaning |
+| --- | --- |
+| `publishableKey` | Aient environment publishable key safe for browser code |
+| `serviceName` | Frontend service name; match source map uploads |
+| `release.environment` | Deployment environment slug |
+| `release.commit` | Build commit SHA; match source map uploads |
+| `release.branch` | Build branch or ref for release correlation |
+| `exporterUrl` | Optional base endpoint override; the SDK appends `/v1/traces` and `/v1/logs` |
+| `exporterHeaders` | Optional custom exporter headers merged with Aient auth |
+| `logs.exporterUrl` | Optional logs-specific endpoint override |
+
+Avoid high-cardinality span names and avoid attaching sensitive user input to attributes.

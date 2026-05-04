@@ -1,0 +1,26 @@
+---
+title: "Upload Source Maps"
+description: "Upload JavaScript source maps to Aient with @aient/sourcemaps."
+---
+
+# Upload Source Maps
+
+Upload source maps from CI after building your frontend. The upload commit and service name must match the telemetry emitted by the deployed bundle.
+
+```bash
+pnpm dlx @aient/sourcemaps upload .next/static \
+  --service web \
+  --commit "$GITHUB_SHA" \
+  --bundle-prefix /_next/static \
+  --fail-on-empty
+```
+
+Set `AIENT_API_KEY` in CI. Unlike telemetry publishable keys, source map upload keys are server-side credentials and must not be shipped to browsers.
+
+## Matching Rules
+
+| Field | Must match |
+| --- | --- |
+| `service` | Browser telemetry `service.name` |
+| `commit` | Browser telemetry `deployment.commit_sha` |
+| `bundle-prefix` | Public path that appears in minified stack frame URLs |

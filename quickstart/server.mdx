@@ -1,0 +1,37 @@
+---
+title: "Server Telemetry Quickstart"
+description: "Install and configure @aient/otel in a Node.js service."
+---
+
+# Server Telemetry Quickstart
+
+Install the server package and initialize it before your application imports create HTTP servers, database clients, queues, or framework handlers.
+
+```bash
+pnpm add @aient/otel
+```
+
+```ts
+import { registerOTel } from '@aient/otel'
+
+registerOTel({
+  publishableKey: process.env.AIENT_PUBLISHABLE_KEY,
+  serviceName: 'api',
+  release: {
+    commit: process.env.COMMIT_SHA,
+    branch: process.env.COMMIT_REF,
+    environment: process.env.NODE_ENV ?? 'development',
+  },
+})
+```
+
+## Required Values
+
+| Value | Source |
+| --- | --- |
+| `publishableKey` | Aient environment key for the target environment |
+| `serviceName` | Stable name for this runtime, matching source map uploads when applicable |
+| `release.environment` | Deployment environment slug such as `prod`, `qa`, or `dev` |
+| `release.commit` | Exact deployed commit SHA for release correlation |
+
+Send traces and logs to Aient unless you override endpoints for local collector testing.

@@ -1,0 +1,22 @@
+---
+title: "@aient/otel"
+description: "Reference for the Aient Node.js OpenTelemetry package."
+---
+
+# @aient/otel
+
+`@aient/otel` configures OpenTelemetry for Node.js services and exports traces and logs to Aient. Initialize it as early as possible in process startup.
+
+## Configuration
+
+| Option | Meaning |
+| --- | --- |
+| `publishableKey` | Aient environment publishable key used for OTLP auth |
+| `serviceName` | Stable service name used in Aient views |
+| `release.environment` | Deployment environment slug |
+| `release.commit` | Deployed commit SHA for release and source map correlation |
+| `release.branch` | Deployed branch or ref for release correlation |
+| `exporterUrl` | Optional base endpoint override; the SDK appends `/v1/traces` and `/v1/logs` |
+| `exporterHeaders` | Optional custom exporter headers merged with Aient auth |
+
+By default, traces use `https://ingest.aient.ai/v1/traces` and logs use `https://ingest.aient.ai/v1/logs`.

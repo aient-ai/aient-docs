@@ -1,0 +1,17 @@
+---
+title: "Event Registry"
+description: "Immutable schema URLs for Aient webhook events."
+---
+
+# Event Registry
+
+Aient publishes webhook schemas as immutable registry artifacts. Event pages link to both the immutable schema ID and the version alias for each public event.
+
+## URL Shapes
+
+| URL | Meaning |
+| --- | --- |
+| `https://registry.aient.ai/schemas/<schemaId>.json` | Immutable schema artifact |
+| `https://registry.aient.ai/events/<eventType>/v<version>.json` | Versioned event alias |
+
+Use immutable schema URLs in generated clients and version aliases when browsing by event type.

@@ -1,0 +1,34 @@
+---
+title: "Browser Telemetry Quickstart"
+description: "Install and configure @aient/otel-browser for frontend telemetry."
+---
+
+# Browser Telemetry Quickstart
+
+Install the browser package and start telemetry once during application boot.
+
+```bash
+pnpm add @aient/otel-browser
+```
+
+```ts
+import { registerOTelBrowser } from '@aient/otel-browser'
+
+registerOTelBrowser({
+  publishableKey: import.meta.env.VITE_AIENT_PUBLISHABLE_KEY,
+  serviceName: 'web',
+  release: {
+    commit: import.meta.env.VITE_COMMIT_SHA,
+    branch: import.meta.env.VITE_COMMIT_REF,
+    environment: import.meta.env.MODE,
+  },
+})
+```
+
+## Release Metadata
+
+Use the same `serviceName` and `release.commit` when uploading source maps. That lets Aient connect browser stack frames to the correct original source.
+
+## Privacy
+
+Do not attach secrets, auth tokens, raw request bodies, or user-entered sensitive content to spans or logs. Publishable keys identify only the Aient environment and are safe for browser code.

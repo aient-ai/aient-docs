@@ -1,0 +1,98 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "colors": {
+    "primary": "#111827"
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "mcp"
+    ]
+  },
+  "description": "Aient integration docs for telemetry, source maps, webhooks, and event schemas.",
+  "footer": {
+    "socials": {
+      "github": "https://github.com/haf/glimt"
+    }
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "name": "Aient",
+  "navbar": {
+    "links": [
+      {
+        "href": "https://www.npmjs.com/package/@aient/otel",
+        "label": "npm: @aient/otel"
+      },
+      {
+        "href": "https://www.npmjs.com/package/@aient/otel-browser",
+        "label": "npm: @aient/otel-browser"
+      },
+      {
+        "href": "https://www.npmjs.com/package/@aient/sourcemaps",
+        "label": "npm: @aient/sourcemaps"
+      }
+    ]
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Start",
+        "pages": [
+          "index",
+          "quickstart/server",
+          "quickstart/browser",
+          "source-maps/upload"
+        ]
+      },
+      {
+        "group": "Webhooks",
+        "pages": [
+          "webhooks/overview",
+          "webhooks/signing",
+          {
+            "group": "Event Schemas",
+            "pages": [
+              "webhooks/events/index",
+              "webhooks/events/ai.aient.integration.linear.connected",
+              "webhooks/events/ai.aient.integration.slack.connected",
+              "webhooks/events/ai.aient.integration.slack.notification_channel_selected",
+              "webhooks/events/ai.aient.onboarding.completed",
+              "webhooks/events/ai.aient.organisation.created",
+              "webhooks/events/ai.aient.problem.closed",
+              "webhooks/events/ai.aient.problem.detected",
+              "webhooks/events/ai.aient.problem.regressed",
+              "webhooks/events/ai.aient.problem.triaged",
+              "webhooks/events/ai.aient.remediation.investigation_completed",
+              "webhooks/events/ai.aient.remediation.pr_created",
+              "webhooks/events/ai.aient.remediation.verified",
+              "webhooks/events/ai.aient.repository.discovered",
+              "webhooks/events/ai.aient.team.invitation_accepted"
+            ]
+          }
+        ]
+      },
+      {
+        "group": "Reference",
+        "pages": [
+          "reference/otlp-endpoints",
+          "reference/sdk-server",
+          "reference/sdk-browser",
+          "reference/sourcemaps-cli",
+          "reference/event-registry"
+        ]
+      },
+      {
+        "group": "AI Tools",
+        "pages": [
+          "ai-tools"
+        ]
+      }
+    ]
+  },
+  "theme": "mint"
+}

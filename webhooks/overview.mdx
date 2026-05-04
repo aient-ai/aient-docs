@@ -1,0 +1,20 @@
+---
+title: "Webhooks"
+description: "Subscribe to Aient events delivered as CloudEvents."
+---
+
+# Webhooks
+
+Aient webhooks deliver tenant-selectable events as CloudEvents 1.0 structured JSON. Each event page includes the immutable schema URL, topic, source template, subject template, payload fields, and an example CloudEvent.
+
+## Delivery Semantics
+
+| Contract | Behavior |
+| --- | --- |
+| Encoding | CloudEvents 1.0 structured JSON |
+| Delivery | At least once |
+| Ordering | Not globally ordered; consumers should use event timestamps and IDs |
+| Idempotency | Use the CloudEvents (`source`, `id`) tuple as the event identity |
+| Compatibility | Additive schema changes are preferred; removed fields require a new event version |
+
+Consumers should validate `type`, verify signatures, process idempotently, and return a 2xx response only after durable acceptance.

@@ -1,0 +1,27 @@
+---
+title: "@aient/sourcemaps CLI"
+description: "CLI reference for uploading JavaScript source maps to Aient."
+---
+
+# @aient/sourcemaps CLI
+
+Use the `upload` command from CI after generating production source maps.
+
+```bash
+aient-sourcemaps upload <directory> --service <service> [options]
+```
+
+## Options
+
+| Option | Meaning |
+| --- | --- |
+| `<directory>` | Build output directory containing `.map` files |
+| `--api-key`, `-k` | API key, or use `AIENT_API_KEY` |
+| `--service`, `-s` | Runtime service name |
+| `--commit`, `-c` | Git commit SHA; auto-detected from common CI env vars when omitted |
+| `--pattern` | Glob for source maps; defaults to `**/*.js.map` |
+| `--bundle-prefix` | Optional URL/path prefix prepended to derived bundle paths |
+| `--api-url` | Optional Aient API URL override |
+| `--dry-run` | List matched files without uploading |
+| `--concurrency` | Maximum concurrent uploads |
+| `--fail-on-empty` | Exit non-zero when no source maps are found |

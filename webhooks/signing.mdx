@@ -1,0 +1,18 @@
+---
+title: "Webhook Signing"
+description: "Verify Aient webhook authenticity before processing events."
+---
+
+# Webhook Signing
+
+Verify webhook signatures before parsing the event into business logic. Keep the raw request body bytes because signature verification depends on the exact payload that Aient sent.
+
+## Consumer Checklist
+
+- Read the raw request body before JSON parsing.
+- Verify the Aient signature header with the endpoint secret configured in Aient.
+- Reject missing, malformed, or stale signatures.
+- Deduplicate by the CloudEvents (`source`, `id`) tuple after verification.
+- Return 2xx only after the event is durably accepted.
+
+If verification fails, return a non-2xx response and do not process the event.

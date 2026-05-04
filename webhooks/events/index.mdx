@@ -1,0 +1,27 @@
+---
+title: "Webhook Event Schemas"
+description: "Tenant-selectable Aient webhook events and immutable schema links."
+---
+
+# Webhook Event Schemas
+
+> Generated from `@aient/events`. Do not edit this page by hand.
+
+Aient webhooks use CloudEvents 1.0 structured JSON. Only events marked public are tenant-selectable in webhook endpoint settings.
+
+## Tenant-Selectable Events
+
+- [ai.aient.integration.linear.connected](./ai.aient.integration.linear.connected) - A Linear workspace connection became usable.
+- [ai.aient.integration.slack.connected](./ai.aient.integration.slack.connected) - A Slack workspace connection became usable.
+- [ai.aient.integration.slack.notification_channel_selected](./ai.aient.integration.slack.notification_channel_selected) - A Slack notification channel was selected.
+- [ai.aient.onboarding.completed](./ai.aient.onboarding.completed) - The tenant completed onboarding.
+- [ai.aient.organisation.created](./ai.aient.organisation.created) - A tenant organisation was created.
+- [ai.aient.problem.closed](./ai.aient.problem.closed) - A problem was closed.
+- [ai.aient.problem.detected](./ai.aient.problem.detected) - A new problem was detected.
+- [ai.aient.problem.regressed](./ai.aient.problem.regressed) - A previously closed problem regressed.
+- [ai.aient.problem.triaged](./ai.aient.problem.triaged) - A detected problem was triaged.
+- [ai.aient.remediation.investigation_completed](./ai.aient.remediation.investigation_completed) - A remediation investigation completed.
+- [ai.aient.remediation.pr_created](./ai.aient.remediation.pr_created) - A remediation pull request was created.
+- [ai.aient.remediation.verified](./ai.aient.remediation.verified) - A remediation was verified.
+- [ai.aient.repository.discovered](./ai.aient.repository.discovered) - A repository was discovered by Aient.
+- [ai.aient.team.invitation_accepted](./ai.aient.team.invitation_accepted) - A team invitation was accepted.

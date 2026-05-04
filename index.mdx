@@ -1,0 +1,19 @@
+---
+title: "Aient Integration Docs"
+description: "Customer-facing integration documentation for telemetry, source maps, and webhooks."
+---
+
+# Aient Integration Docs
+
+Use these docs when connecting applications to Aient. They cover server and browser telemetry, source map uploads, webhook delivery, and the generated webhook event schema reference.
+
+## Start Here
+
+- [Instrument a server app](./quickstart/server) with `@aient/otel`.
+- [Instrument a browser app](./quickstart/browser) with `@aient/otel-browser`.
+- [Upload source maps](./source-maps/upload) with `@aient/sourcemaps` so minified frames resolve to original source.
+- [Subscribe to webhooks](./webhooks/overview) for Aient problem lifecycle events.
+
+## Public Ingest
+
+Aient accepts OTLP HTTP traces and logs at the public endpoints documented in [OpenTelemetry Endpoints](./reference/otlp-endpoints). Use publishable environment keys in application code.

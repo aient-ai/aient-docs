@@ -1,0 +1,17 @@
+{
+  "name": "aient-docs",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "mint validate",
+    "check": "mint validate",
+    "dev": "mint dev",
+    "broken-links": "mint broken-links",
+    "lint": "mint validate",
+    "lint:fix": "mint validate"
+  },
+  "devDependencies": {
+    "mint": "^4.2.546"
+  }
+}
