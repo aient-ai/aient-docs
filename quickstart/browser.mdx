@@ -1,9 +1,9 @@
 ---
-title: "Browser Telemetry Quickstart"
+title: "Browser telemetry quickstart"
 description: "Install @aient/otel-browser, register it at app boot with a publishable key, and send frontend traces and logs to Aient with release metadata for source maps."
 ---
 
-# Browser Telemetry Quickstart
+# Browser telemetry quickstart
 
 Install the browser package and start telemetry once during application boot.
 
@@ -25,7 +25,7 @@ registerOTelBrowser({
 })
 ```
 
-## Release Metadata
+## Release metadata
 
 Use the same `serviceName` and `release.commit` when uploading source maps. That lets Aient connect browser stack frames to the correct original source.
 

@@ -1,13 +1,13 @@
 ---
-title: "Webhook Signing"
+title: "Webhook signing"
 description: "Verify Aient webhook signatures using the raw request body and endpoint secret, reject stale or malformed signatures, and deduplicate events before processing."
 ---
 
-# Webhook Signing
+# Webhook signing
 
 Verify webhook signatures before parsing the event into business logic. Keep the raw request body bytes because signature verification depends on the exact payload that Aient sent.
 
-## Consumer Checklist
+## Consumer checklist
 
 - Read the raw request body before JSON parsing.
 - Verify the Aient signature header with the endpoint secret configured in Aient.
