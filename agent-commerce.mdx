@@ -1,15 +1,15 @@
 ---
-title: "Agent Purchase And Configuration"
+title: "Agent purchase and configuration"
 description: "How agents buy and configure Aient through Stripe Checkout, provisioning sessions, scoped permissions, spend caps, and webhook entitlement reconciliation."
 ---
 
-# Agent Purchase And Configuration
+# Agent purchase and configuration
 
-Agents should be able to buy and configure Aient by doing what a good human operator would do. That means choosing a plan, identifying the organisation and repository, paying through Stripe, connecting GitHub and Slack with the right admin consent, creating the first environment, and returning the exact SDK and source-map setup instructions.
+Agents should be able to buy and configure Aient the same way a good human operator would. That means choosing a plan, identifying the organisation and repository, paying through Stripe, connecting GitHub and Slack with the right admin consent, creating the first environment, and returning the exact SDK and source-map setup instructions.
 
-## Short Answer
+## Short answer
 
-Use Stripe as the buying system of record. An agent can start or complete a Stripe Checkout or Billing flow, but Aient owns the provisioning intent, onboarding state, integration handoffs, and entitlement activation. A2A is useful for discovery and multi-turn setup. x402 is useful later for prepaid agent-native API calls, but it is not the first subscription system.
+Use Stripe as the buying system of record. An agent can start or complete a Stripe Checkout or Billing flow, but Aient owns the provisioning intent, onboarding state, integration handoffs, and entitlement activation. A2A is useful for discovery and multi-turn setup. x402 fits later for prepaid agent-native API calls, but it is not the first subscription system.
 
 The practical path:
 
@@ -19,7 +19,7 @@ The practical path:
 4. Stripe webhooks reconcile entitlements.
 5. Aient continues setup with human-approved GitHub and Slack handoffs.
 
-## Buying Flow
+## Buying flow
 
 | Step | Agent does | Aient does | Stripe does |
 | --- | --- | --- | --- |
@@ -44,7 +44,7 @@ Aient needs a small, explicit API rather than letting an agent mutate billing an
 
 The session should be the bridge between agent-filled onboarding and the existing human onboarding product. If a human has to approve GitHub, Slack, or payment, the API returns a link and a waiting state rather than pretending the agent can bypass consent.
 
-## Required Fields
+## Required fields
 
 | Field | Source | Why it matters |
 | --- | --- | --- |
@@ -71,7 +71,7 @@ The session should be the bridge between agent-filled onboarding and the existin
 
 Stripe agent tools should use restricted API keys. Aient-facing agent scopes should be separate from Stripe scopes; the buying agent should not receive Aient server admin credentials.
 
-## Spend Controls
+## Spend controls
 
 - Require a buyer-approved `spendLimit` on the provisioning session.
 - Restrict agent-created Checkout sessions to published plan/price IDs.
@@ -80,7 +80,7 @@ Stripe agent tools should use restricted API keys. Aient-facing agent scopes sho
 - Record every agent action in an audit trail with the prompt-visible buyer intent, selected plan, repository, and Stripe object IDs.
 - Start in Stripe test mode and run evals before allowing live-mode agent purchase.
 
-## Entitlement Reconciliation
+## Entitlement reconciliation
 
 Stripe remains authoritative for money. Aient remains authoritative for product access. Reconcile them through webhooks and explicit state transitions:
 
@@ -94,7 +94,7 @@ Stripe remains authoritative for money. Aient remains authoritative for product 
 
 Never enable paid access from a client-side success redirect alone. The redirect can update UX state, but webhook-confirmed Stripe state should activate entitlements.
 
-## Protocol Fit
+## Protocol fit
 
 | Capability | Stripe | A2A | x402 | Aient gap |
 | --- | --- | --- | --- | --- |
@@ -104,7 +104,7 @@ Never enable paid access from a client-side success redirect alone. The redirect
 | GitHub/Slack consent | No third-party app install authority. | Can represent "auth required" and continue after consent. | Does not grant OAuth permissions. | Keep human/admin handoff for app installs and channel selection. |
 | OTel setup | Can gate access by paid entitlement. | Can return instructions, keys, and status. | Can pay for a key or setup call. | Add scoped key creation, rotation, and audit events. |
 
-## Required Aient Product Work
+## Required Aient product work
 
 1. Make the current onboarding form available as a provisioning session API.
 2. Let agents request Stripe Checkout for an approved plan, not mutate subscriptions directly.
@@ -112,7 +112,7 @@ Never enable paid access from a client-side success redirect alone. The redirect
 4. Return GitHub and Slack consent URLs when human/admin action is required.
 5. Create initial publishable keys only after payment and tenant ownership checks pass.
 
-## Recommended Path
+## Recommended path
 
 Start with this sequence:
 
@@ -123,7 +123,7 @@ Start with this sequence:
 5. Publish an A2A Agent Card or docs/MCP instructions so buying agents know how to start the setup task.
 6. Keep x402 as a later option for prepaid usage credits or single paid API calls.
 
-## Current Verdict
+## Current verdict
 
 Aient does not need x402 to let agents buy the product. Stripe already covers the SaaS purchase path. The missing piece is an Aient provisioning session that accepts the same onboarding information a human provides, constrains what the agent can request, and waits for Stripe/GitHub/Slack confirmation before enabling access.
 

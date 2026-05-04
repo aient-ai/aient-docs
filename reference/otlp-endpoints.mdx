@@ -1,13 +1,13 @@
 ---
-title: "OpenTelemetry Endpoints"
+title: "OpenTelemetry endpoints"
 description: "Public OTLP HTTP endpoints for traces and logs at ingest.aient.ai, bearer token auth with publishable keys, and resource attributes Aient uses for grouping."
 ---
 
-# OpenTelemetry Endpoints
+# OpenTelemetry endpoints
 
 Use the Aient SDKs when possible. If you are using a standard OpenTelemetry SDK directly, send OTLP HTTP traffic to the public ingest endpoints with a publishable key.
 
-## Public Endpoints
+## Public endpoints
 
 | Signal | Endpoint | Protocol |
 | --- | --- | --- |
@@ -24,7 +24,7 @@ Authorization: Bearer <publishableKey>
 
 The publishable key identifies the organisation and environment. Do not send `organisationId` from application code.
 
-## Resource Attributes
+## Resource attributes
 
 Set these resource attributes so Aient can group services and resolve source maps:
 
@@ -35,6 +35,6 @@ Set these resource attributes so Aient can group services and resolve source map
 | `deployment.commit_ref` | Branch or ref name |
 | `deployment.environment` | Environment slug such as `prod`, `qa`, or `dev` |
 
-## Local Development
+## Local development
 
 For local collectors, use `http://localhost:4318` as the base endpoint and let the SDK derive `/v1/traces` and `/v1/logs`.

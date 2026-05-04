@@ -1,9 +1,9 @@
 ---
-title: "Upload Source Maps"
+title: "Upload source maps"
 description: "Upload JavaScript source maps from CI with @aient/sourcemaps so Aient resolves minified browser stack frames using matching service name and commit SHA."
 ---
 
-# Upload Source Maps
+# Upload source maps
 
 Upload source maps from CI after building your frontend. The upload commit and service name must match the telemetry emitted by the deployed bundle.
 
@@ -17,7 +17,7 @@ pnpm dlx @aient/sourcemaps upload .next/static \
 
 Set `AIENT_API_KEY` in CI. Unlike telemetry publishable keys, source map upload keys are server-side credentials and must not be shipped to browsers.
 
-## Matching Rules
+## Matching rules
 
 | Field | Must match |
 | --- | --- |
