@@ -1,6 +1,6 @@
 ---
 title: "Browser telemetry quickstart"
-description: "Install @aient/otel-browser, register it at app boot with a publishable key, and send frontend traces and logs to Aient with release metadata for source maps."
+description: "Install @aient/otel-browser, register it at app boot with a publishable key, send frontend traces and logs to Aient with release metadata, and wire React or Next.js safely with useEffect and user context updates."
 ---
 
 # Browser telemetry quickstart
@@ -24,6 +24,45 @@ registerOTelBrowser({
   },
 })
 ```
+
+## React and Next.js
+
+Browsers only: call `registerOTelBrowser` from a **client** component after mount (not during render). Initialize **once**, then call `setUserContext` when the signed-in user changes so traces stay correlated without re-creating the SDK.
+
+```tsx
+'use client'
+
+import { useEffect, useRef } from 'react'
+import { registerOTelBrowser, type BrowserSDK } from '@aient/otel-browser'
+
+export function TelemetryInit({ userId }: { userId?: string | null }) {
+  const sdkRef = useRef<BrowserSDK | null>(null)
+
+  useEffect(() => {
+    const sdk = registerOTelBrowser({
+      publishableKey: process.env.NEXT_PUBLIC_AIENT_PUBLISHABLE_KEY!,
+      serviceName: process.env.NEXT_PUBLIC_OTEL_SERVICE_NAME ?? 'web',
+      release: {
+        commit: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? 'dev',
+        branch: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF ?? 'local',
+        environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? 'development',
+      },
+    })
+    sdkRef.current = sdk
+    return () => {
+      void sdk.shutdown()
+    }
+  }, [])
+
+  useEffect(() => {
+    sdkRef.current?.setUserContext(userId ? { userId } : null)
+  }, [userId])
+
+  return null
+}
+```
+
+In the App Router, render `<TelemetryInit userId={user?.id} />` from `app/layout.tsx` (or a client shell) so the server can pass the current user id into the client tree. For the Pages Router, mount the same component under `_app`. Use `NEXT_PUBLIC_*` only for values that are safe to expose to the browser (the publishable key is designed for that).
 
 ## Release metadata
 
