@@ -1,4 +1,0 @@
-
-> aient-docs@0.0.1 type-check /Users/h/dev/glimt/.worktrees/feat/standalone-docs-viewer/apps/aient-docs
-> tsc -p tsconfig.json --noEmit
-
