@@ -65,7 +65,7 @@ Do not attach secrets, auth tokens, raw request bodies, or sensitive user-entere
 
 ## 15. How do webhooks work?
 
-Aient webhooks deliver tenant-selectable lifecycle events as CloudEvents structured JSON. Consumers should verify signatures, process events idempotently with the CloudEvents (`source`, `id`) tuple, and return success only after durable acceptance.
+Aient webhooks deliver tenant-selectable lifecycle events as CloudEvents structured JSON. Verify signatures, process events idempotently with the CloudEvents (`source`, `id`) tuple, and return success only after durable acceptance.
 
 ## 16. What do I use the MCP for?
 
