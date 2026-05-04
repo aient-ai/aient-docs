@@ -5,13 +5,19 @@ description: "Stripe-first map for agent purchase, provisioning, scopes, spend c
 
 # Agent Purchase And Configuration
 
-Agents should be able to buy and configure Aient by doing what a good human operator would do: choose a plan, identify the organisation and repository, pay through Stripe, connect GitHub/Slack with the right admin consent, create the first environment, and return the exact SDK/source-map setup instructions.
+Agents should be able to buy and configure Aient by doing what a good human operator would do. That means choosing a plan, identifying the organisation and repository, paying through Stripe, connecting GitHub and Slack with the right admin consent, creating the first environment, and returning the exact SDK and source-map setup instructions.
 
 ## Short Answer
 
-Use Stripe as the buying system of record. An agent can start or complete a Stripe Checkout/Billing flow, but Aient should own the provisioning intent, onboarding state, integration handoffs, and entitlement activation. A2A is useful for discovery and multi-turn setup. x402 is useful later for prepaid agent-native API calls, but it is not the first subscription system.
+Use Stripe as the buying system of record. An agent can start or complete a Stripe Checkout or Billing flow, but Aient owns the provisioning intent, onboarding state, integration handoffs, and entitlement activation. A2A is useful for discovery and multi-turn setup. x402 is useful later for prepaid agent-native API calls, but it is not the first subscription system.
 
-The practical path is: agent gathers onboarding fields, Aient creates a provisioning session, Stripe collects payment or creates the subscription, Stripe webhooks reconcile entitlements, then Aient continues setup with human-approved GitHub/Slack handoffs.
+The practical path:
+
+1. The agent gathers onboarding fields.
+2. Aient creates a provisioning session.
+3. Stripe collects payment or creates the subscription.
+4. Stripe webhooks reconcile entitlements.
+5. Aient continues setup with human-approved GitHub and Slack handoffs.
 
 ## Buying Flow
 
