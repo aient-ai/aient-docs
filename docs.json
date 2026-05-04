@@ -1,7 +1,18 @@
 {
   "$schema": "https://mintlify.com/docs.json",
+  "appearance": {
+    "default": "system"
+  },
+  "background": {
+    "color": {
+      "dark": "#0E0F11",
+      "light": "#F4F4F0"
+    }
+  },
   "colors": {
-    "primary": "#111827"
+    "dark": "#4ADE80",
+    "light": "#00A878",
+    "primary": "#0A7A45"
   },
   "contextual": {
     "options": [
@@ -13,6 +24,22 @@
     ]
   },
   "description": "Aient integration docs for telemetry, source maps, webhooks, and event schemas.",
+  "favicon": {
+    "dark": "/logo/aient-favicon-dark.svg",
+    "light": "/logo/aient-favicon-light.svg"
+  },
+  "fonts": {
+    "body": {
+      "family": "DM Sans",
+      "weight": 300
+    },
+    "family": "DM Sans",
+    "heading": {
+      "family": "Instrument Serif",
+      "weight": 400
+    },
+    "weight": 300
+  },
   "footer": {
     "socials": {
       "github": "https://github.com/haf/glimt"
@@ -20,6 +47,11 @@
   },
   "icons": {
     "library": "lucide"
+  },
+  "logo": {
+    "dark": "/logo/aient-lockup-dark.svg",
+    "href": "https://aient.ai",
+    "light": "/logo/aient-lockup-light.svg"
   },
   "name": "Aient",
   "navbar": {
@@ -42,21 +74,23 @@
     "groups": [
       {
         "group": "Start",
+        "icon": "play",
         "pages": [
-          "index",
           "quickstart/server",
           "quickstart/browser",
           "source-maps/upload",
           "questions"
-        ]
+        ],
+        "root": "index"
       },
       {
         "group": "Webhooks",
+        "icon": "webhook",
         "pages": [
-          "webhooks/overview",
           "webhooks/signing",
           {
             "group": "Event Schemas",
+            "icon": "braces",
             "pages": [
               "webhooks/events/index",
               "webhooks/events/ai.aient.integration.linear.connected",
@@ -75,10 +109,12 @@
               "webhooks/events/ai.aient.team.invitation_accepted"
             ]
           }
-        ]
+        ],
+        "root": "webhooks/overview"
       },
       {
         "group": "Reference",
+        "icon": "book-open",
         "pages": [
           "reference/otlp-endpoints",
           "reference/sdk-server",
@@ -89,12 +125,22 @@
       },
       {
         "group": "AI Tools",
+        "icon": "bot",
         "pages": [
-          "ai-tools",
           "agent-commerce"
-        ]
+        ],
+        "root": "ai-tools"
       }
     ]
+  },
+  "styling": {
+    "codeblocks": {
+      "theme": {
+        "dark": "github-dark",
+        "light": "github-light"
+      }
+    },
+    "eyebrows": "breadcrumbs"
   },
   "theme": "mint"
 }
