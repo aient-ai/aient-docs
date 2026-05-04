@@ -1,0 +1,88 @@
+---
+title: "Questions"
+description: "Plain-language answers to the questions teams ask before adding Aient."
+---
+
+# Questions
+
+These are the questions engineering leaders, operators, and agents usually ask before connecting Aient. The short version: Aient sits on top of your telemetry, turns noisy signals into problems, and helps drive each problem toward a reviewed fix.
+
+## 1. What is Aient?
+
+Aient is an AI operations layer for software teams. It ingests enough telemetry to detect when something goes wrong, groups related signals into a problem, explains what changed, and can drive remediation through Slack, GitHub, webhooks, and agent tools.
+
+## 2. How can Aient know what goes wrong?
+
+Aient learns from the signals your applications emit: traces, logs, exceptions, browser errors, release metadata, and source maps. OpenTelemetry gives Aient the runtime context; source maps and commit metadata connect minified browser frames back to source; integrations such as GitHub and Slack give Aient the collaboration context needed to route and explain the issue.
+
+## 3. What signals does Aient ingest?
+
+The public integration surface accepts OTLP HTTP traces and logs. The Aient SDKs configure the right endpoints, auth headers, service names, and release metadata for Node.js and browser apps. Webhook events, Slack, GitHub, and Linear integrations add lifecycle and collaboration context around the problems Aient creates.
+
+## 4. How do I add Aient to my services?
+
+Install `@aient/otel` in server services and `@aient/otel-browser` in browser apps, set an Aient publishable environment key, and pass stable `serviceName` plus release metadata. For browser apps, upload source maps from CI with `@aient/sourcemaps` using the same service name and commit SHA.
+
+## 5. What happens after telemetry reaches Aient?
+
+Aient groups related telemetry into a problem, enriches it with service and release context, triages likely impact, and routes the next action. Depending on your configuration, that action can be a Slack notification, a webhook, an investigation, a GitHub issue, or a remediation PR.
+
+## 6. What is a problem?
+
+A problem is Aient's durable record for one customer-impacting issue. It is not a single log line or one trace. It is the grouped lifecycle around a failure pattern: detection, triage, routing, remediation, verification, closure, and possible regression.
+
+## 7. How does Aient avoid noisy duplicate alerts?
+
+Aient treats repeated signals as evidence for the same problem when they share the same failure pattern and context. The product model is problem-first rather than event-first, so users see one evolving issue instead of a stream of repeated alerts. Routing policies and cooldowns control when Aient notifies again.
+
+## 8. Can Aient fix problems automatically?
+
+Aient can investigate and prepare remediation work, including GitHub pull requests, when the integrations and policies allow it. It should not be treated as an auto-merge system. Humans keep review and merge authority unless you deliberately build a stronger approval workflow around it.
+
+## 9. Will Aient change production by itself?
+
+No. Aient can open PRs, create issues, send notifications, and call configured workflows, but production changes still depend on your review, CI, deployment, and approval process.
+
+## 10. What do I see in Slack?
+
+Slack is a collaboration surface for problem updates. Aient can post concise problem milestones, keep discussion threaded, and accept user replies or mentions where the Slack integration is configured. The canonical problem state remains in Aient.
+
+## 11. What does GitHub add?
+
+GitHub lets Aient connect failures to repositories, commits, source files, issues, and pull requests. That context is what turns "there was a spike" into "this release introduced this failure and here is a candidate fix."
+
+## 12. Where do source maps fit?
+
+Source maps make browser crashes actionable. Without them, production stack frames often point to minified bundles. Uploading source maps with the matching service name and commit lets Aient resolve frames back to original files and lines.
+
+## 13. What keys do I need?
+
+Use publishable environment keys in application telemetry code. Use server-side API keys only in trusted automation such as CI source-map uploads. Never ship a server API key to a browser or mobile app.
+
+## 14. What data should I avoid sending?
+
+Do not attach secrets, auth tokens, raw request bodies, or sensitive user-entered content to spans or logs. Keep telemetry useful but minimal: service names, release metadata, error context, timings, and safe attributes.
+
+## 15. How do webhooks work?
+
+Aient webhooks deliver tenant-selectable lifecycle events as CloudEvents structured JSON. Consumers should verify signatures, process events idempotently with the CloudEvents (`source`, `id`) tuple, and return success only after durable acceptance.
+
+## 16. What do I use the MCP for?
+
+Use the Aient MCP when an AI assistant or coding agent needs live Aient context. The current MCP shape is best for reading telemetry and problem context inside tools such as Cursor or Claude Code. Treat write actions such as buying, installing, or changing integrations as a separate provisioning surface until those scopes exist.
+
+## 17. How does Aient work with monorepos and many services?
+
+Give each runtime a stable `serviceName`, set release metadata on every deployment, and upload source maps with the same service and commit. Aient then has enough context to group failures by service and connect browser stacks to the right build.
+
+## 18. How fast should I expect Aient to react?
+
+Aient is designed for operational loops measured in minutes, not quarterly reports. Exact timing depends on telemetry arrival, grouping, triage, routing, integrations, and the approval path for remediation.
+
+## 19. How should I start safely?
+
+Start with one service and one environment. Send telemetry, upload source maps if it is a browser app, verify that Aient sees the service, then add Slack/webhooks/GitHub routing once the signal is useful. Expand after the first real problem lifecycle is clear.
+
+## 20. Can an agent buy and configure Aient for me?
+
+Yes, if we make the agent fill out the same setup intent a human fills out today and send payment through Stripe. Aient still needs a provisioning API that turns that intent into a safe onboarding run: plan selection, Stripe checkout or subscription state, GitHub repository choice, Slack/GitHub consent links, environment keys, and status tracking. See [Agent Purchase And Configuration](./agent-commerce).

@@ -1,0 +1,130 @@
+---
+title: "Agent Purchase And Configuration"
+description: "Stripe-first map for agent purchase, provisioning, scopes, spend controls, and entitlement reconciliation."
+---
+
+# Agent Purchase And Configuration
+
+Agents should be able to buy and configure Aient by doing what a good human operator would do: choose a plan, identify the organisation and repository, pay through Stripe, connect GitHub/Slack with the right admin consent, create the first environment, and return the exact SDK/source-map setup instructions.
+
+## Short Answer
+
+Use Stripe as the buying system of record. An agent can start or complete a Stripe Checkout/Billing flow, but Aient should own the provisioning intent, onboarding state, integration handoffs, and entitlement activation. A2A is useful for discovery and multi-turn setup. x402 is useful later for prepaid agent-native API calls, but it is not the first subscription system.
+
+The practical path is: agent gathers onboarding fields, Aient creates a provisioning session, Stripe collects payment or creates the subscription, Stripe webhooks reconcile entitlements, then Aient continues setup with human-approved GitHub/Slack handoffs.
+
+## Buying Flow
+
+| Step | Agent does | Aient does | Stripe does |
+| --- | --- | --- | --- |
+| Discover | Finds Aient docs, A2A card, or onboarding link. | Publishes setup instructions and allowed plans. | Optionally exposes products/prices or Checkout links. |
+| Prepare | Collects buyer email, organisation name, target repository, environment, plan, and spending limit. | Creates a provisioning session with an idempotency key. | No billing effect yet. |
+| Purchase | Opens or completes a Stripe-hosted flow with buyer approval. | Stores pending billing intent and expected plan. | Creates Checkout Session, Customer, Subscription, PaymentIntent, or Payment Link outcome. |
+| Reconcile | Polls setup status or receives task updates. | Verifies Stripe webhook state before enabling entitlements. | Sends `checkout.session.completed`, `invoice.payment_succeeded`, subscription updates, and failed-payment events. |
+| Configure | Follows returned GitHub/Slack/Otel tasks. | Issues scoped setup links, publishable keys, and installation status. | Remains billing source of truth. |
+
+## Provisioning API
+
+Aient needs a small, explicit API rather than letting an agent mutate billing and integrations directly:
+
+| Endpoint | Purpose | Idempotency key |
+| --- | --- | --- |
+| `POST /api/provisioning/sessions` | Create a setup session from buyer, organisation, repository, environment, requested plan, and spend cap. | Agent-supplied setup request id. |
+| `POST /api/provisioning/sessions/{id}/checkout` | Create a Stripe Checkout Session or Payment Link for the selected plan. | Provisioning session id plus plan version. |
+| `GET /api/provisioning/sessions/{id}` | Return billing, entitlement, GitHub, Slack, and telemetry setup status. | Read-only. |
+| `POST /api/provisioning/sessions/{id}/github-install-intent` | Return a GitHub App install URL scoped to the selected repository or org. | Provisioning session id plus provider. |
+| `POST /api/provisioning/sessions/{id}/slack-install-intent` | Return Slack OAuth URL and requested channel-selection state. | Provisioning session id plus provider. |
+| `POST /api/provisioning/sessions/{id}/environment-key` | Create the first publishable key after payment and org ownership are verified. | Provisioning session id plus environment slug. |
+
+The session should be the bridge between agent-filled onboarding and the existing human onboarding product. If a human has to approve GitHub, Slack, or payment, the API returns a link and a waiting state rather than pretending the agent can bypass consent.
+
+## Required Fields
+
+| Field | Source | Why it matters |
+| --- | --- | --- |
+| `buyerEmail` | Agent or human buyer | Stripe customer and Aient owner invite. |
+| `organisationName` | Agent or human buyer | Aient tenant name. |
+| `repositoryFullName` | Agent from GitHub context or human input | Repository Aient should monitor and fix first. |
+| `githubOwner` | GitHub install flow | Prevents installing against the wrong user/org. |
+| `environmentSlug` | Agent or default | Initial telemetry key and problem scope. |
+| `planId` / `priceId` | Aient plan catalog | Stripe price and entitlement mapping. |
+| `spendLimit` | Buyer policy | Caps agent-initiated usage or upgrade attempts. |
+| `setupIntentId` | Agent | Stable idempotency across retries. |
+| `callbackUrl` | Agent | Lets Aient return status to the buying agent. |
+
+## Scopes
+
+| Scope | Allows | Does not allow |
+| --- | --- | --- |
+| `aient.provisioning.read` | Read setup status and required next actions. | Create keys, billing, or integrations. |
+| `aient.provisioning.write` | Create provisioning sessions and submit onboarding fields. | Activate paid entitlements without Stripe confirmation. |
+| `aient.billing.intent` | Request Stripe Checkout/Payment Link creation for allowed plans. | Direct subscription mutation or refunds. |
+| `aient.integration.github.intent` | Create GitHub install intent links for selected repos/orgs. | Install the GitHub App without GitHub admin approval. |
+| `aient.integration.slack.intent` | Create Slack OAuth/channel-selection intent links. | Join a workspace or pick private channels without approval. |
+| `aient.environment.key.create` | Create publishable telemetry keys after entitlement checks. | Create server API keys or source-map upload secrets by default. |
+
+Stripe agent tools should use restricted API keys. Aient-facing agent scopes should be separate from Stripe scopes; the buying agent should not receive Aient server admin credentials.
+
+## Spend Controls
+
+- Require a buyer-approved `spendLimit` on the provisioning session.
+- Restrict agent-created Checkout sessions to published plan/price IDs.
+- Put upgrades, annual commits, high-usage metering, refunds, and payment-method changes behind human confirmation.
+- Rate-limit provisioning sessions per buyer email, domain, repository, and agent identity.
+- Record every agent action in an audit trail with the prompt-visible buyer intent, selected plan, repository, and Stripe object IDs.
+- Start in Stripe test mode and run evals before allowing live-mode agent purchase.
+
+## Entitlement Reconciliation
+
+Stripe remains authoritative for money. Aient remains authoritative for product access. Reconcile them through webhooks and explicit state transitions:
+
+| Stripe event | Aient action |
+| --- | --- |
+| `checkout.session.completed` | Mark checkout complete, verify expected `priceId`, attach Stripe customer/subscription IDs to the provisioning session. |
+| `invoice.payment_succeeded` | Activate or extend entitlements for the organisation. |
+| `invoice.payment_failed` | Keep setup blocked or downgrade entitlements according to billing policy. |
+| `customer.subscription.updated` | Recompute plan, limits, trial status, and available actions. |
+| `customer.subscription.deleted` | Revoke or downgrade paid entitlements after the configured grace policy. |
+
+Never enable paid access from a client-side success redirect alone. The redirect can update UX state, but webhook-confirmed Stripe state should activate entitlements.
+
+## Protocol Fit
+
+| Capability | Stripe | A2A | x402 | Aient gap |
+| --- | --- | --- | --- | --- |
+| Discovery | Products, prices, Checkout, Payment Links, and Agentic Commerce surfaces. | Agent Cards describe identity, endpoint, auth, capabilities, and skills. | Payable endpoints can be listed, but x402 is primarily a payment protocol. | Publish plan catalog and setup-agent metadata. |
+| Payment | Strong fit for subscriptions, invoices, failed payments, receipts, tax, refunds, and webhooks. | Not native. | Strong fit for per-request or prepaid HTTP payment. | Keep Stripe as subscription source of truth. |
+| Configuration | Billing only. | Good for stateful tasks, artifacts, follow-ups, and human-needed states. | Only configures something if the paid endpoint does the work. | Add provisioning API and setup task model. |
+| GitHub/Slack consent | No third-party app install authority. | Can represent "auth required" and continue after consent. | Does not grant OAuth permissions. | Keep human/admin handoff for app installs and channel selection. |
+| OTel setup | Can gate access by paid entitlement. | Can return instructions, keys, and status. | Can pay for a key or setup call. | Add scoped key creation, rotation, and audit events. |
+
+## Required Aient Product Work
+
+1. Make the current onboarding form available as a provisioning session API.
+2. Let agents request Stripe Checkout for an approved plan, not mutate subscriptions directly.
+3. Verify Stripe webhooks before activating entitlements.
+4. Return GitHub and Slack consent URLs when human/admin action is required.
+5. Create initial publishable keys only after payment and tenant ownership checks pass.
+
+## Recommended Path
+
+Start with this sequence:
+
+1. Add `POST /api/provisioning/sessions` and use it from the current onboarding links.
+2. Add `POST /api/provisioning/sessions/{id}/checkout` that creates a Stripe Checkout Session for the selected plan.
+3. Add Stripe webhook reconciliation that activates entitlements only after confirmed payment/subscription events.
+4. Add GitHub/Slack install-intent endpoints that return approval links and resume the provisioning session after OAuth/webhook callbacks.
+5. Publish an A2A Agent Card or docs/MCP instructions so buying agents know how to start the setup task.
+6. Keep x402 as a later option for prepaid usage credits or single paid API calls.
+
+## Current Verdict
+
+Aient does not need x402 to let agents buy the product. Stripe already covers the SaaS purchase path. The missing piece is an Aient provisioning session that accepts the same onboarding information a human provides, constrains what the agent can request, and waits for Stripe/GitHub/Slack confirmation before enabling access.
+
+## References
+
+- [A2A Protocol specification](https://a2a-protocol.org/latest/specification)
+- [x402](https://www.x402.org/)
+- [Stripe agent workflows](https://docs.stripe.com/agents)
+- [Stripe SaaS billing workflows for agents](https://docs.stripe.com/agents-billing-workflows)
+- [Stripe Agentic Commerce](https://docs.stripe.com/agentic-commerce)

@@ -46,7 +46,8 @@
           "index",
           "quickstart/server",
           "quickstart/browser",
-          "source-maps/upload"
+          "source-maps/upload",
+          "questions"
         ]
       },
       {
@@ -89,7 +90,8 @@
       {
         "group": "AI Tools",
         "pages": [
-          "ai-tools"
+          "ai-tools",
+          "agent-commerce"
         ]
       }
     ]
