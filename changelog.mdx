@@ -1,0 +1,24 @@
+---
+title: "Changelog"
+description: "Recent changes to Aient."
+---
+
+<Update label="2026-05-05" description="Week of May 5">
+
+## New features
+
+**Agent-native purchase and provisioning.** Buying agents can now discover Aient through a public well-known endpoint, start a Stripe Checkout-backed purchase, and receive structured instrumentation manifests without scraping HTML. A new MCP tool surface lets agents create, resume, and inspect provisioning sessions, with explicit real-money opt-in semantics. See [Agent purchase and configuration](/agent-commerce) for the full flow.
+
+**Thread-centered PR review colleague.** Aient can now join an existing GitHub PR thread, run a protocol-backed review and verification workflow, and leave a grounded work receipt on the PR using existing PR E2E evidence. Reviews appear inline alongside check runs and PR comments.
+
+**Public event registry.** CloudEvents schemas referenced by `dataschema` URLs now resolve at `https://registry.aient.ai`. The registry serves immutable schema revisions with long cache headers and human-readable event aliases, so downstream consumers can pin to exact schema versions. Event references in the [event registry](/reference/event-registry) point at the new resolver.
+
+**Standalone integration docs.** The site you are reading now is the new standalone Mintlify-backed docs viewer, focused on telemetry SDKs, source maps, OTLP ingest, and webhook event schemas. Local preview and generated source-of-truth artifacts ship together so reference content stays in sync with the SDKs.
+
+## Updates
+
+**Tighter payment authority semantics.** Stripe Checkout sessions now create or reuse a reusable payment authority (Customer plus default payment method) so future usage charges work without re-prompting buyers. Spend caps are enforced before activation.
+
+**Provisioning manifests.** Provisioning sessions return enough structured information for an agent to instrument its parent application immediately after activation, including environment keys and SDK setup hints.
+
+</Update>
