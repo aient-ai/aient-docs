@@ -1,0 +1,31 @@
+---
+title: Changelog
+description: New features, updates, and fixes shipped to Aient.
+---
+
+<Update label="2026-05-04" description="Week of May 4">
+
+## New features
+
+**Thread-centered PR review colleague.** Aient can now join an existing GitHub PR thread, run a review and check workflow, post review activity through the PR conversation, and leave a work receipt grounded in PR end-to-end evidence. PR check assistance is enabled for opted-in repositories.
+
+**Public event registry at `registry.aient.ai`.** CloudEvent `dataschema` URLs and event aliases now resolve from a dedicated public registry, independent of the app, with stable cache headers and immutable schema revisions. See the [event registry reference](/reference/event-registry).
+
+**Aient end-to-end PR checks expose cache and timing evidence.** PR E2E runs now surface workload cache evidence, build cache flags, and runner image bootstrap timing in the check summary so you can see what was reused between runs.
+
+## Updates
+
+**Resend pending team invitations.** Owners and admins can resend a pending invitation directly from the team settings page, including expired invites.
+
+**Slack thread routing improvements.** Aient now reuses existing PR thread bindings for incoming Slack and GitHub PR events, reducing duplicate threads and dropped messages.
+
+**MCP OAuth supports multi-redirect client registration.** Cursor-style MCP clients that register multiple redirect URIs during dynamic OAuth registration now work without server-side client state, while existing single-URI clients continue to work unchanged.
+
+## Fixes
+
+- PR E2E checks now terminalize cleanly when the underlying sandbox disappears, instead of stalling.
+- Stale PR threads are no longer recreated when a PR comment arrives after the original thread bootstrap.
+- Provider error qualifiers and details are preserved end-to-end in OpenTelemetry traces, making LLM provider errors easier to debug.
+- Repository discovery no longer loses progress when a sandbox is reclaimed mid-flight.
+
+</Update>
