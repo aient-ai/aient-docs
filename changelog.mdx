@@ -1,0 +1,26 @@
+---
+title: Changelog
+description: New features, updates, and fixes shipped to Aient.
+---
+
+<Update label="May 5, 2026">
+
+## New features
+
+**PR review colleague.** Aient now joins your GitHub PR threads as a reviewer. When `review_when_filed_enabled` is on, opening a PR triggers a review; new commits trigger a re-review when `review_new_commits_enabled` is on. The PR thread shows an explicit work receipt so you can tell at a glance whether Aient's reviewer is queued, in progress, or dormant.
+
+**Public event registry.** Webhook event schemas are now served from `registry.aient.ai` as a stable, public, read-only contract. CloudEvents `dataschema` URLs resolve to immutable schema artifacts, and versioned aliases (`/events/{type}/v{n}.json`) keep generated clients pinned. See [reference/event-registry](/reference/event-registry) and the [event index](/webhooks/events/index).
+
+## Updates
+
+**Truthful PR review status.** Active PR review receipts are recorded as `in_progress` only after a durable reviewer task or kickoff message exists, so the thread no longer claims work has started while the reviewer is idle.
+
+**Aient E2E checks separated from review signals.** GitHub `check_suite.requested` and rerequest events now schedule the Aient E2E check without being misread as a failed-check review trigger. PR review and E2E check lifecycles are independent.
+
+## Fixes
+
+**Dormant reviewer detection.** When a reviewer agent is spawned but no task starts, Aient now classifies the protocol as dormant and surfaces a warning instead of leaving the thread silently stalled.
+
+**GitHub PR thread bindings.** PR comments, review comments, submitted reviews, and failing check runs reuse existing PR thread bindings instead of creating duplicates.
+
+</Update>

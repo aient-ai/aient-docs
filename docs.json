@@ -130,6 +130,13 @@
           "agent-commerce"
         ],
         "root": "ai-tools"
+      },
+      {
+        "group": "Changelog",
+        "icon": "rss",
+        "pages": [
+          "changelog"
+        ]
       }
     ]
   },
