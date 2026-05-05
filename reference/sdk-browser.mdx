@@ -25,3 +25,20 @@ For React or Next.js (client mount, `setUserContext`, and cleanup), see the [bro
 The SDK sends OTLP HTTP JSON payloads. `http/protobuf` is not bundled; legacy protobuf config falls back to JSON.
 
 Avoid high-cardinality span names and avoid attaching sensitive user input to attributes.
+
+## User context and baggage
+
+Call `sdk.setUserContext({ userId, pseudoId, email, role })` after sign-in to tag in-process browser spans with `enduser.id`, `enduser.pseudo.id`, `enduser.email`, and `enduser.role`. Pass `null` on sign-out to clear it.
+
+For privacy and integrity, only `enduser.pseudo.id` is propagated as W3C `baggage` on outgoing requests from the browser. The trusted `enduser.id`, `enduser.email`, and `enduser.role` are not sent over the wire, since browser-supplied identity cannot be trusted by downstream services. Aient backends derive the authenticated `enduser.id` from your session on the server and add it to server spans.
+
+Use a stable, non-reversible hash (for example, an HMAC of the user id with a server-side secret) for `pseudoId` so you can correlate sessions without exposing PII.
+
+```ts
+sdk.setUserContext({
+  userId: 'user_123',          // local span attribute only
+  pseudoId: 'pseudo_abc',      // propagated as baggage
+  email: 'user@example.com',   // local span attribute only
+  role: 'admin',               // local span attribute only
+})
+```
