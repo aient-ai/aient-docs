@@ -11,8 +11,8 @@ Use the Aient SDKs when possible. If you are using a standard OpenTelemetry SDK 
 
 | Signal | Endpoint | Protocol |
 | --- | --- | --- |
-| Traces | `https://ingest.aient.ai/v1/traces` | OTLP HTTP/protobuf or JSON, depending on SDK support |
-| Logs | `https://ingest.aient.ai/v1/logs` | OTLP HTTP/protobuf or JSON, depending on SDK support |
+| Traces | `https://ingest.aient.ai/v1/traces` | OTLP HTTP/JSON for Aient JS SDKs; standard OTLP HTTP clients may use their supported encoding |
+| Logs | `https://ingest.aient.ai/v1/logs` | OTLP HTTP/JSON for Aient JS SDKs; standard OTLP HTTP clients may use their supported encoding |
 
 ## Authentication
 
@@ -38,3 +38,5 @@ Set these resource attributes so Aient can group services and resolve source map
 ## Local development
 
 For local collectors, use `http://localhost:4318` as the base endpoint and let the SDK derive `/v1/traces` and `/v1/logs`.
+
+The Aient JavaScript SDKs send OTLP HTTP JSON payloads and set `Content-Type: application/json`. They do not bundle protobuf runtime packages.

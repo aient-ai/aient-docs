@@ -22,4 +22,6 @@ For React or Next.js (client mount, `setUserContext`, and cleanup), see the [bro
 | `exporterHeaders` | Optional custom exporter headers merged with Aient auth |
 | `logs.exporterUrl` | Optional logs-specific endpoint override |
 
+The SDK sends OTLP HTTP JSON payloads. `http/protobuf` is not bundled; legacy protobuf config falls back to JSON.
+
 Avoid high-cardinality span names and avoid attaching sensitive user input to attributes.
