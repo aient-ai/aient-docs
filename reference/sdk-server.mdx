@@ -20,3 +20,5 @@ description: "Configuration options for the @aient/otel Node.js package includin
 | `exporterHeaders` | Optional custom exporter headers merged with Aient auth |
 
 By default, traces use `https://ingest.aient.ai/v1/traces` and logs use `https://ingest.aient.ai/v1/logs`.
+
+The SDK sends OTLP HTTP JSON payloads. Legacy `http/protobuf` protocol values are accepted for compatibility but fall back to JSON.

@@ -71,3 +71,7 @@ Use the same `serviceName` and `release.commit` when uploading source maps. That
 ## Privacy
 
 Do not attach secrets, auth tokens, raw request bodies, or user-entered sensitive content to spans or logs. Publishable keys identify only the Aient environment and are safe for browser code.
+
+## Transport
+
+`@aient/otel-browser` sends OTLP HTTP JSON payloads. `http/protobuf` is not bundled; legacy protobuf config falls back to JSON.
