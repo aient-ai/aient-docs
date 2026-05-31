@@ -21,6 +21,10 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 
 **Aient end-to-end PR checks expose cache and timing evidence.** PR E2E runs now surface workload cache evidence, build cache flags, and runner image bootstrap timing in the check summary so you can see what was reused between runs.
 
+**Agent-native purchase and provisioning.** Agents can discover Aient through a public well-known endpoint, start a Stripe Checkout-backed purchase, and receive structured instrumentation manifests without scraping HTML. The MCP surface lets agents create, resume, and inspect provisioning sessions with explicit real-money opt-in semantics. See [Agent purchase and configuration](/agent-commerce) for the full flow.
+
+**Standalone integration docs.** Aient docs now run as a standalone Mintlify site focused on telemetry SDKs, source maps, OTLP ingest, and webhook event schemas. Local preview and generated source-of-truth artifacts ship together so reference content stays aligned with the SDKs.
+
 ## Updates
 
 **Resend pending team invitations.** Owners and admins can resend a pending invitation directly from the team settings page, including expired invites.
@@ -30,6 +34,10 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 **Slack thread routing improvements.** Aient now reuses existing PR thread bindings for incoming Slack and GitHub PR events, reducing duplicate threads and dropped messages.
 
 **MCP OAuth supports multi-redirect client registration.** Cursor-style MCP clients that register multiple redirect URIs during dynamic OAuth registration now work without server-side client state, while existing single-URI clients continue to work unchanged.
+
+**Payment authority is reusable after Checkout.** Stripe Checkout sessions now create or reuse a payment authority so future usage charges work without prompting buyers again. Spend caps are enforced before activation.
+
+**Provisioning manifests for agents.** Provisioning sessions now return environment keys and SDK setup hints so an agent can instrument its parent application after activation.
 
 ## Fixes
 
