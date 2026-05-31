@@ -72,6 +72,8 @@ Use the same `serviceName` and `release.commit` when uploading source maps. That
 
 Do not attach secrets, auth tokens, raw request bodies, or user-entered sensitive content to spans or logs. Publishable keys identify only the Aient environment and are safe for browser code.
 
+When you call `setUserContext`, the SDK only propagates `enduser.pseudo.id` to downstream services as W3C baggage. Trusted identity (`enduser.id`), email, and role stay on local browser spans and are not sent over the wire; Aient backends derive the authenticated user from your server session instead. See the [SDK reference](../reference/sdk-browser) for details.
+
 ## Transport
 
 `@aient/otel-browser` sends OTLP HTTP JSON payloads. `http/protobuf` is not bundled; legacy protobuf config falls back to JSON.
