@@ -9,7 +9,9 @@ Agents should be able to buy and configure Aient the same way a good human opera
 
 ## Short answer
 
-Use Stripe as the buying system of record. An agent can start or complete a Stripe Checkout or Billing flow, but Aient owns the provisioning intent, onboarding state, integration handoffs, and entitlement activation. A2A is useful for discovery and multi-turn setup. x402 fits later for prepaid agent-native API calls, but it is not the first subscription system.
+Use Stripe as the buying system of record for team subscriptions. An agent can start or complete a Stripe Checkout or Billing flow, but Aient owns the provisioning intent, onboarding state, integration handoffs, and entitlement activation.
+
+Use [Agentic x402 onboarding](./agentic-x402) when the buyer is an autonomous agent or wallet principal that wants paid HTTP routes for signup, telemetry inspection, and remediation. x402 is now the agent-native usage path; Stripe remains the subscription source of truth.
 
 The practical path:
 
@@ -98,9 +100,9 @@ Never enable paid access from a client-side success redirect alone. The redirect
 
 | Capability | Stripe | A2A | x402 | Aient gap |
 | --- | --- | --- | --- | --- |
-| Discovery | Products, prices, Checkout, Payment Links, and Agentic Commerce surfaces. | Agent Cards describe identity, endpoint, auth, capabilities, and skills. | Payable endpoints can be listed, but x402 is primarily a payment protocol. | Publish plan catalog and setup-agent metadata. |
+| Discovery | Products, prices, Checkout, Payment Links, and Agentic Commerce surfaces. | Agent Cards describe identity, endpoint, auth, capabilities, and skills. | Bazaar-discoverable paid routes let wallet-backed agents find Aient and inspect route metadata. | Keep route metadata, pricing, and onboarding docs aligned. |
 | Payment | Strong fit for subscriptions, invoices, failed payments, receipts, tax, refunds, and webhooks. | Not native. | Strong fit for per-request or prepaid HTTP payment. | Keep Stripe as subscription source of truth. |
-| Configuration | Billing only. | Good for stateful tasks, artifacts, follow-ups, and human-needed states. | Only configures something if the paid endpoint does the work. | Add provisioning API and setup task model. |
+| Configuration | Billing only. | Good for stateful tasks, artifacts, follow-ups, and human-needed states. | Paid routes can create wallet-backed organisations, mint environment keys, and start guided onboarding sessions. | Keep human/admin handoffs explicit. |
 | GitHub/Slack consent | No third-party app install authority. | Can represent "auth required" and continue after consent. | Does not grant OAuth permissions. | Keep human/admin handoff for app installs and channel selection. |
 | OTel setup | Can gate access by paid entitlement. | Can return instructions, keys, and status. | Can pay for a key or setup call. | Add scoped key creation, rotation, and audit events. |
 

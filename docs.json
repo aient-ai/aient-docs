@@ -127,6 +127,7 @@
         "group": "AI Tools",
         "icon": "bot",
         "pages": [
+          "agentic-x402",
           "agent-commerce"
         ],
         "root": "ai-tools"
