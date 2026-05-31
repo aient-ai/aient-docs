@@ -34,6 +34,7 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 ## Fixes
 
 - PR E2E checks now terminalize cleanly when the underlying sandbox disappears, instead of stalling.
+- PR E2E check summaries now show an explicit "preparing the sandbox runtime" status during startup, so you see meaningful progress before the runner reports its first phase.
 - Stale PR threads are no longer recreated when a PR comment arrives after the original thread bootstrap.
 - Provider error qualifiers and details are preserved end-to-end in OpenTelemetry traces, making LLM provider errors easier to debug.
 - Repository discovery no longer loses progress when a sandbox is reclaimed mid-flight.
