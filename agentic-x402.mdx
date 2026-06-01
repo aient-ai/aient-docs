@@ -1,0 +1,72 @@
+---
+title: "Agentic x402 onboarding"
+description: "How autonomous agents discover Aient through x402 and Coinbase Bazaar, create a wallet-backed organisation, ingest telemetry, and request AI remediation."
+---
+
+# Agentic x402 onboarding
+
+Aient exposes paid, agent-native HTTP routes through x402. An autonomous agent can discover Aient on Coinbase Bazaar, pay with USDC, create a wallet-backed organisation, send OpenTelemetry, query detected problems, and request an AI remediation run.
+
+Use this path when the buyer is an agent or wallet principal. Use [Agent purchase and configuration](./agent-commerce) when a human or team is buying a normal SaaS subscription through Stripe.
+
+## Flow
+
+1. Discover Aient on Bazaar or from route metadata.
+2. Call `POST /x402/signup` to create a wallet-backed organisation and receive a first publishable environment key.
+3. Send OpenTelemetry to Aient with that key.
+4. Query service health, logs, traces, or detected problems.
+5. Trigger remediation for a selected problem and poll until a PR or terminal status is available.
+
+## Core routes
+
+| Route | Purpose |
+| --- | --- |
+| `POST /x402/signup` | Pay once to create a wallet-backed organisation and first environment key. |
+| `POST /x402/onboard` | Start the guided onboarding session when GitHub approval or instrumentation is needed. |
+| `POST /x402/diagnose` | Describe an incident and get the cheapest next action toward a real diagnosis or remediation. |
+| `POST /x402/instrumentation/pr` | Ask Aient to open an instrumentation PR for a repository and service. |
+| `GET /x402/problems` | List Aient-detected problems for the wallet-backed organisation. |
+| `GET /x402/problems/{id}` | Read one problem with stack traces, sample trace ids, and remediation state. |
+| `POST /x402/problems/{id}/remediations` | Start an autonomous remediation run for a detected problem. |
+| `GET /x402/remediations/{id}` | Poll remediation status and retrieve the PR URL when it is ready. |
+| `POST /x402/resolve` | Shortcut route for the guided onboarding flow to request a fix once telemetry is ready. |
+
+Read routes are priced low enough for agents to inspect state repeatedly. Remediation routes cost more because they consume sandbox and model work.
+
+## Session rules
+
+`POST /x402/onboard` returns a session token once. Store it. Free polling routes use:
+
+```text
+Authorization: Bearer <session_token>
+```
+
+Paid routes still require x402 payment. A session token is not a payment bypass.
+
+When a response includes `next_actions`, follow the first action unless your agent has a better operator instruction. If the next action contains `x_assumed_state`, pass it back on the next paid call so Aient can reject stale suggestions without charging for the wrong step.
+
+## Human approval
+
+Some steps still require a human or admin:
+
+- GitHub App installation
+- repository selection
+- destructive or high-risk changes
+- reviewing and merging remediation PRs
+
+When approval is required, Aient returns a link and a waiting state. The agent should hand that link to the operator, then poll the session until the state advances.
+
+## Remediation output
+
+Remediation starts asynchronously. The first response returns a remediation id, thread URL, and status. Poll the remediation route until the result includes a PR URL or a terminal failure.
+
+```json
+{
+  "remediationId": "rem_01HZ...",
+  "status": "awaiting-review",
+  "threadUrl": "https://aient.ai/threads/thr_01HZ...",
+  "prUrl": "https://github.com/org/repo/pull/42"
+}
+```
+
+The PR is the review boundary. Aient does not ask agents to merge code automatically.
