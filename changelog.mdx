@@ -13,6 +13,12 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 
 **Bulk source map uploads.** Source map upload APIs now batch larger sets safely, use bounded chunk sizes, and recover from invalid object-store key components before they block stack trace resolution.
 
+**Microsoft Teams channel foundation.** Aient now has first-class Teams channel contracts, settings APIs, Bot Framework ingress, routing bindings, and Pulse delivery adapters so problem and remediation conversations can move through Teams with the same thread model as Slack.
+
+**Problem case documents.** Problem detail pages now render a structured case document that brings semantic artifacts, evidence, and remediation context into one reviewable surface.
+
+**Stale problem auto-resolution.** Aient can now close problems that stop reproducing after the scanner observes enough quiet time, with an explicit `stale` resolution kind so teams can distinguish natural recovery from manual fixes.
+
 ## Updates
 
 **GitHub identity recovery.** Linked GitHub identities can be verified through OAuth and recovered when installation metadata changes, keeping repository suggestions and PR permissions visible instead of silently dropping context.
@@ -21,12 +27,15 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 
 **Production ingest reliability.** The production telemetry ingest path is more resilient, improving the route that receives traces, logs, and metrics from monitored systems.
 
+**Remediation verification facts.** Aient now records PR deploy and CI facts on remediation attempts, making it clearer whether a generated fix reached the environment it was meant to heal.
+
 ## Fixes
 
 - Scanner cursors now advance correctly after empty dedupe batches.
 - Problem affected identity counts now stay aligned with the current lifecycle aggregate.
 - Duplicate web chat turns and persisted transcript ordering issues were fixed.
 - Kubernetes problems now coalesce by workload owner instead of unstable pod identity.
+- Source map commit verification now retries through short object-store visibility races and replaces stale artifact hashes before they block stack trace resolution.
 
 </Update>
 
