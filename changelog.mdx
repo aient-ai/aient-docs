@@ -7,66 +7,41 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 
 ## New features
 
-**Agentic signup through x402 and Coinbase Bazaar.** Agent users can now discover Aient from Bazaar, pay with x402, and start wallet-as-principal onboarding without a human account flow. The signup path keeps payment headers stable across replay and warm-up requests.
+**Bulk source map uploads.** Source map upload APIs now batch larger sets safely, use bounded chunk sizes, and recover from invalid upload paths before they block stack trace resolution.
 
-**Problem lifecycle contracts.** Problems now move through an explicit lifecycle transition contract with aggregate-owned writes, duplicate canonical links, and semantic artifacts that make problem history easier to audit and safer for agents to use.
+**Problem case documents.** Problem detail pages now show a structured case document that brings evidence and remediation context into one reviewable surface.
 
-**Bulk source map uploads.** Source map upload APIs now batch larger sets safely, use bounded chunk sizes, and recover from invalid object-store key components before they block stack trace resolution.
-
-**Microsoft Teams channel foundation.** Aient now has first-class Teams channel contracts, settings APIs, Bot Framework ingress, routing bindings, and Pulse delivery adapters so problem and remediation conversations can move through Teams with the same thread model as Slack.
-
-**Problem case documents.** Problem detail pages now render a structured case document that brings semantic artifacts, evidence, and remediation context into one reviewable surface.
-
-**Stale problem auto-resolution.** Aient can now close problems that stop reproducing after the scanner observes enough quiet time, with an explicit `stale` resolution kind so teams can distinguish natural recovery from manual fixes.
+**Stale problem auto-resolution.** Aient can now close problems that stop reproducing after enough quiet time, so teams can distinguish natural recovery from manual fixes.
 
 ## Updates
 
-**GitHub identity recovery.** Linked GitHub identities can be verified through OAuth and recovered when installation metadata changes, keeping repository suggestions and PR permissions visible instead of silently dropping context.
+**GitHub connection recovery.** GitHub connections recover more reliably when installation details change, keeping repository suggestions and PR permissions visible.
 
 **Telemetry explorer polish.** The logs view now handles malformed timestamps, reduces low-value metric noise, and keeps Problems above Services so investigation starts from the highest-value surface.
 
-**Production ingest reliability.** The production telemetry ingest path is more resilient, improving the route that receives traces, logs, and metrics from monitored systems.
-
-**Remediation verification facts.** Aient now records PR deploy and CI facts on remediation attempts, making it clearer whether a generated fix reached the environment it was meant to heal.
+**Telemetry ingest reliability.** Aient more reliably receives traces, logs, and metrics from monitored systems.
 
 ## Fixes
 
-- Scanner cursors now advance correctly after empty dedupe batches.
-- Problem affected identity counts now stay aligned with the current lifecycle aggregate.
-- Duplicate web chat turns and persisted transcript ordering issues were fixed.
+- Problem detection now continues correctly after quiet scan windows.
+- Affected user and service counts now stay aligned with the current problem state.
 - Kubernetes problems now coalesce by workload owner instead of unstable pod identity.
-- Source map commit verification now retries through short object-store visibility races and replaces stale artifact hashes before they block stack trace resolution.
+- Source map commit verification now retries through short upload delays and replaces stale artifact references before they block stack trace resolution.
 
 </Update>
 
 <Update label="2026-05-18" description="Week of May 18">
 
-## New features
-
-**Agent workflow replay.** Agent workflows can replay thread activity and persist session context, making it easier to inspect how an agent reached a decision and where a workflow needs adjustment.
-
-**Repository-backed agent configuration.** Agent configuration work can now use repository-backed sessions, so changes stay reviewable and tied to the same GitHub workflow as product code.
-
-**Billing controls.** Aient added a billable event ledger, spend reporting, price-book management, warm-up activation, and organisation budget caps so admins can control usage before costs surprise them.
-
-**Channel identity verification.** Slack identity links now require explicit verification before trusted channel use. Telegram setup, email ingress, and email problem notifications also gained guided setup and authentication checks.
-
-**Agent knowledge uplift.** Agents can now materialize, harvest, and review curated knowledge roots, giving remediation work a clearer memory boundary and a better evidence trail.
-
 ## Updates
 
-**Problem delivery is more resilient.** Missing Slack installs, stale channel tool scopes, and transient ClickHouse scanner failures now degrade explicitly instead of interrupting the problem pipeline.
+**Problem delivery is more resilient.** Missing Slack installs, stale channel permissions, and temporary telemetry query failures now degrade explicitly instead of interrupting problem delivery.
 
-**Stripe recovery paths are safer.** Deleted Stripe customers can be reconciled during billing sync, and subscription activation waits until warm-up work has completed.
-
-**Problem pipeline handoffs converged.** Follow-up work tightened the transition between detection, routing, and agent handoff so users see fewer stuck or duplicated problem states.
+**Problem routing is more consistent.** Follow-up work tightened the transition between detection and routing so users see fewer stuck or duplicated problem states.
 
 ## Fixes
 
-- Repository discovery now preserves Git authentication metadata during fetches.
-- Billing runtime pricing and unpriced event handling now cover sandbox and warm-up cases.
-- Slack follow-up threads now reset constrained root scope correctly.
-- Inbound email derives authentication facts from SES receipt data.
+- Repository discovery now preserves Git credentials during fetches, reducing failed repository setup attempts.
+- Slack follow-up threads now reset correctly after a constrained reply.
 
 </Update>
 
@@ -78,17 +53,7 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 
 **User account MFA management.** Account settings now include user-managed MFA controls, strengthening account security without requiring support intervention.
 
-**Integration credential lifecycle.** Integration credentials now expose reauthorization actions across settings and enforce clearer request boundaries, so revoked or expired credentials do not quietly resurrect.
-
-**GitHub repository identity evidence.** Aient now tracks GitHub repository and pusher identity evidence, giving routing and review workflows better ownership signals.
-
-**Loops CDP projection.** Customer data projection and Loops audience mapping now let Aient sync product events into lifecycle messaging with clearer provider boundaries.
-
-**PR review steering.** PR review threads can steer active agents, preserve cancellation transcripts, and recover stale work without losing the thread history engineers need to review.
-
 ## Updates
-
-**Agent runtime readiness improved.** PR review and remediation workloads now wait for clearer runtime readiness signals and handle capacity pressure more predictably.
 
 **Telemetry and operations dashboards improved.** Dashboard overview latency was reduced, telemetry trace empty states were fixed, and operators have a clearer view of system health.
 
@@ -96,9 +61,8 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 
 ## Fixes
 
-- Slack identity-link recovery and PR thread ingress were hardened.
-- Web chat stream binding no longer stalls on stale task topics.
-- Repository discovery and instrumentation runtimes are released after work completes.
+- Slack account-link recovery and PR thread replies were hardened.
+- Web chat replies no longer stall after stale background work.
 - Malformed authentication payloads are redacted from logs.
 
 </Update>
@@ -115,37 +79,22 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 
 ## New features
 
-**Thread-centered PR review colleague.** Aient can now join an existing GitHub PR thread, run a review and check workflow, post review activity through the PR conversation, and leave a work receipt grounded in PR end-to-end evidence. PR check assistance is enabled for opted-in repositories.
-
 **Public event registry at `registry.aient.ai`.** CloudEvent `dataschema` URLs and event aliases now resolve from a dedicated public registry, independent of the app, with stable cache headers and immutable schema revisions. See the [event registry reference](/reference/event-registry).
 
-**Aient end-to-end PR checks expose cache and timing evidence.** PR E2E runs now surface workload cache evidence, build cache flags, and runner image bootstrap timing in the check summary so you can see what was reused between runs.
+**Aient end-to-end PR checks expose cache and timing evidence.** PR E2E runs now show cache evidence, build cache flags, and runner startup timing in the check summary so you can see what was reused between runs.
 
-**Agent-native purchase and provisioning.** Agents can discover Aient through a public well-known endpoint, start a Stripe Checkout-backed purchase, and receive structured instrumentation manifests without scraping HTML. The MCP surface lets agents create, resume, and inspect provisioning sessions with explicit real-money opt-in semantics. See [Agent purchase and configuration](/agent-commerce) for the full flow.
-
-**Standalone integration docs.** Aient docs now run as a standalone Mintlify site focused on telemetry SDKs, source maps, OTLP ingest, and webhook event schemas. Local preview and generated source-of-truth artifacts ship together so reference content stays aligned with the SDKs.
+**Standalone integration docs.** Aient docs now run as a standalone Mintlify site focused on telemetry SDKs, source maps, OTLP ingest, and webhook event schemas.
 
 ## Updates
 
-**Resend pending team invitations.** Owners and admins can resend a pending invitation directly from the team settings page, including expired invites.
-
-**Organisation ID visible in settings.** The organisation settings page now shows the current organisation ID with a one-click copy, so you can share it quickly with support without digging through URLs.
-
 **Slack thread routing improvements.** Aient now reuses existing PR thread bindings for incoming Slack and GitHub PR events, reducing duplicate threads and dropped messages.
-
-**MCP OAuth supports multi-redirect client registration.** Cursor-style MCP clients that register multiple redirect URIs during dynamic OAuth registration now work without server-side client state, while existing single-URI clients continue to work unchanged.
-
-**Payment authority is reusable after Checkout.** Stripe Checkout sessions now create or reuse a payment authority so future usage charges work without prompting buyers again. Spend caps are enforced before activation.
-
-**Provisioning manifests for agents.** Provisioning sessions now return environment keys and SDK setup hints so an agent can instrument its parent application after activation.
 
 ## Fixes
 
-- PR E2E checks now terminalize cleanly when the underlying sandbox disappears, instead of stalling.
-- PR E2E check summaries now show an explicit "preparing the sandbox runtime" status during startup, so you see meaningful progress before the runner reports its first phase.
+- PR E2E checks now finish cleanly when the runner disappears, instead of stalling.
+- PR E2E check summaries now show an explicit "preparing the test runner" status during startup, so you see meaningful progress before the runner reports its first phase.
 - Stale PR threads are no longer recreated when a PR comment arrives after the original thread bootstrap.
 - Provider error qualifiers and details are preserved end-to-end in OpenTelemetry traces, making LLM provider errors easier to debug.
-- Repository discovery no longer loses progress when a sandbox is reclaimed mid-flight.
 - Populated bars now render correctly on the problem histogram chart and sparklines after timestamp bucket alignment.
 
 </Update>
