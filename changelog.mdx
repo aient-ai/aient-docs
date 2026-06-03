@@ -3,6 +3,31 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-06-01" description="Week of June 1">
+
+## New features
+
+**Problem Details redesign and agent export.** Problem pages now use stable `PRB-n` references, clearer evidence sections, and bulk export actions so teams can move problem context into coding agents without losing the trail.
+
+**Remediation safety controls.** Automatic remediation now follows severity policy gates, giving teams a clearer boundary between investigation, draft work, and changes that still need review.
+
+## Updates
+
+**GitHub and agent onboarding reliability.** Aient now carries GitHub installation and account-binding context more reliably through agentic setup flows, including x402-backed onboarding paths.
+
+**Problem routing and collaboration delivery.** GitHub webhook ingestion, Slack delivery, and threaded updates now recover more consistently from duplicate events, stale bindings, and temporary provider failures.
+
+**Telemetry ingest hardening.** Public telemetry pipelines now guard oversized payloads and route collector traffic more reliably, improving trace and log availability during incident investigation.
+
+## Fixes
+
+- Problem disposition actions now return honest pending states instead of false timeout failures.
+- Investigated problems no longer show as actively being worked when the remediation state has moved on.
+- Source map verification now retries through short storage delays and replaces stale artifact hashes.
+- Remediation workspaces now authenticate Git and GitHub operations more reliably before preparing pull requests.
+
+</Update>
+
 <Update label="2026-05-25" description="Week of May 25">
 
 ## New features
