@@ -11,17 +11,33 @@ Aient webhooks use CloudEvents 1.0 structured JSON. Only events marked public ar
 
 ## Tenant-selectable events
 
+- [ai.aient.instrumentation.discovery_started](./ai.aient.instrumentation.discovery_started) - Instrumentation discovery started for an organisation or repository.
+- [ai.aient.instrumentation.pr_merged](./ai.aient.instrumentation.pr_merged) - An Aient instrumentation pull request was merged.
+- [ai.aient.instrumentation.services_selected](./ai.aient.instrumentation.services_selected) - Instrumentation discovery selected services for a repository.
+- [ai.aient.integration.github.connected](./ai.aient.integration.github.connected) - A GitHub installation became usable.
+- [ai.aient.integration.github.disconnected](./ai.aient.integration.github.disconnected) - A GitHub installation became unusable.
 - [ai.aient.integration.linear.connected](./ai.aient.integration.linear.connected) - A Linear workspace connection became usable.
+- [ai.aient.integration.linear.disconnected](./ai.aient.integration.linear.disconnected) - A Linear workspace connection became unusable.
+- [ai.aient.integration.mcp.connected](./ai.aient.integration.mcp.connected) - An MCP client connection became usable.
+- [ai.aient.integration.scm.connected](./ai.aient.integration.scm.connected) - A source control provider connection became usable.
+- [ai.aient.integration.scm.disconnected](./ai.aient.integration.scm.disconnected) - A source control provider connection became unusable.
 - [ai.aient.integration.slack.connected](./ai.aient.integration.slack.connected) - A Slack workspace connection became usable.
+- [ai.aient.integration.slack.disconnected](./ai.aient.integration.slack.disconnected) - A Slack workspace connection became unusable.
 - [ai.aient.integration.slack.notification_channel_selected](./ai.aient.integration.slack.notification_channel_selected) - A Slack notification channel was selected.
 - [ai.aient.onboarding.completed](./ai.aient.onboarding.completed) - The tenant completed onboarding.
 - [ai.aient.organisation.created](./ai.aient.organisation.created) - A tenant organisation was created.
 - [ai.aient.problem.closed](./ai.aient.problem.closed) - A problem was closed.
 - [ai.aient.problem.detected](./ai.aient.problem.detected) - A new problem was detected.
+- [ai.aient.problem.duplicate_changed](./ai.aient.problem.duplicate_changed) - A problem duplicate relationship changed.
 - [ai.aient.problem.regressed](./ai.aient.problem.regressed) - A previously closed problem regressed.
+- [ai.aient.problem.remediation_decision_recorded](./ai.aient.problem.remediation_decision_recorded) - A remediation admission decision was recorded for a problem.
+- [ai.aient.problem.reopened](./ai.aient.problem.reopened) - A previously closed problem was reopened.
+- [ai.aient.problem.suppression_changed](./ai.aient.problem.suppression_changed) - A problem alert suppression overlay changed.
 - [ai.aient.problem.triaged](./ai.aient.problem.triaged) - A detected problem was triaged.
+- [ai.aient.problem.verification_started](./ai.aient.problem.verification_started) - A problem entered production verification.
 - [ai.aient.remediation.investigation_completed](./ai.aient.remediation.investigation_completed) - A remediation investigation completed.
 - [ai.aient.remediation.pr_created](./ai.aient.remediation.pr_created) - A remediation pull request was created.
 - [ai.aient.remediation.verified](./ai.aient.remediation.verified) - A remediation was verified.
 - [ai.aient.repository.discovered](./ai.aient.repository.discovered) - A repository was discovered by Aient.
 - [ai.aient.team.invitation_accepted](./ai.aient.team.invitation_accepted) - A team invitation was accepted.
+- [ai.aient.telemetry.received](./ai.aient.telemetry.received) - An environment received usable telemetry in a coalescing window; receivedAt is the bucket start.
