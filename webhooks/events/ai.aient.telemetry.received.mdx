@@ -1,0 +1,68 @@
+---
+title: "telemetry.received"
+description: "Webhook schema for ai.aient.telemetry.received"
+---
+
+# ai.aient.telemetry.received
+
+> Generated from `@aient/events`. Do not edit this page by hand.
+
+An environment received usable telemetry in a coalescing window; receivedAt is the bucket start.
+
+## Delivery Contract
+
+| Field | Value |
+| --- | --- |
+| Visibility | Tenant-selectable public event |
+| Topic | `v1.events.telemetry` |
+| Bounded context | `telemetry` |
+| Source | `https://aient.ai/api/organisations/{organisationId}/environments/{environmentId}` |
+| Subject | `environments/{environmentId}` |
+| Schema ID | `sch_01KREWXD5B2D4ZNKBQCNQSS574` |
+| Immutable schema | `https://registry.aient.ai/schemas/sch_01KREWXD5B2D4ZNKBQCNQSS574.json` |
+| Version alias | `https://registry.aient.ai/events/ai.aient.telemetry.received/v1.json` |
+
+## Payload Fields
+
+| Field | Required | Type | Enum |
+| --- | --- | --- | --- |
+| `environmentId` | yes | `string` | - |
+| `environmentSlug` | yes | `string` | - |
+| `organisationId` | yes | `string` | - |
+| `receivedAt` | yes | `string` | - |
+| `signalKinds` | no | `array` | - |
+
+## Privacy Notes
+
+ID-first customer-facing payload. Do not include secrets, tokens, raw telemetry, prompts, logs, or customer content.
+
+## Lifecycle Notes
+
+Emitted after the owning bounded-context state transition commits through its Restate handler.
+
+## Compatibility Notes
+
+Backward-compatible schema changes may add optional fields; removing fields, changing field types, or removing enum values requires a new schema revision and migration plan.
+
+## Example CloudEvent
+
+```json
+{
+  "data": {
+    "environmentId": "environment_example",
+    "environmentSlug": "example-environmentSlug",
+    "organisationId": "11111111-1111-4111-8111-111111111111",
+    "receivedAt": "2026-04-25T12:00:00.000Z",
+    "signalKinds": []
+  },
+  "datacontenttype": "application/json",
+  "dataschema": "https://registry.aient.ai/schemas/sch_01KREWXD5B2D4ZNKBQCNQSS574.json",
+  "id": "evt_01J8X7AKZP4N6QHF2T1Y3R5VAA",
+  "organisationid": "11111111-1111-4111-8111-111111111111",
+  "source": "https://aient.ai/api/organisations/11111111-1111-4111-8111-111111111111/environments/environment_example",
+  "specversion": "1.0",
+  "subject": "environments/environment_example",
+  "time": "2026-04-25T12:00:00.000Z",
+  "type": "ai.aient.telemetry.received"
+}
+```
