@@ -3,6 +3,28 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-06-08" description="Week of June 8">
+
+## New features
+
+**Telemetry-based billing setup prompt.** After Aient receives first telemetry, the dashboard can now guide teams to finish payment setup with clear plan actions and a short dismissal window.
+
+## Updates
+
+**Stale problem cleanup is now active.** Quiet problems can now resolve automatically under conservative daily limits, keeping the Problems queue focused on issues that still need attention.
+
+**Agent workspace reliability.** Remediation agents now preserve sandbox state and workspace cache context more consistently, reducing lost setup work while Aient prepares investigations and pull requests.
+
+**Mobile app layout polish.** Core app views now handle mobile viewport sizing more reliably, improving navigation and review workflows on smaller screens.
+
+## Fixes
+
+- Agent sandbox setup now rejects mismatched template and cache settings before they can route work to the wrong workspace.
+- Completed sandbox commands now preserve their results even when follow-up maintenance needs retrying.
+- Generic agent workspaces now carry repository and cache metadata more reliably during skill discovery and remediation setup.
+
+</Update>
+
 <Update label="2026-06-01" description="Week of June 1">
 
 ## New features
