@@ -3,6 +3,34 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-06-08" description="Week of June 8">
+
+## New features
+
+**Public agent setup page.** Aient now has a public `/agents` entry point for teams and agents that need setup paths, documentation links, and agent-commerce context before signing in.
+
+**Retry failed remediations.** Failed remediation attempts now expose structured failure evidence and retry actions from the dashboard and MCP tools, so teams can restart eligible work without losing the original problem context.
+
+**MCP onboarding activation tools.** Agents connected through MCP can now read activation status, submit supported onboarding steps, and retry repository discovery when the token has the right scope.
+
+**Telemetry-aware billing setup.** Aient now prompts billing setup after onboarding and first telemetry, keeping payment setup out of the way until the platform has real signal to protect.
+
+## Updates
+
+**Source-map evidence in problem cases.** Problem case files now include resolved source-map stack details and call-chain evidence, giving coding agents better context before they prepare a fix.
+
+**Remediation workspace reliability.** Aient now handles workspace materialization failures as explicit states and authenticates GitHub operations more consistently when preparing remediation pull requests.
+
+**Browser error instrumentation hardening.** The browser SDK now tolerates null or missing runtime error messages while filtering hydration mismatch noise.
+
+## Fixes
+
+- Problem action controls now have more consistent parity across problem surfaces.
+- Agent execution budgets now account for tool time more accurately, reducing false retry exhaustion.
+- GitHub authentication is now applied more consistently when remediation agents publish changes.
+
+</Update>
+
 <Update label="2026-06-01" description="Week of June 1">
 
 ## New features
