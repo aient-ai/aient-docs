@@ -69,7 +69,7 @@ Aient webhooks deliver tenant-selectable lifecycle events as CloudEvents structu
 
 ## 16. What do I use the MCP for?
 
-Use the Aient MCP when an AI assistant or coding agent needs live Aient context. The current MCP shape is best for reading telemetry and problem context inside tools such as Cursor or Claude Code. Treat write actions such as buying, installing, or changing integrations as a separate provisioning surface until those scopes exist.
+Use the Aient MCP when an AI assistant or coding agent needs live Aient context inside tools such as Cursor or Claude Code. It can read telemetry and problem context, and with onboarding/write scope it can report activation status, submit supported onboarding steps, and retry repository discovery. Keep payment, integration approval, and production-change authority on the normal consent and review surfaces.
 
 ## 17. How does Aient work with monorepos and many services?
 
