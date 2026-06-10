@@ -13,7 +13,11 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 
 **Retry failed remediations.** Failed remediation attempts now expose structured failure evidence and retry actions from the dashboard and MCP tools, so teams can restart eligible work without losing the original problem context.
 
+**Problem issue-kind labels.** Problem lists, details, routing context, and agent exports now show whether a problem looks like application code, infrastructure, database, or another issue type, helping teams send work to the right owner faster.
+
 **MCP onboarding activation tools.** Agents connected through MCP can now read activation status, submit supported onboarding steps, and retry repository discovery when the token has the right scope.
+
+**MCP service-to-repository linking.** Authorized MCP clients can now connect observed telemetry services to the repository and path Aient should use for source maps and remediation context.
 
 **Telemetry-aware billing setup.** Aient now prompts billing setup after onboarding and first telemetry, keeping payment setup out of the way until the platform has real signal to protect.
 
