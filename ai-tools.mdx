@@ -14,3 +14,9 @@ Mintlify exposes documentation content as Markdown for agents, hosts `llms.txt`,
 - Prefer the SDK quickstarts over raw OTLP setup unless you need a custom OpenTelemetry pipeline.
 - Use [Agentic x402 onboarding](./agentic-x402) when an autonomous agent needs to discover Aient, pay with x402, and request remediation through wallet-backed routes.
 - Use [Agent-assisted setup](./agent-commerce) when an assistant helps prepare setup for a human or team.
+
+## Discover the MCP server
+
+Aient's hosted MCP server is listed in the official MCP Registry as `ai.aient/mcp` and is reachable at `https://aient.ai/mcp`.
+
+Use registry metadata when your assistant supports registry-based installation. Otherwise, configure the remote MCP URL directly. Request read scope for context lookup, and request write scope only when the assistant needs to report onboarding progress, retry setup steps, or control remediation workflows.

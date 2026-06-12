@@ -23,6 +23,10 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 
 **Teams as a collaboration channel.** Teams can now choose Microsoft Teams during onboarding, route problem notifications to Teams destinations, and manage collaboration delivery with the same readiness checks used for Slack.
 
+**Official MCP Registry listing.** Aient's hosted MCP server is now listed as `ai.aient/mcp` in the official MCP Registry, giving coding agents a standard discovery path for Aient context and remediation tools.
+
+**Confirmed problem resolution.** Dashboard owners can now confirm a pending agent-proposed resolution from the problem action flow, keeping closure explicit while preserving the agent's evidence trail.
+
 ## Updates
 
 **Source-map evidence in problem cases.** Problem case files now include resolved source-map stack details and call-chain evidence, giving coding agents better context before they prepare a fix.
@@ -30,6 +34,12 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 **Richer problem link previews.** Shared problem links now unfurl with the real problem title in supported clients, making incident context easier to recognize before opening Aient.
 
 **Remediation workspace reliability.** Aient now handles workspace materialization failures as explicit states and authenticates GitHub operations more consistently when preparing remediation pull requests.
+
+**Problem list scalability.** Large problem, label, dashboard, service-health, and scanner reads now split oversized filters into bounded requests, so high-volume organisations keep loading reliably as their history grows.
+
+**Remediation PR readiness.** Aient now evaluates GitHub commit status contexts alongside check runs before treating an agent-authored remediation PR as ready for review.
+
+**GitHub App key compatibility.** Aient now accepts the PKCS#1 private keys GitHub Apps provide and normalizes them for JWT signing, reducing setup failures for GitHub-backed remediation.
 
 **MCP setup scopes.** MCP setup now shows read and write scope controls, with generated configuration that requests write access when remediation control is needed.
 
@@ -42,6 +52,11 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 - Problem action controls now have more consistent parity across problem surfaces.
 - Agent execution budgets now account for tool time more accurately, reducing false retry exhaustion.
 - GitHub authentication is now applied more consistently when remediation agents publish changes.
+- Telemetry verification and anomaly debugging now derive tenant scope from authenticated access instead of caller-supplied identifiers.
+- Agentic GitHub onboarding now verifies installer control before linking an installation to an onboarding session.
+- Teams destination deletion now stays scoped to Teams routes.
+- The Problems page no longer records URL-state hook errors during initial server rendering.
+- Remediation agents now retry transient model stream failures while keeping quota and authentication failures terminal.
 
 </Update>
 
