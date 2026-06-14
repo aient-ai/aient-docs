@@ -78,6 +78,7 @@
         "pages": [
           "quickstart/server",
           "quickstart/browser",
+          "vercel/drain",
           "source-maps/upload",
           "questions"
         ],
