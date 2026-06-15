@@ -46,12 +46,12 @@ In Aient, go to **Settings → Environments**, open the environment you want Ver
 land in, and select the **Vercel Drains** tab. Click **Add drain**, choose the **data
 type** (**Logs** or **Traces**), and create it. Aient then shows you, **once**:
 
-- A **Drain URL** — a per-organisation, per-data-type endpoint on the Aient app domain.
-  It looks like:
+- A **Drain URL** — a per-organisation, per-data-type endpoint on the Aient ingest
+  domain (`ingest.aient.ai`), served by the native Vercel-drain receiver. It looks like:
 
   ```txt
-  https://aient.ai/api/drains/vercel/<your-drain-token>/logs
-  https://aient.ai/api/drains/vercel/<your-drain-token>/traces
+  https://ingest.aient.ai/vercel/<your-drain-token>/logs
+  https://ingest.aient.ai/vercel/<your-drain-token>/traces
   ```
 
   <Warning>
