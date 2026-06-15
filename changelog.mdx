@@ -3,6 +3,33 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-06-15" description="Week of June 15">
+
+## New features
+
+**Vercel Drain ingestion.** Teams can now connect Vercel custom-endpoint Drains for logs and traces from **Settings → Environments → Vercel Drains**. Aient verifies Vercel signatures, stamps telemetry to the selected organisation and environment, and sends it through the same problem detection and remediation pipeline as SDK ingest.
+
+**Vercel integration guide.** The docs now include a Vercel Drain setup guide with the Aient settings flow, Vercel destination steps, signature verification guidance, and what to expect once telemetry starts arriving.
+
+**Remediation PR review feedback.** GitHub review feedback on agent-authored remediation pull requests now routes back into the remediation thread, including requested-changes and dismissed-review states, so agents can react to review context without losing the PR binding.
+
+## Updates
+
+**Server-side source maps for agents.** Aient's instrumentation guidance now treats `@aient/sourcemaps` uploads as required for transpiled or bundled Node, Bun, and Deno services, giving server-side stack traces the same symbolication path as browser and Next.js bundles.
+
+**Vercel observability page.** Aient now has a public Vercel integration page that explains the Drain-based path from Vercel logs and traces to problem detection, root cause analysis, and reviewed fix pull requests.
+
+**Problem lifecycle reliability.** Problem transitions and projections now preserve monotonic lifecycle state when delayed or replayed events arrive, reducing stale status regressions in problem details, remediation threads, and downstream exports.
+
+## Fixes
+
+- Vercel Drain management now uses tighter admin controls, safer rotation and revoke behavior, and retry-aware handling for upstream ingest failures.
+- GitHub identity-link notices in remediation threads now name the GitHub actor that needs linking.
+- Source-map bulk upload signing now retries transient signing failures before blocking upload batches.
+- Remediation PR status projections now keep verified and merged PR states visible on problem details and case files.
+
+</Update>
+
 <Update label="2026-06-08" description="Week of June 8">
 
 ## New features
