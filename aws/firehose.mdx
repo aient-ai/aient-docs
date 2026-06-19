@@ -1,0 +1,297 @@
+---
+title: "Send AWS CloudWatch Logs to Aient with Firehose"
+description: "Connect Amazon CloudWatch Logs to Aient through Amazon Data Firehose, so AWS application errors can become Aient problems and reviewed remediation PRs."
+---
+
+# Send AWS CloudWatch Logs to Aient with Firehose
+
+Amazon CloudWatch Logs can stream log groups to an HTTPS endpoint through Amazon Data Firehose.
+Point Firehose at Aient and your AWS logs enter the same detection and remediation loop as SDK
+and Vercel telemetry.
+
+Aient accepts the standard CloudWatch Logs payload, stamps each event to the selected organisation
+and environment, groups error-class records into problems, and uses stack traces as evidence for
+root cause analysis and reviewed GitHub fix pull requests.
+
+<Info>
+  This path ingests **CloudWatch Logs**. It does not replace OpenTelemetry traces. For distributed
+  trace context, keep using the [server telemetry quickstart](/quickstart/server) or a standard
+  OTLP client pointed at Aient.
+</Info>
+
+## What you get
+
+- **CloudWatch logs in Aient.** CloudWatch `DATA_MESSAGE` records arrive as Aient log telemetry
+  without changing application code.
+- **Problem detection from AWS errors.** Error- and fatal-level records can become Aient problems,
+  especially when logs include a clear message, error name, and stack trace.
+- **Retry-safe delivery.** Firehose retries are deduplicated from CloudWatch event identity, so
+  transient delivery failures should not inflate problem occurrence counts.
+- **Closed-loop remediation.** When Aient can connect the stack frame to a repository it can read,
+  it investigates the root cause and opens a GitHub pull request for review.
+
+## Prerequisites
+
+- An Aient account with an environment that should receive the logs.
+- AWS permissions to create or update:
+  - an Amazon Data Firehose delivery stream,
+  - IAM roles for Firehose and CloudWatch Logs,
+  - CloudWatch Logs subscription filters,
+  - an S3 bucket for failed Firehose deliveries.
+- One or more CloudWatch log groups you want Aient to monitor.
+
+## Get your Aient Firehose endpoint
+
+In Aient, go to **Settings -> Environments**, open the target environment, and select
+**Drains**. Click **AWS Firehose**. Aient shows you, once:
+
+- **Endpoint URL** - the HTTPS URL for this Aient drain:
+
+  ```txt
+  https://ingest.aient.ai/aws/firehose/<drain_id>
+  ```
+
+- **X-Amz-Firehose-Access-Key** - the access key you paste into the Firehose HTTP endpoint
+  destination.
+
+<Warning>
+  The endpoint URL and access key are credentials. Copy them before closing the dialog, store the
+  access key in a secret manager or sensitive Terraform variable, and never commit either value.
+  Aient stores only a digest of the access key, so it cannot be retrieved later.
+</Warning>
+
+If you lose the access key, rotate the drain in Aient and update Firehose with the new value.
+Revoking the drain immediately stops accepting traffic for that endpoint.
+
+## Set up Firehose in AWS
+
+Create an Amazon Data Firehose delivery stream with:
+
+| Setting | Value |
+| --- | --- |
+| Source | `Direct PUT` |
+| Destination | `HTTP endpoint` |
+| HTTP endpoint URL | The Aient endpoint URL |
+| Access key | The Aient `X-Amz-Firehose-Access-Key` |
+| Content encoding | Disabled / `NONE` |
+| Retry duration | Start with `300` seconds |
+| S3 backup | Failed data only |
+
+<Warning>
+  Keep Firehose HTTP request content encoding disabled. CloudWatch Logs already sends a
+  gzip-compressed payload inside each Firehose record. If Firehose gzips the whole HTTP request,
+  Aient rejects the payload.
+</Warning>
+
+Then add CloudWatch Logs subscription filters for the log groups you want to monitor:
+
+1. Create or choose an S3 bucket for failed Firehose deliveries.
+2. Create an IAM role trusted by `firehose.amazonaws.com` with permission to write failed records
+   to that S3 bucket.
+3. Create the Firehose delivery stream using the Aient endpoint and access key.
+4. Create an IAM role trusted by `logs.amazonaws.com` with permission to call
+   `firehose:PutRecord` and `firehose:PutRecordBatch` on the delivery stream.
+5. Add a CloudWatch Logs subscription filter to each log group:
+   - destination: the Firehose delivery stream ARN,
+   - role: the CloudWatch Logs role,
+   - filter pattern: `""` for all logs, or a narrower CloudWatch Logs filter pattern.
+
+CloudWatch can send `CONTROL_MESSAGE` records to test reachability. Aient accepts and ignores those;
+they do not create logs or problems.
+
+## Terraform example
+
+This example creates one Firehose stream and subscribes existing log groups to it.
+
+```hcl
+variable "aient_firehose_endpoint_url" {
+  description = "Aient AWS Firehose endpoint URL from Settings -> Environments -> Drains"
+  type        = string
+}
+
+variable "aient_firehose_access_key" {
+  description = "Copy-once X-Amz-Firehose-Access-Key from Aient"
+  type        = string
+  sensitive   = true
+}
+
+variable "cloudwatch_log_group_names" {
+  description = "CloudWatch log groups to send to Aient"
+  type        = set(string)
+}
+
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
+resource "aws_s3_bucket" "aient_firehose_backup" {
+  bucket = "aient-firehose-backup-${data.aws_caller_identity.current.account_id}-${data.aws_region.current.name}"
+}
+
+data "aws_iam_policy_document" "firehose_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["firehose.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "firehose" {
+  name               = "aient-firehose-http-delivery"
+  assume_role_policy = data.aws_iam_policy_document.firehose_assume_role.json
+}
+
+data "aws_iam_policy_document" "firehose_s3_backup" {
+  statement {
+    actions = [
+      "s3:AbortMultipartUpload",
+      "s3:GetBucketLocation",
+      "s3:ListBucket",
+      "s3:ListBucketMultipartUploads",
+    ]
+    resources = [aws_s3_bucket.aient_firehose_backup.arn]
+  }
+
+  statement {
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.aient_firehose_backup.arn}/*"]
+  }
+}
+
+resource "aws_iam_role_policy" "firehose_s3_backup" {
+  name   = "aient-firehose-s3-backup"
+  role   = aws_iam_role.firehose.id
+  policy = data.aws_iam_policy_document.firehose_s3_backup.json
+}
+
+resource "aws_kinesis_firehose_delivery_stream" "aient_cloudwatch" {
+  name        = "aient-cloudwatch-logs"
+  destination = "http_endpoint"
+
+  http_endpoint_configuration {
+    url            = var.aient_firehose_endpoint_url
+    name           = "Aient CloudWatch Logs"
+    access_key     = var.aient_firehose_access_key
+    role_arn       = aws_iam_role.firehose.arn
+    retry_duration = 300
+
+    buffering_size     = 1
+    buffering_interval = 60
+    s3_backup_mode     = "FailedDataOnly"
+
+    request_configuration {
+      content_encoding = "NONE"
+    }
+
+    s3_configuration {
+      role_arn           = aws_iam_role.firehose.arn
+      bucket_arn         = aws_s3_bucket.aient_firehose_backup.arn
+      buffering_size     = 10
+      buffering_interval = 300
+      compression_format = "GZIP"
+    }
+  }
+
+  depends_on = [aws_iam_role_policy.firehose_s3_backup]
+}
+
+data "aws_iam_policy_document" "cloudwatch_logs_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["logs.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringLike"
+      variable = "aws:SourceArn"
+      values = [
+        "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*",
+      ]
+    }
+  }
+}
+
+resource "aws_iam_role" "cloudwatch_logs_to_firehose" {
+  name               = "aient-cloudwatch-logs-to-firehose"
+  assume_role_policy = data.aws_iam_policy_document.cloudwatch_logs_assume_role.json
+}
+
+data "aws_iam_policy_document" "cloudwatch_logs_to_firehose" {
+  statement {
+    actions = [
+      "firehose:PutRecord",
+      "firehose:PutRecordBatch",
+    ]
+    resources = [aws_kinesis_firehose_delivery_stream.aient_cloudwatch.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "cloudwatch_logs_to_firehose" {
+  name   = "aient-cloudwatch-logs-to-firehose"
+  role   = aws_iam_role.cloudwatch_logs_to_firehose.id
+  policy = data.aws_iam_policy_document.cloudwatch_logs_to_firehose.json
+}
+
+resource "aws_cloudwatch_log_subscription_filter" "aient" {
+  for_each = var.cloudwatch_log_group_names
+
+  name            = "aient"
+  log_group_name  = each.value
+  filter_pattern  = ""
+  destination_arn = aws_kinesis_firehose_delivery_stream.aient_cloudwatch.arn
+  role_arn        = aws_iam_role.cloudwatch_logs_to_firehose.arn
+
+  emit_system_fields = ["@aws.account", "@aws.region"]
+
+  depends_on = [aws_iam_role_policy.cloudwatch_logs_to_firehose]
+}
+```
+
+## Verify the connection
+
+After applying the AWS configuration:
+
+1. Write a test log line to a subscribed log group.
+2. Wait for the Firehose buffer interval, usually about 60 seconds with the Terraform example.
+3. In Aient, the drain should move from **No data yet** to **Receiving**.
+4. In Firehose metrics, check delivery success and HTTP response codes.
+5. In the backup S3 bucket, failed objects indicate Firehose exhausted retries.
+
+Useful smoke-test messages:
+
+```txt
+INFO Aient Firehose smoke test
+ERROR Aient Firehose smoke test error
+```
+
+Structured error logs work best for problem creation:
+
+```json
+{
+  "level": "ERROR",
+  "message": "Aient Firehose smoke test error",
+  "error": "SmokeTestError",
+  "stack": "SmokeTestError: test\n    at smoke (index.js:1:1)"
+}
+```
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| Aient shows **Firehose auth** | Firehose access key does not match the copy-once Aient value | Rotate the Aient drain and update the Firehose access key |
+| Aient shows **Firehose payload** | Firehose is not sending the standard CloudWatch Logs payload, request content encoding is not `NONE`, or records exceed limits | Disable Firehose request gzip, remove transformation processors, and lower Firehose buffer size |
+| Firehose reports HTTP 413 | The batch is too large | Set `buffering_size = 1` and reduce log volume with a narrower filter pattern |
+| Firehose retries then writes to S3 backup | Aient returned a retryable error or could not forward telemetry downstream | Keep S3 backup enabled and share the Firehose request ID with Aient support |
+| Logs arrive but no problems are created | Logs are informational or do not contain exception/severity fields | Send structured error logs with `level`, `message`, `error`, and `stack` fields |
+
+## Related
+
+- [OpenTelemetry endpoints](/reference/otlp-endpoints) - send standard OTLP traces and logs to Aient.
+- [Server telemetry quickstart](/quickstart/server) - add the Aient SDK for richer spans and release metadata.
+- [Upload source maps](/source-maps/upload) - resolve bundled stack frames to original source.
