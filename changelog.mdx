@@ -11,6 +11,10 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 
 **Vercel integration guide.** The docs now include a Vercel Drain setup guide with the Aient settings flow, Vercel destination steps, signature verification guidance, and what to expect once telemetry starts arriving.
 
+**AWS CloudWatch Logs ingestion.** Teams can now connect CloudWatch log groups to Aient through Amazon Data Firehose from **Settings -> Environments -> Drains**. Aient accepts the standard CloudWatch Logs payload, verifies the copy-once Firehose access key, and turns error-class AWS logs into the same problem detection and remediation flow as other telemetry.
+
+**AWS Firehose integration guide.** The docs now include an AWS setup guide with Firehose destination settings, CloudWatch Logs subscription filters, IAM role guidance, Terraform examples, verification steps, and common troubleshooting paths.
+
 **Remediation PR review feedback.** GitHub review feedback on agent-authored remediation pull requests now routes back into the remediation thread, including requested-changes and dismissed-review states, so agents can react to review context without losing the PR binding.
 
 ## Updates

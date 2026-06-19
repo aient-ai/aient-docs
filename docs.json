@@ -79,6 +79,7 @@
           "quickstart/server",
           "quickstart/browser",
           "vercel/drain",
+          "aws/firehose",
           "source-maps/upload",
           "questions"
         ],
