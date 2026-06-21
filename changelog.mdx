@@ -3,6 +3,32 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-06-22" description="Week of June 22">
+
+## New features
+
+**Public security page.** Aient now has a public security and trust page with responsible disclosure details, contact paths, and a published `security.txt`, giving teams a clearer place to review Aient's security posture before rollout.
+
+**Teams inbound replies.** Microsoft Teams messages now flow through the same channel-turn ingestion path as other collaboration surfaces, so Teams replies can carry problem and remediation context back into Aient more reliably.
+
+## Updates
+
+**Remediation status reliability.** Remediation threads now preserve the active source of truth when older blockers, review facts, or workspace epochs arrive late, keeping problem status, PR context, and verification history aligned.
+
+**PR review context.** Agent-authored remediation work now hydrates more source context from GitHub comments and review events before applying corrections, improving follow-up quality on requested changes.
+
+**Telemetry ingest health.** Vercel Drain and AWS Firehose ingest paths now report receiver health more consistently, making telemetry setup and troubleshooting easier to verify.
+
+## Fixes
+
+- Onboarding no longer shows a stale URL state after returning from OAuth.
+- Service selection now stays in a clear loading state during long-running discovery instead of presenting a premature error.
+- Slack workspace selection copy is clearer during onboarding.
+- Guarded GitHub PR review failures are now surfaced in remediation threads instead of failing silently.
+- Thread workspaces remain visible across remediation epoch changes.
+
+</Update>
+
 <Update label="2026-06-15" description="Week of June 15">
 
 ## New features
