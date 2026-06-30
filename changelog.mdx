@@ -3,6 +3,35 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-06-29" description="Week of June 29">
+
+## New features
+
+**MCP AWS Firehose drain management.** Authorized MCP clients can now list, create, rotate, and revoke AWS Firehose drains for an environment, giving agentic setup flows the same lifecycle controls as the dashboard.
+
+**Source-map deployment tracking.** Source-map uploads now record deployment SHAs and compress artifacts on upload, giving stack trace resolution a more durable link between running code and retained source maps.
+
+**Remediation run history.** Agent remediation runs now persist runtime events into thread records, so problem threads keep clearer evidence about what the agent did, where it got blocked, and how it recovered.
+
+## Updates
+
+**Remediation PR feedback loop.** Aient now binds GitHub bot reviews, inline review comments, PR status snapshots, branch evidence, and review-triggered waits into remediation threads more consistently, so agents can keep fixing PRs without losing current context.
+
+**Remediation sandbox reliability.** Sandbox lifecycle checks now expose contract mismatches and readiness failures as explicit telemetry, improving recovery when a workspace resumes, hibernates, or reports an unexpected state.
+
+**Source-map retention.** Retention now keys off deployment SHAs, service configuration, canonical commit SHAs, and safer object-delete paths, reducing accidental artifact loss and keeping symbolication evidence available longer.
+
+## Fixes
+
+- Early-access request submissions now throttle by requester identity, reducing duplicate requests without blocking unrelated teams.
+- Billing webhooks now replay duplicate Stripe subscription and invoice events safely.
+- MCP setup now tolerates placeholder organisation selectors while preserving authenticated tenant scope.
+- Remediation agents recover more reliably from provider finish errors, content-filter interruptions, sandbox loss, and compacted context.
+- Remediation PR delivery now preserves assigned branches, pushed head SHAs, active obligations, and already-advanced completion states more accurately.
+- Source-map retention no longer times out on large keep-set queries or fails on MinIO delete checksum requirements.
+
+</Update>
+
 <Update label="2026-06-22" description="Week of June 22">
 
 ## New features
