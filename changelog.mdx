@@ -3,6 +3,34 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-07-06" description="Week of July 6">
+
+## New features
+
+**Remediation evidence packet.** Problem case files, MCP `get_problem`, and remediation prompts now share a current remediation snapshot with PR bindings, verification evidence, prior handoff context, and exact artifact handles. Agents and humans start from the same case evidence instead of re-reading raw thread history.
+
+**Public blog and feature pages.** Aient now has a public blog with static MDX, Mermaid diagrams, feeds, and SEO metadata, plus dedicated feature detail pages with product screenshots from the homepage.
+
+**MCP setup in settings.** Teams can revisit MCP connection setup from settings, with shared configuration guidance across onboarding and signed-in setup surfaces.
+
+## Updates
+
+**Problem view readability.** Problem pages now lead with the case document and keep raw inspectors collapsed by default, while retaining raw details for debugging.
+
+**Remediation review and verification loop.** Aient now tracks PR status, approval comments, delivery waits, deploy evidence, verification confidence, and human questions more consistently inside the active remediation attempt.
+
+**Human answer continuation.** Answers to remediation questions now wake the same root agent task and stay in the same conversation lane, reducing lost context after a human decision.
+
+## Fixes
+
+- Public MCP and x402 thread tools now fail closed before reading private agent-designer replay threads or their artifacts.
+- Source-map uploads and Restate ingress recover more reliably from transient network failures.
+- Telemetry ingest now applies smaller ClickHouse batches to reduce pressure during high-volume periods.
+- Resolved problems and terminal remediation PR feedback are less likely to reopen stale work or show old closure states.
+- Agent remediation edits and workspace paths now preserve safer path boundaries and avoid exposing backing worktree details.
+
+</Update>
+
 <Update label="2026-06-29" description="Week of June 29">
 
 ## New features
