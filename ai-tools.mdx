@@ -20,3 +20,9 @@ Mintlify exposes documentation content as Markdown for agents, hosts `llms.txt`,
 Aient's hosted MCP server is listed in the official MCP Registry as `ai.aient/mcp` and is reachable at `https://aient.ai/mcp`.
 
 Use registry metadata when your assistant supports registry-based installation. Otherwise, configure the remote MCP URL directly. Request read scope for context lookup, and request write scope only when the assistant needs to report onboarding progress, retry setup steps, or control remediation workflows.
+
+## Reopen a resolved problem
+
+If new production evidence changes the conclusion for a resolved problem, an assistant with MCP write scope can call `reopen_problem`. Include a fresh request ID and a short reason grounded in that evidence. Then re-read it with `get_problem` before making a separate remediation request.
+
+Reopening keeps the existing evidence and remediation history intact. It is for a new conclusion, not for undoing an accidental manual resolution. `reopen_problem` is available through the OAuth MCP server, not the wallet-backed `/mcp-x402` endpoint.
