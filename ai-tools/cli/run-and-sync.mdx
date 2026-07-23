@@ -50,8 +50,8 @@ printf '%s\n' 'pnpm lint && pnpm test' |
 | `--workspace PATH` | Synchronize a local Git checkout or linked worktree. |
 | `--repository OWNER/NAME` | Explicit repository selector for disambiguation and provider access. |
 | `--include GLOB` | Add an untracked or ignored repository-relative file layer. Repeatable. |
-| `--exclude GLOB` | Exclude matches from the explicit non-Git layer. Repeatable. |
-| `--remote-dir ABSOLUTE_PATH` | Select the remote workspace location. |
+| `--exclude GLOB` | Narrow the explicit non-Git layer selected by at least one `--include`. Repeatable. |
+| `--remote-dir ABSOLUTE_PATH` | Select a replaceable remote child directory for Git activation, such as `/workspace/repo`; never use the mounted `/workspace` root. |
 
 Repository candidates are inferred from sanitized `origin` and `upstream` remotes when possible. Embedded remote credentials are not transmitted or displayed. If exactly one authorised repository matches, Aient binds it automatically. If none match, ordinary offload may continue without GitHub access. Use `--repository` when candidates are ambiguous.
 
@@ -68,6 +68,8 @@ Changing a local remote cannot grant repository access. Every provider operation
 | `--keep` | Retain the created sandbox after completion or failure. |
 | `--lease-seconds N` | Requested sandbox lease. Default `7200`. |
 | `--name NAME` | Requested sandbox name. |
+| `--metadata KEY=VALUE` | Sandbox metadata entry. Repeatable. |
+| `--named-volume VALUE` | Named-volume selector. Repeatable. |
 | `--template NAME` | Sandbox template. Default `aient-agent`. |
 | `--download REMOTE=LOCAL` | Download an explicit file before cleanup. Repeatable. |
 
@@ -98,7 +100,9 @@ aient sandbox sync laptop-offload . \
 
 The synchronized state includes the selected worktree's exact HEAD, index, tracked changes, and selected explicit extra files. Include and exclude globs use repository-relative `/` separators and support `*`, `**`, and `?`.
 
-Excludes filter only the explicit non-Git layer. They cannot remove tracked Git state.
+Excludes filter only the explicit non-Git layer and are valid only when the same command has at least one `--include`. They cannot remove tracked Git state. This dependency applies to Git workspace synchronization; raw `--upload` and `files put --exclude` have their own file-transfer filters.
+
+Git activation atomically replaces the destination directory. `--remote-dir` must therefore name a replaceable child on the workspace filesystem, such as `/workspace/repo` or `/workspace/alternate-repo`, never the mounted `/workspace` root itself. Raw upload may target `/workspace` because it does not use Git-directory activation.
 
 ### Atomic activation and the workspace fence
 

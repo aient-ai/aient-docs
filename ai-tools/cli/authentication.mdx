@@ -34,7 +34,7 @@ aient auth status --profile client-a
 aient auth status --all
 ```
 
-`auth status --all` displays local metadata for every profile without refreshing credentials. A status check for a selected refresh-backed profile verifies the live session; a status check using an access-only token validates its signed context and expiry locally, with server authority checked on the first API operation.
+`auth status --all` displays local metadata for every profile without refreshing credentials. A status check for a selected refresh-backed profile verifies the live session. For an access-only token, status validates the envelope shape, issuer and audience claims, metadata consistency, and expiry locally; the server verifies its signature and current authority on the first API operation.
 
 ## `aient auth logout`
 
