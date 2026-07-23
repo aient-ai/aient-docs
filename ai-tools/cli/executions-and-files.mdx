@@ -1,0 +1,137 @@
+---
+title: "Executions, output, and files"
+description: "Observe supervised commands, reconnect to live output, and transfer explicit files."
+---
+
+# Executions, output, and files
+
+`sandbox exec` creates one supervised execution and prints its ID before dispatch. The `sandbox execution` commands address that exact `(sandbox, execution)` pair without starting another command.
+
+## Output is live-only
+
+Aient CLI 0.6.2 does not retain command stdout or stderr for replay. `attach` receives only new live bytes after attachment. `status`, `wait`, and `cancel` return content-free execution state.
+
+If an attached connection is interrupted, use the printed execution ID to query status first. Do not rerun an arbitrary command to discover whether it started.
+
+## `aient sandbox execution status`
+
+Read the current content-free state:
+
+```sh
+aient sandbox execution status laptop-offload EXECUTION_ID
+aient sandbox execution status laptop-offload EXECUTION_ID --json
+```
+
+For an environment-authorised execution, repeat the same selector context:
+
+```sh
+aient sandbox execution status \
+  --environment development \
+  --repository example/widget \
+  laptop-offload EXECUTION_ID
+```
+
+## `aient sandbox execution attach`
+
+Attach to future live output from a known execution:
+
+```sh
+aient sandbox execution attach laptop-offload EXECUTION_ID
+```
+
+This is execution attachment, not command detachment. It cannot replay bytes emitted before attachment. Use one active attachment per execution.
+
+## `aient sandbox execution wait`
+
+Wait for the terminal outcome without receiving output:
+
+```sh
+aient --timeout 30m sandbox execution wait \
+  laptop-offload EXECUTION_ID
+```
+
+Add `--json` for structured state. A terminal result can report a known exit code, cancellation, or an unknown outcome; the CLI does not guess by replaying the command.
+
+## `aient sandbox execution cancel`
+
+Explicitly cancel the exact execution:
+
+```sh
+aient sandbox execution cancel laptop-offload EXECUTION_ID
+aient sandbox execution cancel laptop-offload EXECUTION_ID --json
+```
+
+Cancellation does not delete the sandbox.
+
+## Environment and repository selectors
+
+All four execution-observation commands accept:
+
+| Flag | Meaning |
+| --- | --- |
+| `--environment SLUG_OR_ID` | Re-authorise the customer development environment. |
+| `--repository OWNER/NAME` | Re-select verified repository authority. Requires `--environment`. |
+
+Use the same selectors as the original environment-capable `sandbox exec`.
+
+## Explicit file commands
+
+File commands address an existing sandbox and an explicit path. They are separate from exact Git workspace synchronization.
+
+### `aient sandbox files put`
+
+Upload one file or directory into an absolute remote directory:
+
+```sh
+aient sandbox files put laptop-offload ./report.json /workspace/artifacts
+aient sandbox files put laptop-offload ./fixtures /workspace/fixtures \
+  --exclude '**/*.generated'
+```
+
+Directory excludes support `/`-separated `*`, `**`, and `?` globs. The CLI rejects upload of the active access-token file or operator auth file, including hard links to that file.
+
+### `aient sandbox files get`
+
+Download one explicit remote file:
+
+```sh
+aient sandbox files get \
+  laptop-offload /workspace/artifacts/report.json ./report.json
+```
+
+Directory download is not part of this command.
+
+### `aient sandbox files ls`
+
+List an absolute remote directory:
+
+```sh
+aient sandbox files ls laptop-offload /workspace
+aient sandbox files ls laptop-offload /workspace --json
+```
+
+Without a directory argument, the CLI lists `/`.
+
+### `aient sandbox files rm`
+
+Remove one explicit remote path:
+
+```sh
+aient sandbox files rm laptop-offload /workspace/artifacts/report.json
+```
+
+<Warning>
+  `files rm` changes the remote filesystem immediately. Verify the sandbox and absolute path before running it.
+</Warning>
+
+## Workspace mutation fencing
+
+Workspace reads and commands participate in a shared fence; sync activation and direct workspace mutation require the exclusive form. A file command against a busy workspace currently fails closed rather than waiting.
+
+If you see a workspace-busy response:
+
+1. Do not loop concurrent mutations.
+2. Check or wait for the known execution using its ID.
+3. Retry the file operation only after the reader or mutation has finished.
+
+Never interpret partial transfer progress as a completed file installation.

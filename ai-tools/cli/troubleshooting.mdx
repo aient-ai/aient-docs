@@ -1,0 +1,136 @@
+---
+title: "CLI troubleshooting and current limits"
+description: "Resolve authentication, environment policy, repository, transfer, and live-execution errors."
+---
+
+# CLI troubleshooting and current limits
+
+## `development environment is not enabled for CLI workloads`
+
+Example:
+
+```text
+HTTP 403: development environment is not enabled for CLI workloads
+```
+
+The selected environment exists, but its administrator has not allowed authenticated customer CLI workspaces to use its sandbox-exportable development capabilities.
+
+Ask an organisation administrator to open the environment's **Sandbox** settings and enable customer CLI development. Then repeat the command with that environment's actual slug:
+
+```sh
+aient sandbox run --environment development -- pnpm test
+```
+
+This is a policy denial before sandbox creation. An operator API key is not a customer workaround.
+
+## Profile is not logged in
+
+Example:
+
+```text
+profile "client-a" selected from project is not logged in
+```
+
+The nearest `.aient/config.yaml`, `AIENT_PROFILE`, or `--profile` selected a profile that has no local login:
+
+```sh
+aient auth login --profile client-a
+aient auth status --profile client-a
+```
+
+Use `aient auth profiles` to inspect local profile names.
+
+## Project organisation mismatch
+
+The `organisation` in `.aient/config.yaml` is an assertion. If OAuth resolves another organisation, Aient fails before sandbox creation.
+
+Check the selected profile:
+
+```sh
+aient auth status
+aient auth profiles
+```
+
+Then correct the non-secret project selector or log into the intended profile. Do not remove the assertion merely to force execution against the wrong customer context.
+
+## Repository is absent or ambiguous
+
+A local Git remote is only a selector. If no authorised repository matches, ordinary workspace offload may continue with `GitHub access: none`. Provider operations such as branch push and `gh pr create` require verified repository authority.
+
+When more than one remote is plausible, disambiguate:
+
+```sh
+aient sandbox run \
+  --environment development \
+  --repository example/widget \
+  -- pnpm test
+```
+
+Changing `origin` cannot grant access to another organisation's private repository.
+
+## `workspace busy`
+
+An admitted command or workspace read holds the shared workspace fence, while sync and file mutations require exclusive access.
+
+- Wait for the current execution with `sandbox execution wait`.
+- Avoid starting multiple syncs or direct workspace mutations.
+- Retry only after the known reader or mutation finishes.
+
+The CLI never replays an arbitrary command that may already have started.
+
+## Transfer shows progress but the workspace is absent
+
+A line such as `Transferred workspace archive: 56.0 MiB / 448.4 MiB` is progress, not completion. Successful sync ends with an explicit `Synchronized ...` line and a terminal process result.
+
+If you invoke `aient` from an agent, build tool, or wrapper:
+
+- preserve the child result object, including a running session handle;
+- continue polling that exact handle until a terminal exit status;
+- keep draining stdout and stderr;
+- do not treat completion of the outer wrapper as completion of the CLI; and
+- do not mutate the target workspace while the upload is active.
+
+For large workspaces:
+
+```sh
+aient --timeout 20m --verbose sandbox sync laptop-offload .
+```
+
+## Connection ended during `sandbox exec`
+
+`sandbox exec` prints the execution ID before dispatch and performs bounded transport recovery for that same execution. If the client still loses its connection:
+
+```sh
+aient sandbox execution status laptop-offload EXECUTION_ID
+aient sandbox execution attach laptop-offload EXECUTION_ID
+```
+
+`attach` receives only future live output. There is no stored stdout/stderr history. Use `execution wait` when you need only the terminal outcome.
+
+## Portable access token expired
+
+Imported access-only credentials are never refreshed. Export another from a refresh-backed profile or log in on the target machine:
+
+```sh
+aient auth export --profile client-a --format file --ttl 10m \
+  --output /private/tmp/aient-access.json
+```
+
+Delete the old file. Do not copy refresh tokens or keychain data.
+
+## Customer CPU or memory flags are rejected
+
+Although 0.6.2 help exposes `--cpu`, `--cpu-limit`, `--memory`, and `--memory-limit`, customer environment sizing is server-owned. Remove those flags. They remain low-level operator controls until customer size presets are released.
+
+## Current unsupported behavior
+
+- `aient agent` does not yet start an Aient agent.
+- Commands cannot deliberately detach.
+- Execution output is live-only and cannot be replayed.
+- `sandbox shell` cannot reattach and has no history replay.
+- Interactive shells cannot request environment or repository capabilities.
+- Public port/domain exposure is not available.
+- Customer sandbox size presets are not available.
+- `files get` downloads a file, not a directory.
+
+For other failures, rerun with `--verbose`. It prints safe correlation metadata without printing OAuth, operator, environment, or provider credentials.

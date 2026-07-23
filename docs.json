@@ -145,7 +145,19 @@
         "group": "AI Tools",
         "icon": "bot",
         "pages": [
-          "ai-tools/cli",
+          {
+            "group": "Aient CLI",
+            "icon": "terminal",
+            "pages": [
+              "ai-tools/cli",
+              "ai-tools/cli/authentication",
+              "ai-tools/cli/run-and-sync",
+              "ai-tools/cli/retained-sandboxes",
+              "ai-tools/cli/executions-and-files",
+              "ai-tools/cli/command-reference",
+              "ai-tools/cli/troubleshooting"
+            ]
+          },
           "agentic-x402",
           "agent-commerce"
         ],
