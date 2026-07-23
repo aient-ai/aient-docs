@@ -18,8 +18,8 @@ A remediation investigation completed.
 | Bounded context | `remediation` |
 | Source | `https://aient.ai/api/organisations/{organisationId}` |
 | Subject | `investigations/{investigationId}` |
-| Schema ID | `sch_01KQ46PFRQ95Z1WJ0HNMZ7EGB2` |
-| Immutable schema | `https://registry.aient.ai/schemas/sch_01KQ46PFRQ95Z1WJ0HNMZ7EGB2.json` |
+| Schema ID | `sch_01KX2T3SEG75WDY1JV2EE6R8V4` |
+| Immutable schema | `https://registry.aient.ai/schemas/sch_01KX2T3SEG75WDY1JV2EE6R8V4.json` |
 | Version alias | `https://registry.aient.ai/events/ai.aient.remediation.investigation_completed/v1.json` |
 
 ## Payload Fields
@@ -27,10 +27,14 @@ A remediation investigation completed.
 | Field | Required | Type | Enum |
 | --- | --- | --- | --- |
 | `confidence` | no | `string` | `high`, `medium`, `low` |
+| `epochId` | no | `string` | - |
 | `investigationId` | no | `string` | - |
 | `organisationId` | yes | `string` | - |
 | `problemId` | yes | `string` | - |
+| `remediationAttemptId` | no | `string` | - |
+| `rootExecutionId` | no | `string` | - |
 | `shouldRemediate` | no | `boolean` | - |
+| `threadId` | no | `string` | - |
 
 ## Privacy Notes
 
@@ -50,13 +54,17 @@ Backward-compatible schema changes may add optional fields; removing fields, cha
 {
   "data": {
     "confidence": "high",
+    "epochId": "11111111-1111-4111-8111-111111111111",
     "investigationId": "investigation_example",
     "organisationId": "11111111-1111-4111-8111-111111111111",
     "problemId": "problem_example",
-    "shouldRemediate": true
+    "remediationAttemptId": "11111111-1111-4111-8111-111111111111",
+    "rootExecutionId": "11111111-1111-4111-8111-111111111111",
+    "shouldRemediate": true,
+    "threadId": "11111111-1111-4111-8111-111111111111"
   },
   "datacontenttype": "application/json",
-  "dataschema": "https://registry.aient.ai/schemas/sch_01KQ46PFRQ95Z1WJ0HNMZ7EGB2.json",
+  "dataschema": "https://registry.aient.ai/schemas/sch_01KX2T3SEG75WDY1JV2EE6R8V4.json",
   "id": "evt_01J8X7AKZP4N6QHF2T1Y3R5VAA",
   "organisationid": "11111111-1111-4111-8111-111111111111",
   "source": "https://aient.ai/api/organisations/11111111-1111-4111-8111-111111111111",
