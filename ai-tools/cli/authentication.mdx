@@ -1,0 +1,146 @@
+---
+title: "Authentication and project profiles"
+description: "Use browser OAuth, named profiles, folder configuration, and short-lived access-only exports."
+---
+
+# Authentication and project profiles
+
+Aient CLI uses customer OAuth for ordinary development work. Refresh credentials stay in the operating-system credential store; local profile and project files contain non-secret selectors only.
+
+## `aient auth login`
+
+Open the browser consent flow and save a refresh-backed customer session:
+
+```sh
+aient auth login
+aient auth login --profile client-a
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `--profile NAME` | Save or replace the selected named customer profile. |
+| `--issuer URL` | OAuth issuer. The default is `https://aient.ai`. |
+| `--callback-timeout DURATION` | Maximum time to wait for browser consent. The default is `5m`. |
+
+Use a distinct profile for each organisation context you work in. Existing OAuth sessions may need a new login when Aient introduces additional consented capabilities.
+
+## `aient auth status`
+
+Verify the selected login and display its issuer, organisation, and granted scopes:
+
+```sh
+aient auth status
+aient auth status --profile client-a
+aient auth status --all
+```
+
+`auth status --all` displays local metadata for every profile without refreshing credentials. A status check for a selected refresh-backed profile verifies the live session; a status check using an access-only token validates its signed context and expiry locally, with server authority checked on the first API operation.
+
+## `aient auth logout`
+
+Revoke and remove only the selected login:
+
+```sh
+aient auth logout --profile client-a
+```
+
+Logging out one profile does not remove another organisation's profile.
+
+## `aient auth profiles`
+
+List locally known named profiles:
+
+```sh
+aient auth profiles
+```
+
+The output includes the current fallback marker and non-secret organisation and issuer metadata. It never prints access or refresh tokens.
+
+## `aient auth profiles default`
+
+Choose the non-secret fallback profile:
+
+```sh
+aient auth profiles default client-a
+```
+
+The default is used only when no explicit access token, explicit profile, environment profile, or project profile selects another context.
+
+## Bind a checkout with `.aient/config.yaml`
+
+Create a project file in the checkout or linked worktree:
+
+```yaml
+profile: client-a
+organisation: Example Engineering
+repository: example/widget
+```
+
+The CLI searches from the selected workspace or current directory upward and uses the nearest `.aient/config.yaml`. Supported keys are:
+
+| Key | Purpose |
+| --- | --- |
+| `profile` | Select a locally logged-in named profile. |
+| `organisation` | Assert the expected organisation name during preflight. |
+| `repository` | Supply an `owner/name` repository selector when Git remotes are absent or ambiguous. |
+
+The file is intentionally strict: it accepts only these scalar keys and must not contain credentials. The organisation and repository values are selectors and mismatch checks, never authority.
+
+### Profile resolution order
+
+For each invocation, Aient resolves authentication in this order:
+
+1. An explicit access-only source: `--access-token-file`, `AIENT_ACCESS_TOKEN_FILE`, or `AIENT_ACCESS_TOKEN`.
+2. `--profile NAME` or `AIENT_PROFILE`.
+3. The nearest `.aient/config.yaml`.
+4. The user default selected by `auth profiles default`.
+5. Compatibility profile `customer`.
+
+Conflicting explicit sources fail locally. For example, different values in `--profile` and `AIENT_PROFILE` are rejected instead of silently choosing one. A portable access token and refresh-profile selection are also mutually exclusive for the same invocation.
+
+## `aient auth export`
+
+Export a shorter-lived access-only credential for a child process, CI job, or another machine:
+
+```sh
+eval "$(aient auth export --profile client-a --format env --ttl 10m)"
+aient sandbox list
+unset AIENT_ACCESS_TOKEN
+```
+
+Or create a strict JSON envelope:
+
+```sh
+aient auth export --profile client-a --format file --ttl 10m \
+  --output /private/tmp/aient-access.json
+
+aient --access-token-file /private/tmp/aient-access.json sandbox list
+rm /private/tmp/aient-access.json
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `--profile NAME` | Required refresh-backed source profile. |
+| `--format env` | Print a shell assignment containing the live bearer token. |
+| `--format json` | Print a JSON access envelope containing the live bearer token. |
+| `--format file` | Atomically write a mode-`0600` JSON access envelope. |
+| `--output PATH` | Required destination for `file` format. |
+| `--ttl DURATION` | Requested lifetime from `1m` to `1h`; default `15m`. Actual expiry may be shorter. |
+
+<Warning>
+  The `env` and `json` formats deliberately print a live bearer token. Disable shell tracing, keep the output out of logs and transcripts, unset it after use, and delete exported files when the receiving process finishes.
+</Warning>
+
+An export contains no refresh token, operator key, environment secret, repository credential, or GitHub token. Imported access-only credentials are not refreshed or persisted by the CLI. When one expires, export another or sign in on that machine.
+
+The CLI refuses to upload the active access-token file—or a hard link to it—through workspace sync, raw upload, or `files put`.
+
+## Environment variables
+
+| Variable | Use |
+| --- | --- |
+| `AIENT_PROFILE` | Select one named refresh-backed profile. |
+| `AIENT_ACCESS_TOKEN` | Supply one raw short-lived access token. Treat as a secret. |
+| `AIENT_ACCESS_TOKEN_FILE` | Read one exported mode-`0600` access envelope. |
+
+Operator API keys and auth environment files are not customer authentication alternatives. They require the explicitly reserved `--profile operator` and are intended only for Aient's internal operations.

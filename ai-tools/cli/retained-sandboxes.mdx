@@ -1,0 +1,150 @@
+---
+title: "Retained sandbox lifecycle"
+description: "Create, find, wait for, enter, inspect, and delete retained Aient sandboxes."
+---
+
+# Retained sandbox lifecycle
+
+Retain a sandbox when you want to run several commands against one synchronized workspace. For an environment-bound customer sandbox, the simplest path is:
+
+```sh
+aient sandbox run --environment development --keep -- pnpm install
+aient sandbox list --environment development
+```
+
+The one-shot command prints the created sandbox name. Use that exact name for later operations.
+
+## `aient sandbox list`
+
+List sandboxes visible to the selected profile:
+
+```sh
+aient sandbox list
+aient sandbox list --environment development
+aient sandbox list --json
+```
+
+`--environment` applies customer environment authorization before listing. `--json` is useful for scripts.
+
+## `aient sandbox create`
+
+Create a retained sandbox without running a command:
+
+```sh
+aient sandbox create --name laptop-offload --lease-seconds 21600
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `--name NAME` | Requested sandbox name. |
+| `--template NAME` | Template name. Default `aient-agent`. |
+| `--lease-seconds N` | Requested lease. Default `7200`. |
+| `--metadata KEY=VALUE` | Metadata entry. Repeatable. |
+| `--named-volume VALUE` | Named-volume selector. Repeatable. |
+| `--json` | Emit structured output. |
+
+The 0.6.2 help also exposes CPU and memory request/limit flags. Customer workloads cannot override the environment's server-owned sizing policy with those flags; use the configured customer template. Low-level resource overrides are operator-only.
+
+For customer work that needs an environment's authorised development capabilities, prefer `sandbox run --environment ... --keep` or supply `--environment` on later `exec` and execution-observation operations.
+
+## `aient sandbox status`
+
+Show one sandbox's current state:
+
+```sh
+aient sandbox status laptop-offload
+aient sandbox status laptop-offload --json
+```
+
+## `aient sandbox wait`
+
+Wait until a sandbox becomes ready:
+
+```sh
+aient --timeout 10m sandbox wait laptop-offload
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `--poll-interval DURATION` | Status polling interval. Default `500ms`. |
+| `--json` | Emit structured output. |
+
+The global `--timeout` limits the wait.
+
+## `aient sandbox exec`
+
+Run a supervised command in an existing sandbox:
+
+```sh
+aient --timeout 15m sandbox exec laptop-offload \
+  --workdir /workspace/repo -- pnpm test
+```
+
+The CLI prints a stable execution ID to stderr before dispatch:
+
+```text
+Execution: 12345678-1234-4123-8123-123456789abc
+```
+
+Keep the sandbox name and execution ID if you may need to inspect or reconnect to the live execution.
+
+| Flag | Meaning |
+| --- | --- |
+| `--workdir ABSOLUTE_PATH` | Working directory. Default `/workspace`. |
+| `--env KEY=VALUE` | Non-secret environment value. Repeatable. |
+| `--environment SLUG_OR_ID` | Authorise use of customer development capabilities. |
+| `--repository OWNER/NAME` | Select verified repository authority for provider-capable execution. |
+| `--shell COMMAND` | Explicit shell command. |
+| `--stdin` | Read an explicit shell command from standard input. |
+
+Exact argv, `--shell`, and `--stdin` are mutually exclusive command forms. Repository authority requires `--environment`.
+
+`sandbox exec` performs bounded same-execution transport recovery. It never replays an execution that may already have started.
+
+## `aient sandbox shell`
+
+Open a new interactive PTY shell:
+
+```sh
+aient sandbox shell laptop-offload
+```
+
+Every invocation opens a new shell. Shell reattachment, history replay, and capability-bearing environment or repository flags are not available in 0.6.2. Use `sandbox exec --environment ...` for authorised non-interactive operations.
+
+## `aient sandbox logs`
+
+Read a bounded recent sandbox log snapshot:
+
+```sh
+aient sandbox logs laptop-offload
+aient sandbox logs laptop-offload --tail-lines 500
+aient sandbox logs laptop-offload --json
+```
+
+This is a sandbox runtime log snapshot, not stored command stdout/stderr history.
+
+## `aient sandbox delete`
+
+Delete a sandbox:
+
+```sh
+aient sandbox delete laptop-offload
+```
+
+Delete retained sandboxes when you are finished. A sandbox lease is not a substitute for explicit cleanup.
+
+## Operator-only lifecycle commands
+
+The following shipped commands are for Aient operators, not customer OAuth workflows:
+
+```sh
+aient --profile operator sandbox suspend NAME --discard-ephemeral-state
+aient --profile operator sandbox resume NAME
+aient --profile operator sandbox docker bootstrap NAME
+```
+
+- `suspend` scales a sandbox to zero and discards processes, sockets, and files outside explicitly retained volumes. It requires `--discard-ephemeral-state`.
+- `resume` starts a new sandbox incarnation; it does not restore discarded ephemeral state.
+- `docker bootstrap` starts tmpfs-backed Docker and supports `--tmpfs-size` and destructive `--reset`.
+
+These commands require internal operator credentials. Customer users should not configure or request an operator API key.

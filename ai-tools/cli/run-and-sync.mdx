@@ -1,0 +1,123 @@
+---
+title: "Run and synchronize workspaces"
+description: "Run an exact local checkout remotely and synchronize Git and explicit extra-file layers."
+---
+
+# Run and synchronize workspaces
+
+Workspace transfer and repository authority are separate:
+
+- **Workspace source** is the exact local checkout or linked worktree transferred into the sandbox.
+- **Repository authority** is the server-verified GitHub repository against which brokered provider credentials and repository-scoped policy may be used.
+
+You can upload and test a workspace without GitHub authorization. Pushing a branch, creating a pull request, or using repository-scoped capabilities requires a verified repository binding.
+
+## `aient sandbox run`
+
+Create a sandbox, optionally transfer a workspace or upload, run one command, and delete the sandbox:
+
+```sh
+aient sandbox run --environment development -- pnpm test
+```
+
+With `--environment`, `--workspace` defaults to the current directory. With `--workspace`, the remote directory defaults to `/workspace/repo`, and the command runs there unless `--workdir` overrides it.
+
+Use exact argv after `--`:
+
+```sh
+aient sandbox run --environment development -- go test ./...
+```
+
+Use an explicit shell only when shell syntax is required:
+
+```sh
+aient sandbox run --environment development \
+  --shell 'pnpm lint && pnpm test'
+```
+
+Or read the shell body from standard input:
+
+```sh
+printf '%s\n' 'pnpm lint && pnpm test' |
+  aient sandbox run --environment development --stdin
+```
+
+### Workspace and authority flags
+
+| Flag | Meaning |
+| --- | --- |
+| `--environment SLUG_OR_ID` | Select an authorised customer development environment. |
+| `--workspace PATH` | Synchronize a local Git checkout or linked worktree. |
+| `--repository OWNER/NAME` | Explicit repository selector for disambiguation and provider access. |
+| `--include GLOB` | Add an untracked or ignored repository-relative file layer. Repeatable. |
+| `--exclude GLOB` | Exclude matches from the explicit non-Git layer. Repeatable. |
+| `--remote-dir ABSOLUTE_PATH` | Select the remote workspace location. |
+
+Repository candidates are inferred from sanitized `origin` and `upstream` remotes when possible. Embedded remote credentials are not transmitted or displayed. If exactly one authorised repository matches, Aient binds it automatically. If none match, ordinary offload may continue without GitHub access. Use `--repository` when candidates are ambiguous.
+
+Changing a local remote cannot grant repository access. Every provider operation is re-authorised against the authenticated organisation, active GitHub App installation, and current repository permissions.
+
+### Command and lifecycle flags
+
+| Flag | Meaning |
+| --- | --- |
+| `--workdir ABSOLUTE_PATH` | Remote working directory. |
+| `--env KEY=VALUE` | Non-secret environment value. Repeatable. |
+| `--shell COMMAND` | Run an explicit remote shell command instead of argv. |
+| `--stdin` | Read the explicit shell command from standard input. |
+| `--keep` | Retain the created sandbox after completion or failure. |
+| `--lease-seconds N` | Requested sandbox lease. Default `7200`. |
+| `--name NAME` | Requested sandbox name. |
+| `--template NAME` | Sandbox template. Default `aient-agent`. |
+| `--download REMOTE=LOCAL` | Download an explicit file before cleanup. Repeatable. |
+
+`--upload PATH` uploads a non-Git file or directory instead of synchronizing Git state. It excludes `.git` and `node_modules` by default. Do not combine `--upload` and `--workspace`.
+
+CPU and memory request/limit flags are visible in the 0.6.2 command help, but customer environments own their sizing policy and reject those overrides. They are not customer sizing controls.
+
+<Note>
+  `sandbox run` is buffered. It is convenient for bounded commands, but it does not provide durable detach or output replay. For long commands whose live progress matters, retain a sandbox and use `sandbox exec`.
+</Note>
+
+## `aient sandbox sync`
+
+Synchronize exact local Git state into an existing sandbox:
+
+```sh
+aient sandbox sync laptop-offload .
+```
+
+The default remote workspace is `/workspace/repo`.
+
+```sh
+aient sandbox sync laptop-offload . \
+  --include 'fixtures/local-only/**' \
+  --exclude '**/*.generated' \
+  --remote-dir /workspace/repo
+```
+
+The synchronized state includes the selected worktree's exact HEAD, index, tracked changes, and selected explicit extra files. Include and exclude globs use repository-relative `/` separators and support `*`, `**`, and `?`.
+
+Excludes filter only the explicit non-Git layer. They cannot remove tracked Git state.
+
+### Atomic activation and the workspace fence
+
+Aient constructs and verifies a candidate before activating it as `/workspace/repo`. Activation replaces the live child on the same filesystem while holding the exclusive workspace fence; the `/workspace` mount point itself is not replaced.
+
+`sandbox exec`, `sandbox shell`, and workspace reads hold the shared fence. A sync waits before activation rather than replacing the live tree under an admitted command. Direct file operations currently fail with a busy response instead of waiting.
+
+Do not start a second workspace mutation while a sync is active. Wait for an explicit final line such as:
+
+```text
+Synchronized Git HEAD and local state to sandbox-name:/workspace/repo
+```
+
+Transfer percentages are progress, not completion. If another program invokes the CLI, it must preserve the child process's complete lifecycle result—including a running session handle, final exit status, and terminal output. Completion of an outer wrapper is not evidence that the CLI child has exited.
+
+For a large snapshot, increase the request budget:
+
+```sh
+aient --timeout 20m --verbose sandbox sync laptop-offload .
+```
+
+`--verbose` prints safe request correlation and detailed progress; it does not print credentials.
