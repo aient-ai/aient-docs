@@ -23,7 +23,7 @@
       "mcp"
     ]
   },
-  "description": "Aient integration docs for telemetry, source maps, webhooks, and event schemas.",
+  "description": "Aient integration docs for the CLI, telemetry, source maps, webhooks, and event schemas.",
   "favicon": {
     "dark": "/logo/aient-favicon-dark.svg",
     "light": "/logo/aient-favicon-light.svg"

@@ -1,47 +1,306 @@
 ---
-title: "Aient CLI"
-description: "Install the Aient CLI, sign in with customer OAuth, and run a local workspace in an isolated Aient sandbox."
+title: "Aient CLI reference"
+description: "Install aient 0.6.2, authenticate with customer OAuth profiles, run exact local workspaces remotely, reconnect to live executions, and transfer explicit files."
 ---
 
-# Aient CLI
+# Aient CLI reference
 
-The `aient` command runs a local workspace in an isolated Aient sandbox. It is an invited preview for macOS and Linux on Intel and Arm.
+The `aient` CLI runs local development work in an isolated Aient sandbox. This page documents the public `aient 0.6.2` command contract for macOS and Linux.
 
 ## Install and verify
 
-Download the current release from the [Aient CLI release repository](https://github.com/aient-ai/aient-cli/releases/latest). Each published release includes a static archive, SHA-256 checksums, an SPDX SBOM, a Sigstore verification bundle, and SLSA provenance.
-
-Follow the repository's [installation and verification guide](https://github.com/aient-ai/aient-cli#install-on-macos-or-linux) before placing the binary on your `PATH`. GitHub-generated source archives are documentation only; they are not verified Aient CLI release artifacts.
-
-## Start a session
-
-Sign in with your Aient account:
+Download the archive and signed checksum manifest for `aient-cli-v0.6.2` from the [public release repository](https://github.com/aient-ai/aient-cli/releases/tag/aient-cli-v0.6.2). Follow its README to verify the Sigstore bundle, checksum, and SLSA provenance, then install the static binary. This example names the Apple Silicon archive; select the documented asset for your OS and architecture before running it:
 
 ```sh
-aient auth login
-aient auth status
+ARCHIVE=aient_0.6.2_darwin_arm64.tar.gz
+tar -xzf "${ARCHIVE}"
+mkdir -p "${HOME}/bin"
+install -m 0755 aient "${HOME}/bin/.aient.new"
+mv "${HOME}/bin/.aient.new" "${HOME}/bin/aient"
+aient version
 ```
 
-The default profile uses customer OAuth and does not require an operator API key. An organisation administrator must enable customer CLI development for the environment you plan to use.
+The binary does not require Python, Node.js, `uv`, or a package manager. Use `aient completion --help` to generate shell completion.
 
-## Run workspace commands
+## Customer authentication
 
-Run a command in a sandbox for a selected environment:
+Customer commands use OAuth. They do not require an operator API key.
+
+### `aient auth login`
 
 ```sh
-aient sandbox run --environment development -- go test ./...
+aient --profile acme auth login
 ```
 
-For commands in a retained sandbox, use `aient sandbox exec`. Aient verifies your current membership, environment policy, and, when needed, repository authority before it grants the operation.
+Opens browser consent and stores refresh authority in the operating-system credential store. `--callback-timeout` controls how long the CLI waits for the callback. Use a distinct profile for each organisation or customer context.
 
-## Use portable access deliberately
+### `aient auth status`
 
-Version 0.6.0 can export a short-lived, access-only context for a headless process, CI job, or another machine. Exports never contain a refresh token, operator key, environment secret, or provider credential.
+```sh
+aient --profile acme auth status
+aient auth status --all
+```
 
-The `env` and `json` formats print a live bearer token. Keep that output out of logs and shell tracing, unset it after use, and delete exported files when the receiving process finishes. [Read the 0.6.0 release notes](https://github.com/aient-ai/aient-cli/releases/tag/aient-cli-v0.6.0) for the supported export and import forms.
+Verifies the selected login and displays non-secret issuer, organisation, scope, and expiry metadata. `--all` lists local profile metadata without refreshing credentials.
 
-## Current boundary
+### `aient auth profiles`
 
-The `agent` command is reserved for a later CLI release. This preview covers sandbox workflows; it does not provide the Thread-backed Aient agent from your terminal.
+```sh
+aient auth profiles
+aient auth profiles default acme
+```
 
-For help, contact [support@aient.ai](mailto:support@aient.ai).
+Lists named profiles or selects the user-level fallback. Selection order is: explicit access-only credential; `--profile` or `AIENT_PROFILE`; nearest `.aient/config.yaml`; user default; then the compatibility profile `customer` on a clean home.
+
+A project may select non-secret context:
+
+```yaml
+profile: acme
+organisation: ACME
+repository: acme/widget
+```
+
+The organisation, repository, and sanitized Git remotes are selectors only. The server rechecks membership, environment policy, and GitHub App installation authority on every protected operation.
+
+### `aient auth export`
+
+```sh
+TOKEN_DIR="$(mktemp -d)"
+cleanup_aient_access() { rm -f "${TOKEN_DIR}/access.json"; rmdir "${TOKEN_DIR}"; }
+trap cleanup_aient_access EXIT
+aient --profile acme auth export --format file --ttl 10m \
+  --output "${TOKEN_DIR}/access.json"
+aient --access-token-file "${TOKEN_DIR}/access.json" \
+  sandbox list --environment development
+cleanup_aient_access
+trap - EXIT
+```
+
+Exports only a short-lived, access-only credential as `env`, `json`, or an atomic mode-`0600` file. It cannot exceed the selected grant and contains no refresh authority, environment secret, or GitHub token. The exported file itself is a bearer secret: keep it outside every uploaded workspace, delete it after use, and treat stdout from `--format env|json` as secret output.
+
+Import portable access with exactly one of `--access-token-file`, `AIENT_ACCESS_TOKEN_FILE`, or `AIENT_ACCESS_TOKEN`. These sources are mutually exclusive and cannot be combined with `--profile` or `AIENT_PROFILE`. Portable access is never refreshed; export or log in again after expiry. Prefer the mode-`0600` file form. A direct environment token is a bearer secret visible to the child process environment and may be exposed by shell tracing.
+
+### `aient auth logout`
+
+```sh
+aient --profile acme auth logout
+```
+
+Revokes and removes only the selected profile login.
+
+## One-shot remote development
+
+### `aient sandbox run`
+
+```sh
+aient sandbox run --environment development -- pnpm test
+```
+
+Creates a sandbox, synchronizes the current Git workspace, runs the command, and deletes the sandbox. Use `--keep` to retain it. Customer options include `--workspace`, `--repository owner/name`, `--include`, `--exclude`, `--workdir`, `--download`, `--env`, and `--lease-seconds`. The environment policy owns customer resource sizing; non-default template, CPU, memory, and named-volume requests are rejected.
+
+`--env` and `--metadata` are non-secret inputs. Metadata is ordinary control-plane state; never place tokens, credentials, or sensitive values in it.
+
+With `--environment`, the CLI may infer a repository selector from sanitized `origin` or `upstream` remotes. Exactly one authorised match binds automatically. No match still permits repository-independent offload when environment policy allows it; provider operations such as branch push and pull-request creation require a verified binding.
+
+The environment administrator must enable customer CLI development. Uploaded code then receives only the server-resolved sandbox-exportable capability set. Environment and GitHub credentials are never returned as API, profile, revision, file, transcript, or ordinary metadata fields and are not persisted by the CLI. An authorised command can deliberately print a mounted secret, so live command output can expose it to the connected caller.
+
+## Retained sandbox lifecycle
+
+For retained customer development with brokered environment and repository capabilities, create the sandbox through the environment-aware one-shot path and keep it:
+
+```sh
+aient sandbox run \
+  --name laptop-offload \
+  --keep \
+  --environment development \
+  --repository acme/widget \
+  -- true
+```
+
+Continue with environment/repository-bound `sandbox exec` and `sandbox execution` commands, find the sandbox with `sandbox list --environment development`, and finally use `sandbox delete`.
+
+**0.6.2 boundary:** an environment-bound customer sandbox cannot use `sandbox sync`, `sandbox shell`, `sandbox files`, `sandbox status`, `sandbox wait`, or `sandbox logs`, because those commands cannot yet carry the environment/repository authority required to reopen that sandbox. To transfer a changed local workspace, delete it and start a fresh `sandbox run --keep`. Do not interpret an authorization failure as permission to retry through operator credentials.
+
+### `aient sandbox create`
+
+```sh
+aient sandbox create --name laptop-offload --lease-seconds 21600
+```
+
+This is the lower-level sandbox creation command. Options include `--name`, `--template`, `--lease-seconds`, `--metadata`, `--named-volume`, CPU/memory requests and limits, and `--json`. Customer OAuth may use server defaults, but non-default template, CPU, memory, and named-volume fields are denied. Client metadata cannot override server-owned organisation, actor, environment, or repository identity, and must never contain tokens, credentials, or sensitive values. Customer development that needs brokered capabilities should use `sandbox run --keep`.
+
+### `aient sandbox list`
+
+```sh
+aient sandbox list --environment development
+```
+
+Lists sandboxes visible to the selected customer context. Add `--json` for structured output.
+
+### `aient sandbox status`
+
+```sh
+aient sandbox status laptop-offload
+```
+
+Shows one unbound or operator sandbox state. Add `--json` for structured output. In 0.6.2 it cannot address an environment-bound customer sandbox.
+
+### `aient sandbox wait`
+
+```sh
+aient sandbox wait laptop-offload --poll-interval 1s
+```
+
+Waits until an unbound or operator sandbox is ready, bounded by the global `--timeout`. In 0.6.2 it cannot address an environment-bound customer sandbox.
+
+### `aient sandbox delete`
+
+```sh
+aient sandbox delete laptop-offload
+```
+
+Deletes the named sandbox.
+
+## Workspace synchronization
+
+### `aient sandbox sync`
+
+```sh
+aient sandbox sync laptop-offload . \
+  --include 'fixtures/local-only/**' \
+  --exclude '**/*.generated' \
+  --remote-dir /workspace/repo
+```
+
+For unbound/operator sandbox workflows, this transfers the selected linked worktree’s exact HEAD, index, tracked changes, and explicit non-Git include layer. It activates a complete candidate atomically at `/workspace/repo`; it does not replace the `/workspace` mount point. Retained workspaces use divergent-safe incremental Git synchronization when possible. In 0.6.2 this command cannot resynchronize an environment-bound customer sandbox created by `run --keep`.
+
+Partial transfer progress is not completion. A successful caller must observe the terminal process result and the final `Synchronized ...` line. If an automation launches the CLI through another process tool, it must preserve the child process handle, session identifier, exit status, and final output. Completion of the wrapper itself is not evidence that the CLI child exited.
+
+Do not start manual `files put`, extraction, or other workspace mutations while sync is active. The server serializes workspace mutation, so overlapping work waits on the same fence.
+
+## Commands and interactive shells
+
+### `aient sandbox exec`
+
+```sh
+aient --timeout 15m sandbox exec laptop-offload \
+  --environment development \
+  --repository acme/widget \
+  --workdir /workspace/repo -- pnpm test
+```
+
+Starts a live-supervised command in an existing sandbox. It prints an execution UUID and streams live stdout/stderr. `--environment` and `--repository` request the same brokered capabilities as one-shot customer development. `--env` is for non-secret values only.
+
+### `aient sandbox shell`
+
+```sh
+aient sandbox shell laptop-offload
+```
+
+Opens a new interactive PTY for an unbound/operator sandbox. Each invocation is a fresh, non-resumable shell. In 0.6.2, shell neither mounts brokered environment or GitHub capabilities nor addresses an environment-bound customer sandbox.
+
+## Recover a live execution
+
+These commands reconcile a supervised execution without replaying the command or storing its full output.
+
+### `aient sandbox execution attach`
+
+```sh
+aient sandbox execution attach laptop-offload "${EXECUTION_UUID}" \
+  --environment development --repository acme/widget
+```
+
+Attaches to new live output. Only one live attachment owns the stream; a newer attachment supersedes the older one. Already delivered output is not replayed.
+
+### `aient sandbox execution status`
+
+```sh
+aient sandbox execution status laptop-offload "${EXECUTION_UUID}" \
+  --environment development --repository acme/widget --json
+```
+
+Returns content-free execution state.
+
+### `aient sandbox execution wait`
+
+```sh
+aient sandbox execution wait laptop-offload "${EXECUTION_UUID}" \
+  --environment development --repository acme/widget
+```
+
+Waits for a content-free terminal outcome.
+
+### `aient sandbox execution cancel`
+
+```sh
+aient sandbox execution cancel laptop-offload "${EXECUTION_UUID}" \
+  --environment development --repository acme/widget
+```
+
+Explicitly cancels the supervised execution.
+
+Connection-bound execution is not durable detached execution: after the short server-owned reconnect grace expires without an observer, the execution is cancelled.
+
+## Explicit files and logs
+
+### `aient sandbox files put`
+
+```sh
+aient sandbox files put laptop-offload ./report.json /workspace/results
+```
+
+Uploads one explicit local file or directory to an unbound/operator sandbox. Directory uploads support repeated `--exclude` globs. In 0.6.2 it cannot address an environment-bound customer sandbox.
+
+### `aient sandbox files get`
+
+```sh
+aient sandbox files get laptop-offload /workspace/results/report.json ./report.json
+```
+
+Downloads one explicit remote file from an unbound/operator sandbox. In 0.6.2 it cannot address an environment-bound customer sandbox.
+
+### `aient sandbox files ls`
+
+```sh
+aient sandbox files ls laptop-offload /workspace/results
+```
+
+Lists one remote directory in an unbound/operator sandbox. Add `--json` for structured output. In 0.6.2 it cannot address an environment-bound customer sandbox.
+
+### `aient sandbox files rm`
+
+```sh
+aient sandbox files rm laptop-offload /workspace/results/report.json
+```
+
+Removes one explicit remote path from an unbound/operator sandbox. In 0.6.2 it cannot address an environment-bound customer sandbox.
+
+### `aient sandbox logs`
+
+```sh
+aient sandbox logs laptop-offload --tail-lines 200
+```
+
+Reads a bounded unbound/operator sandbox log snapshot. In 0.6.2 it cannot address an environment-bound customer sandbox. Aient does not archive arbitrary command stdout/stderr in object storage for later replay.
+
+## Operator-only commands
+
+The following commands are operator-only in 0.6.2 and require the explicitly selected reserved `operator` profile:
+
+- `aient sandbox suspend SANDBOX --discard-ephemeral-state` scales to zero and deliberately discards processes, sockets, and files outside retained volumes.
+- `aient sandbox resume SANDBOX` creates a new sandbox incarnation from retained volume state.
+- `aient sandbox docker bootstrap SANDBOX` starts tmpfs-backed Docker; use `--reset` and `--tmpfs-size` as needed.
+
+Customer OAuth never falls back to an operator API key.
+
+## Current limitations
+
+The following planned experiences are not yet available in 0.6.2:
+
+- durable detached execution;
+- port publishing on a public hostname;
+- resumable shell history or PTY reattachment;
+- historical stdout/stderr replay; and
+- embodied agent mode through `aient agent`.
+
+When running inside an Aient Harness sandbox or CI environment, use the provided sandbox tools directly. Do not create a nested CLI sandbox.
