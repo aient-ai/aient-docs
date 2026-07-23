@@ -1,0 +1,47 @@
+---
+title: "Aient CLI"
+description: "Install the Aient CLI, sign in with customer OAuth, and run a local workspace in an isolated Aient sandbox."
+---
+
+# Aient CLI
+
+The `aient` command runs a local workspace in an isolated Aient sandbox. It is an invited preview for macOS and Linux on Intel and Arm.
+
+## Install and verify
+
+Download the current release from the [Aient CLI release repository](https://github.com/aient-ai/aient-cli/releases/latest). Each published release includes a static archive, SHA-256 checksums, an SPDX SBOM, a Sigstore verification bundle, and SLSA provenance.
+
+Follow the repository's [installation and verification guide](https://github.com/aient-ai/aient-cli#install-on-macos-or-linux) before placing the binary on your `PATH`. GitHub-generated source archives are documentation only; they are not verified Aient CLI release artifacts.
+
+## Start a session
+
+Sign in with your Aient account:
+
+```sh
+aient auth login
+aient auth status
+```
+
+The default profile uses customer OAuth and does not require an operator API key. An organisation administrator must enable customer CLI development for the environment you plan to use.
+
+## Run workspace commands
+
+Run a command in a sandbox for a selected environment:
+
+```sh
+aient sandbox run --environment development -- go test ./...
+```
+
+For commands in a retained sandbox, use `aient sandbox exec`. Aient verifies your current membership, environment policy, and, when needed, repository authority before it grants the operation.
+
+## Use portable access deliberately
+
+Version 0.6.0 can export a short-lived, access-only context for a headless process, CI job, or another machine. Exports never contain a refresh token, operator key, environment secret, or provider credential.
+
+The `env` and `json` formats print a live bearer token. Keep that output out of logs and shell tracing, unset it after use, and delete exported files when the receiving process finishes. [Read the 0.6.0 release notes](https://github.com/aient-ai/aient-cli/releases/tag/aient-cli-v0.6.0) for the supported export and import forms.
+
+## Current boundary
+
+The `agent` command is reserved for a later CLI release. This preview covers sandbox workflows; it does not provide the Thread-backed Aient agent from your terminal.
+
+For help, contact [support@aient.ai](mailto:support@aient.ai).
