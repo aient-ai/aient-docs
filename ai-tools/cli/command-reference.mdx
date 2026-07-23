@@ -37,6 +37,10 @@ See [Authentication and project profiles](/ai-tools/cli/authentication).
 
 See [Run and synchronize workspaces](/ai-tools/cli/run-and-sync) and [Retained sandbox lifecycle](/ai-tools/cli/retained-sandboxes).
 
+<Warning>
+  In 0.6.2, an environment-bound customer sandbox can be reused only through selector-bearing `exec` and `execution` commands, found with `list --environment`, and removed by its owner with `delete`. `sync`, `files`, `shell`, `status`, `wait`, and `logs` are unbound/operator-only for that sandbox. Start a fresh `run --keep` to transfer changed customer workspace state.
+</Warning>
+
 ## Supervised executions
 
 | Command | Purpose |
@@ -47,6 +51,8 @@ See [Run and synchronize workspaces](/ai-tools/cli/run-and-sync) and [Retained s
 | `aient sandbox execution cancel SANDBOX EXECUTION` | Cancel the exact execution. |
 
 See [Executions, output, and files](/ai-tools/cli/executions-and-files).
+
+Repeat the original `--environment` and `--repository` selectors on every execution observation or cancellation of an environment-bound customer command.
 
 ## Explicit files
 

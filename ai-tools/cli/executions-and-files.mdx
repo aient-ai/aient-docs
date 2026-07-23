@@ -11,24 +11,26 @@ description: "Observe supervised commands, reconnect to live output, and transfe
 
 Aient CLI 0.6.2 does not retain command stdout or stderr for replay. `attach` receives only new live bytes after attachment. `status`, `wait`, and `cancel` return content-free execution state.
 
+An authorised child receives its process capabilities and can deliberately print a mounted environment or GitHub secret. The CLI returns stdout and stderr verbatim to the connected caller, whose terminal or agent runner may record it. Avoid `env`, `printenv`, shell tracing, and echoing `GH_TOKEN`; credentials are not ordinary execution metadata or replayable output.
+
 If an attached connection is interrupted, use the printed execution ID to query status first. Do not rerun an arbitrary command to discover whether it started.
 
 ## `aient sandbox execution status`
 
-Read the current content-free state:
+Copy the execution UUID printed by `sandbox exec` into a shell variable:
 
 ```sh
-aient sandbox execution status laptop-offload EXECUTION_ID
-aient sandbox execution status laptop-offload EXECUTION_ID --json
+printf "Paste execution UUID: "
+IFS= read -r EXECUTION_ID
 ```
 
-For an environment-authorised execution, repeat the same selector context:
+Then read the current content-free state, repeating the original authority selectors:
 
 ```sh
 aient sandbox execution status \
   --environment development \
   --repository example/widget \
-  laptop-offload EXECUTION_ID
+  laptop-offload "${EXECUTION_ID}"
 ```
 
 ## `aient sandbox execution attach`
@@ -36,7 +38,10 @@ aient sandbox execution status \
 Attach to future live output from a known execution:
 
 ```sh
-aient sandbox execution attach laptop-offload EXECUTION_ID
+aient sandbox execution attach \
+  --environment development \
+  --repository example/widget \
+  laptop-offload "${EXECUTION_ID}"
 ```
 
 This is execution attachment, not command detachment. It cannot replay bytes emitted before attachment. Use one active attachment per execution.
@@ -47,7 +52,9 @@ Wait for the terminal outcome without receiving output:
 
 ```sh
 aient --timeout 30m sandbox execution wait \
-  laptop-offload EXECUTION_ID
+  --environment development \
+  --repository example/widget \
+  laptop-offload "${EXECUTION_ID}"
 ```
 
 Add `--json` for structured state. A terminal result can report a known exit code, cancellation, or an unknown outcome; the CLI does not guess by replaying the command.
@@ -57,8 +64,10 @@ Add `--json` for structured state. A terminal result can report a known exit cod
 Explicitly cancel the exact execution:
 
 ```sh
-aient sandbox execution cancel laptop-offload EXECUTION_ID
-aient sandbox execution cancel laptop-offload EXECUTION_ID --json
+aient sandbox execution cancel \
+  --environment development \
+  --repository example/widget \
+  laptop-offload "${EXECUTION_ID}"
 ```
 
 Cancellation does not delete the sandbox.
@@ -76,7 +85,7 @@ Use the same selectors as the original environment-capable `sandbox exec`.
 
 ## Explicit file commands
 
-File commands address an existing sandbox and an explicit path. They are separate from exact Git workspace synchronization.
+File commands address an existing unbound/operator sandbox and an explicit path. They are separate from exact Git workspace synchronization. In 0.6.2, they cannot carry the selectors required to address an environment-bound customer sandbox.
 
 ### `aient sandbox files put`
 

@@ -100,22 +100,22 @@ Conflicting explicit sources fail locally. For example, different values in `--p
 
 ## `aient auth export`
 
-Export a shorter-lived access-only credential for a child process, CI job, or another machine:
+Export a shorter-lived access-only credential for a child process, CI job, or another machine. Prefer a uniquely named, mode-`0600` file outside every uploaded workspace:
 
 ```sh
-eval "$(aient auth export --profile client-a --format env --ttl 10m)"
-aient sandbox list
-unset AIENT_ACCESS_TOKEN
-```
-
-Or create a strict JSON envelope:
-
-```sh
+TOKEN_DIR="$(mktemp -d)"
+cleanup_aient_access() {
+  rm -f "${TOKEN_DIR}/access.json"
+  rmdir "${TOKEN_DIR}" 2>/dev/null || true
+}
+trap cleanup_aient_access EXIT
 aient auth export --profile client-a --format file --ttl 10m \
-  --output /private/tmp/aient-access.json
+  --output "${TOKEN_DIR}/access.json"
 
-aient --access-token-file /private/tmp/aient-access.json sandbox list
-rm /private/tmp/aient-access.json
+aient --access-token-file "${TOKEN_DIR}/access.json" \
+  sandbox list --environment development
+cleanup_aient_access
+trap - EXIT
 ```
 
 | Flag | Meaning |
@@ -128,7 +128,7 @@ rm /private/tmp/aient-access.json
 | `--ttl DURATION` | Requested lifetime from `1m` to `1h`; default `15m`. Actual expiry may be shorter. |
 
 <Warning>
-  The `env` and `json` formats deliberately print a live bearer token. Disable shell tracing, keep the output out of logs and transcripts, unset it after use, and delete exported files when the receiving process finishes.
+  The `env` and `json` formats deliberately print a live bearer token. Use them only when the receiving system requires stdout, disable shell tracing, keep the output out of logs and transcripts, and unset or delete the credential when the receiving process finishes.
 </Warning>
 
 An export contains no refresh token, operator key, environment secret, repository credential, or GitHub token. Imported access-only credentials are not refreshed or persisted by the CLI. When one expires, export another or sign in on that machine.
