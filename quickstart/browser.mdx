@@ -17,6 +17,7 @@ import { registerOTelBrowser } from '@aient/otel-browser'
 registerOTelBrowser({
   publishableKey: import.meta.env.VITE_AIENT_PUBLISHABLE_KEY,
   serviceName: 'web',
+  contextAttributes: { 'business.id': 'business_123' },
   release: {
     commit: import.meta.env.VITE_COMMIT_SHA,
     branch: import.meta.env.VITE_COMMIT_REF,
@@ -27,7 +28,7 @@ registerOTelBrowser({
 
 ## React and Next.js
 
-Browsers only: call `registerOTelBrowser` from a **client** component after mount (not during render). Initialize **once**, then call `setUserContext` when the signed-in user changes so traces stay correlated without re-creating the SDK.
+Browsers only: call `registerOTelBrowser` from a **client** component after mount (not during render). Initialize **once** at a long-lived application boundary, then update user and business/workspace context without re-creating the SDK. Since `0.5.1`, cleanup synchronously detaches instrumentation before asynchronously draining providers, so an immediate Strict Mode remount can register cleanly. The package must be the sole owner of the page's OpenTelemetry trace, context, propagation, and logs globals; registration rejects a competing owner without replacing it.
 
 ```tsx
 'use client'
@@ -35,7 +36,7 @@ Browsers only: call `registerOTelBrowser` from a **client** component after moun
 import { useEffect, useRef } from 'react'
 import { registerOTelBrowser, type BrowserSDK } from '@aient/otel-browser'
 
-export function TelemetryInit({ userId }: { userId?: string | null }) {
+export function TelemetryInit({ userId, pseudoId, businessId }: { userId?: string | null; pseudoId?: string | null; businessId?: string | null }) {
   const sdkRef = useRef<BrowserSDK | null>(null)
 
   useEffect(() => {
@@ -55,14 +56,28 @@ export function TelemetryInit({ userId }: { userId?: string | null }) {
   }, [])
 
   useEffect(() => {
-    sdkRef.current?.setUserContext(userId ? { userId } : null)
-  }, [userId])
+    sdkRef.current?.setUserContext(
+      userId || pseudoId
+        ? { ...(userId ? { userId } : {}), ...(pseudoId ? { pseudoId } : {}) }
+        : null,
+    )
+  }, [userId, pseudoId])
+
+  useEffect(() => {
+    sdkRef.current?.setContextAttributes(businessId ? { 'business.id': businessId } : null)
+  }, [businessId])
 
   return null
 }
 ```
 
-In the App Router, render `<TelemetryInit userId={user?.id} />` from `app/layout.tsx` (or a client shell) so the server can pass the current user id into the client tree. For the Pages Router, mount the same component under `_app`. Use `NEXT_PUBLIC_*` only for values that are safe to expose to the browser (the publishable key is designed for that).
+In the App Router, render `TelemetryInit` from `app/layout.tsx` (or a client shell), passing the authenticated id as `userId` and your app's persisted anonymous id as `pseudoId`. For the Pages Router, mount the same component under `_app`. Use `NEXT_PUBLIC_*` only for values that are safe to expose to the browser (the publishable key is designed for that).
+
+## Dynamic context
+
+Use static `attributes` for resource facts that do not change during the SDK lifetime, such as deployment metadata. Use `contextAttributes` and `sdk.setContextAttributes()` for mutable correlation values such as the active business, account, or workspace. The setter replaces the whole snapshot; pass `null` to clear it on logout. `setUserContext()` also replaces its whole snapshot, so pass `{ userId, pseudoId }` together after login when both identifiers are known.
+
+Each span captures dynamic context when it starts. Updating context affects future spans and outgoing Fetch/XHR baggage, but does not mutate in-flight or ended spans.
 
 ## Release metadata
 
@@ -73,6 +88,8 @@ Use the same `serviceName` and `release.commit` when uploading source maps. That
 Do not attach secrets, auth tokens, raw request bodies, or user-entered sensitive content to spans or logs. Publishable keys identify only the Aient environment and are safe for browser code.
 
 When you call `setUserContext`, the SDK only propagates `enduser.pseudo.id` to downstream services as W3C baggage. Trusted identity (`enduser.id`), email, and role stay on local browser spans and are not sent over the wire; Aient backends derive the authenticated user from your server session instead. See the [SDK reference](../reference/sdk-browser) for details.
+
+Dynamic context and browser baggage are untrusted correlation hints. Never use them to authorize access or replace server-side session and identity checks. Generic context keys under `enduser.*` are reserved and omitted.
 
 ## Transport
 
