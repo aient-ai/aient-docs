@@ -72,7 +72,7 @@ Changing `origin` cannot grant access to another organisation's private reposito
 
 An admitted command or workspace read holds the shared workspace fence, while sync and file mutations require exclusive access.
 
-- Wait for the current execution with `sandbox execution wait`.
+- Wait for the current execution with `sandbox execution wait`, repeating its original environment and repository selectors.
 - Avoid starting multiple syncs or direct workspace mutations.
 - Retry only after the known reader or mutation finishes.
 
@@ -90,19 +90,29 @@ If you invoke `aient` from an agent, build tool, or wrapper:
 - do not treat completion of the outer wrapper as completion of the CLI; and
 - do not mutate the target workspace while the upload is active.
 
-For large workspaces:
+For a large unbound/operator sync:
 
 ```sh
 aient --timeout 20m --verbose sandbox sync laptop-offload .
 ```
+
+An environment-bound customer should start a fresh `sandbox run --environment ... --keep` to transfer changed workspace state in 0.6.2.
 
 ## Connection ended during `sandbox exec`
 
 `sandbox exec` prints the execution ID before dispatch and performs bounded transport recovery for that same execution. If the client still loses its connection:
 
 ```sh
-aient sandbox execution status laptop-offload EXECUTION_ID
-aient sandbox execution attach laptop-offload EXECUTION_ID
+printf "Paste execution UUID: "
+IFS= read -r EXECUTION_ID
+aient sandbox execution status \
+  --environment development \
+  --repository example/widget \
+  laptop-offload "${EXECUTION_ID}"
+aient sandbox execution attach \
+  --environment development \
+  --repository example/widget \
+  laptop-offload "${EXECUTION_ID}"
 ```
 
 `attach` receives only future live output. There is no stored stdout/stderr history. Use `execution wait` when you need only the terminal outcome.
@@ -111,16 +121,15 @@ aient sandbox execution attach laptop-offload EXECUTION_ID
 
 Imported access-only credentials are never refreshed. Export another from a refresh-backed profile or log in on the target machine:
 
-```sh
-aient auth export --profile client-a --format file --ttl 10m \
-  --output /private/tmp/aient-access.json
-```
+Use the unique temporary-directory and cleanup pattern in [Authentication and project profiles](/ai-tools/cli/authentication). Delete the old access-only file. Do not copy refresh tokens or keychain data.
 
-Delete the old file. Do not copy refresh tokens or keychain data.
+## Customer resource flags are rejected
 
-## Customer CPU or memory flags are rejected
+Although 0.6.2 help exposes template, named-volume, CPU, and memory flags, customer environment sizing is server-owned. Remove non-default `--template`, every `--named-volume`, and `--cpu`, `--cpu-limit`, `--memory`, or `--memory-limit`. They remain low-level operator controls until customer size presets are released.
 
-Although 0.6.2 help exposes `--cpu`, `--cpu-limit`, `--memory`, and `--memory-limit`, customer environment sizing is server-owned. Remove those flags. They remain low-level operator controls until customer size presets are released.
+## A retained customer sandbox rejects `sync`, `shell`, or `status`
+
+An environment-bound sandbox created with `sandbox run --environment ... --keep` requires the original authority selectors on later `exec` and `execution` operations. In 0.6.2, only those selector-bearing operations, `list --environment`, and owner `delete` support the bound customer contract. `sync`, `files`, `shell`, `status`, `wait`, and `logs` cannot address the sandbox. Start a fresh `run --keep` when local workspace state changes; do not retry with operator credentials.
 
 ## Current unsupported behavior
 
@@ -129,6 +138,7 @@ Although 0.6.2 help exposes `--cpu`, `--cpu-limit`, `--memory`, and `--memory-li
 - Execution output is live-only and cannot be replayed.
 - `sandbox shell` cannot reattach and has no history replay.
 - Interactive shells cannot request environment or repository capabilities.
+- Environment-bound customer sandboxes cannot yet use `sync`, `files`, `shell`, `status`, `wait`, or `logs`.
 - Public port/domain exposure is not available.
 - Customer sandbox size presets are not available.
 - `files get` downloads a file, not a directory.

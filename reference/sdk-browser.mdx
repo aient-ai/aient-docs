@@ -15,6 +15,8 @@ For React or Next.js (client mount, `setUserContext`, and cleanup), see the [bro
 | --- | --- |
 | `publishableKey` | Aient environment publishable key safe for browser code |
 | `serviceName` | Frontend service name; match source map uploads |
+| `attributes` | Static resource attributes fixed for the SDK lifetime |
+| `contextAttributes` | Initial mutable string context for future spans and outgoing baggage |
 | `release.environment` | Deployment environment slug |
 | `release.commit` | Build commit SHA; match source map uploads |
 | `release.branch` | Build branch or ref for release correlation |
@@ -25,6 +27,24 @@ For React or Next.js (client mount, `setUserContext`, and cleanup), see the [bro
 The SDK sends OTLP HTTP JSON payloads. `http/protobuf` is not bundled; legacy protobuf config falls back to JSON.
 
 Avoid high-cardinality span names and avoid attaching sensitive user input to attributes.
+
+## Dynamic context
+
+Call `sdk.setContextAttributes()` after a business, account, or workspace switch. The call synchronously replaces the whole snapshot; `null` or an empty object clears it. `sdk.getContextAttributes()` returns a clone.
+
+```ts
+sdk.setContextAttributes({
+  'business.id': 'business_123',
+  'workspace.id': 'workspace_456',
+})
+
+// Clear on logout
+sdk.setContextAttributes(null)
+```
+
+Future spans capture the current snapshot at span start; in-flight and ended spans are not changed retroactively. Outgoing Fetch/XHR baggage preserves unrelated entries and replaces SDK-owned keys. All `enduser.*` keys are reserved for `setUserContext` and are omitted from generic context.
+
+Browser context and baggage are untrusted telemetry correlation data. Never use them for authorization; downstream services must derive identity and access from trusted server-side sessions or credentials.
 
 ## User context and baggage
 

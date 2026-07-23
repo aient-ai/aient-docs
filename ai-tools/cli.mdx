@@ -5,7 +5,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 # Aient CLI
 
-The `aient` command runs local development work in isolated remote sandboxes. The current invited preview is available as a static binary for macOS and Linux on Intel and Arm.
+The `aient` command runs local development work in isolated remote sandboxes. This guide documents Aient CLI 0.6.2, available as a static binary for macOS and Linux on Intel and Arm.
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -65,22 +65,26 @@ Use `sandbox run` for a disposable command:
 aient sandbox run --environment development -- go test ./...
 ```
 
-Use `--keep` when you want to retain the created sandbox:
+Use `--keep` when you want to retain the created, environment-bound sandbox:
 
 ```sh
-aient sandbox run --environment development --keep -- pnpm install
+aient sandbox run \
+  --name laptop-offload \
+  --keep \
+  --environment development \
+  --repository example/widget \
+  -- true
 aient sandbox list --environment development
-```
-
-Use `sandbox create`, `sync`, and `exec` when you want to control each retained-sandbox step:
-
-```sh
-aient sandbox create --name laptop-offload
-aient sandbox sync laptop-offload .
 aient --timeout 15m sandbox exec laptop-offload \
-  --workdir /workspace/repo -- go test ./...
+  --environment development \
+  --repository example/widget \
+  --workdir /workspace/repo -- pnpm test
 aient sandbox delete laptop-offload
 ```
+
+In 0.6.2, an environment-bound customer sandbox can be reused only through selector-bearing `sandbox exec` and `sandbox execution` commands, found with `sandbox list --environment`, and removed by its owner with `sandbox delete`. `sandbox sync`, `files`, `shell`, `status`, `wait`, and `logs` cannot yet reopen that bound sandbox. To transfer changed local state, delete it and start a fresh `sandbox run --keep`; never fall back to operator credentials.
+
+The lower-level `sandbox create`, `sync`, and selector-less `exec` loop is an unbound/operator workflow. It does not mount a customer's environment or repository capabilities.
 
 ## Current preview boundary
 
@@ -90,6 +94,6 @@ The commands documented in this section are the surface shipped in Aient CLI 0.6
 - Commands cannot be deliberately detached. `sandbox execution attach` can follow an already-known live execution, but output is not retained for replay.
 - `sandbox shell` always opens a new shell. Shell reattachment and shell history are unavailable.
 - Public port exposure and sandbox size presets are not yet available.
-- CPU and memory override flags and the Docker lifecycle helper are operator controls, not customer sizing features.
+- Non-default templates, CPU or memory overrides, named volumes, and the Docker lifecycle helper are operator controls, not customer sizing features.
 
 See [Current limits and troubleshooting](/ai-tools/cli/troubleshooting) for recovery guidance and common errors.

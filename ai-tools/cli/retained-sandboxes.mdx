@@ -5,14 +5,24 @@ description: "Create, find, wait for, enter, inspect, and delete retained Aient 
 
 # Retained sandbox lifecycle
 
-Retain a sandbox when you want to run several commands against one synchronized workspace. For an environment-bound customer sandbox, the simplest path is:
+Retain a sandbox when you want to run several commands against one uploaded workspace. For an environment-bound customer sandbox:
 
 ```sh
-aient sandbox run --environment development --keep -- pnpm install
+aient sandbox run \
+  --name laptop-offload \
+  --keep \
+  --environment development \
+  --repository example/widget \
+  -- true
 aient sandbox list --environment development
+aient --timeout 15m sandbox exec laptop-offload \
+  --environment development \
+  --repository example/widget \
+  --workdir /workspace/repo -- pnpm test
+aient sandbox delete laptop-offload
 ```
 
-The one-shot command prints the created sandbox name. Use that exact name for later operations.
+The one-shot command prints the created sandbox name. In Aient CLI 0.6.2, that environment-bound sandbox can be reused only through selector-bearing `sandbox exec` and `sandbox execution`, found with environment-scoped `list`, and removed by its owner with `delete`. `sync`, `files`, `shell`, `status`, `wait`, and `logs` cannot reopen it. Start a fresh `run --keep` to transfer changed workspace state.
 
 ## `aient sandbox list`
 
@@ -37,28 +47,30 @@ aient sandbox create --name laptop-offload --lease-seconds 21600
 | Flag | Meaning |
 | --- | --- |
 | `--name NAME` | Requested sandbox name. |
-| `--template NAME` | Template name. Default `aient-agent`. |
 | `--lease-seconds N` | Requested lease. Default `7200`. |
-| `--metadata KEY=VALUE` | Metadata entry. Repeatable. |
-| `--named-volume VALUE` | Named-volume selector. Repeatable. |
+| `--metadata KEY=VALUE` | Non-secret control-plane metadata entry. Repeatable. |
 | `--json` | Emit structured output. |
 
-The 0.6.2 help also exposes CPU and memory request/limit flags. Customer workloads cannot override the environment's server-owned sizing policy with those flags; use the configured customer template. Low-level resource overrides are operator-only.
+The 0.6.2 help also exposes template, named-volume, and CPU and memory request/limit flags. Customer OAuth may use server defaults, but it rejects a non-default template, every named volume, and CPU or memory overrides. Low-level resource overrides are operator-only.
+
+Metadata must never contain credentials or sensitive values. It cannot override server-owned organisation, actor, environment, or repository identity.
 
 For customer work that needs an environment's authorised development capabilities, prefer `sandbox run --environment ... --keep` or supply `--environment` on later `exec` and execution-observation operations.
 
 ## `aient sandbox status`
 
-Show one sandbox's current state:
+Show one unbound/operator sandbox's current state:
 
 ```sh
 aient sandbox status laptop-offload
 aient sandbox status laptop-offload --json
 ```
 
+In 0.6.2, `status` cannot address an environment-bound customer sandbox.
+
 ## `aient sandbox wait`
 
-Wait until a sandbox becomes ready:
+Wait until an unbound/operator sandbox becomes ready:
 
 ```sh
 aient --timeout 10m sandbox wait laptop-offload
@@ -71,12 +83,16 @@ aient --timeout 10m sandbox wait laptop-offload
 
 The global `--timeout` limits the wait.
 
+In 0.6.2, `wait` cannot address an environment-bound customer sandbox.
+
 ## `aient sandbox exec`
 
 Run a supervised command in an existing sandbox:
 
 ```sh
 aient --timeout 15m sandbox exec laptop-offload \
+  --environment development \
+  --repository example/widget \
   --workdir /workspace/repo -- pnpm test
 ```
 
@@ -103,17 +119,17 @@ Exact argv, `--shell`, and `--stdin` are mutually exclusive command forms. Repos
 
 ## `aient sandbox shell`
 
-Open a new interactive PTY shell:
+Open a new interactive PTY shell in an unbound/operator sandbox:
 
 ```sh
 aient sandbox shell laptop-offload
 ```
 
-Every invocation opens a new shell. Shell reattachment, history replay, and capability-bearing environment or repository flags are not available in 0.6.2. Use `sandbox exec --environment ...` for authorised non-interactive operations.
+Every invocation opens a new shell. Shell reattachment, history replay, and capability-bearing environment or repository flags are not available in 0.6.2, so `shell` cannot address an environment-bound customer sandbox. Use `sandbox exec --environment ...` for authorised non-interactive operations.
 
 ## `aient sandbox logs`
 
-Read a bounded recent sandbox log snapshot:
+Read a bounded recent unbound/operator sandbox log snapshot:
 
 ```sh
 aient sandbox logs laptop-offload
@@ -122,6 +138,8 @@ aient sandbox logs laptop-offload --json
 ```
 
 This is a sandbox runtime log snapshot, not stored command stdout/stderr history.
+
+In 0.6.2, `logs` cannot address an environment-bound customer sandbox.
 
 ## `aient sandbox delete`
 
