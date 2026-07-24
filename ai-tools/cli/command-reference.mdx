@@ -1,11 +1,11 @@
 ---
 title: "CLI command reference"
-description: "A compact index of the Aient CLI 0.6.2 commands and global flags."
+description: "A compact index of the Aient CLI 0.7.0 commands and global flags."
 ---
 
 # CLI command reference
 
-This page indexes the commands shipped in Aient CLI 0.6.2. Use `aient COMMAND --help` for the flags supported by your installed version.
+This page indexes the commands shipped in Aient CLI 0.7.0. Use `aient COMMAND --help` for the flags supported by your installed version.
 
 ## Authentication
 
@@ -35,11 +35,19 @@ See [Authentication and project profiles](/ai-tools/cli/authentication).
 | `aient sandbox logs SANDBOX` | Read a bounded sandbox runtime log snapshot. |
 | `aient sandbox delete SANDBOX` | Delete a sandbox. |
 
-See [Run and synchronize workspaces](/ai-tools/cli/run-and-sync) and [Retained sandbox lifecycle](/ai-tools/cli/retained-sandboxes).
+See [Run and synchronise workspaces](/ai-tools/cli/run-and-sync) and [Retained sandbox lifecycle](/ai-tools/cli/retained-sandboxes).
 
 <Warning>
-  In 0.6.2, an environment-bound customer sandbox can be reused only through selector-bearing `exec` and `execution` commands, found with `list --environment`, and removed by its owner with `delete`. `sync`, `files`, `shell`, `status`, `wait`, and `logs` are unbound/operator-only for that sandbox. Start a fresh `run --keep` to transfer changed customer workspace state.
+  In 0.7.0, an environment-bound customer sandbox can be reused only through selector-bearing `exec` and `execution` commands, found with `list --environment`, and removed by its owner with `delete`. `sync`, `files`, `shell`, `status`, `wait`, and `logs` apply only to sandboxes without an environment binding. Start a fresh `run --keep` to transfer changed customer workspace state.
 </Warning>
+
+## Environment secrets
+
+| Command | Purpose |
+| --- | --- |
+| `aient environment secrets set --environment ENV NAME --stdin` | Set or replace one encrypted environment secret. |
+
+See [Environment secrets](/ai-tools/cli/environment-secrets). Only current organisation owners and administrators can set secrets.
 
 ## Supervised executions
 
@@ -63,16 +71,6 @@ Repeat the original `--environment` and `--repository` selectors on every execut
 | `aient sandbox files ls SANDBOX [ABSOLUTE_REMOTE_DIRECTORY]` | List a directory. |
 | `aient sandbox files rm SANDBOX ABSOLUTE_REMOTE_PATH` | Remove a path. |
 
-## Operator-only commands
-
-| Command | Purpose |
-| --- | --- |
-| `aient sandbox suspend SANDBOX --discard-ephemeral-state` | Scale to zero and acknowledge ephemeral-state loss. |
-| `aient sandbox resume SANDBOX` | Start a new incarnation. |
-| `aient sandbox docker bootstrap SANDBOX` | Bootstrap tmpfs-backed Docker. |
-
-These require `--profile operator` and internal credentials. They are not customer API-key escape hatches.
-
 ## Utility commands
 
 | Command | Purpose |
@@ -81,17 +79,13 @@ These require `--profile operator` and internal credentials. They are not custom
 | `aient completion bash|fish|powershell|zsh` | Generate shell completion. |
 | `aient help [COMMAND]` | Show help. |
 
-`aient agent` appears in top-level help as a reserved Slice 2 command group, but it has no functional agent subcommands in 0.6.2.
-
 ## Global customer flags
 
 | Flag | Meaning |
 | --- | --- |
-| `--profile NAME` | Select a named customer profile. `operator` is reserved. |
+| `--profile NAME` | Select a named customer profile. |
 | `--access-token-file PATH` | Read one mode-`0600` access-only JSON envelope. |
 | `--timeout DURATION` | API request budget; for `sandbox exec`, also the remote command budget. Default `5m`. |
 | `--verbose` | Print safe request metadata and detailed progress. |
 | `--version`, `-v` | Print version information. |
 | `--help`, `-h` | Show help. |
-
-The top-level `--api-url`, `--api-key`, and `--auth-env-file` flags are internal operator controls and are rejected by the customer profile.

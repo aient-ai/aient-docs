@@ -1,16 +1,16 @@
 ---
-title: "Run and synchronize workspaces"
-description: "Run an exact local checkout remotely and synchronize Git and explicit extra-file layers."
+title: "Run and synchronise workspaces"
+description: "Run an exact local checkout remotely and synchronise Git and explicit extra-file layers."
 ---
 
-# Run and synchronize workspaces
+# Run and synchronise workspaces
 
 Workspace transfer and repository authority are separate:
 
 - **Workspace source** is the exact local checkout or linked worktree transferred into the sandbox.
 - **Repository authority** is the server-verified GitHub repository against which brokered provider credentials and repository-scoped policy may be used.
 
-You can upload and test a workspace without GitHub authorization. Pushing a branch, creating a pull request, or using repository-scoped capabilities requires a verified repository binding.
+You can upload and test a workspace without GitHub authorisation. Pushing a branch, creating a pull request, or using repository-scoped capabilities requires a verified repository binding.
 
 ## `aient sandbox run`
 
@@ -47,13 +47,13 @@ printf '%s\n' 'pnpm lint && pnpm test' |
 | Flag | Meaning |
 | --- | --- |
 | `--environment SLUG_OR_ID` | Select an authorised customer development environment. |
-| `--workspace PATH` | Synchronize a local Git checkout or linked worktree. |
+| `--workspace PATH` | Synchronise a local Git checkout or linked worktree. |
 | `--repository OWNER/NAME` | Explicit repository selector for disambiguation and provider access. |
 | `--include GLOB` | Add an untracked or ignored repository-relative file layer. Repeatable. |
 | `--exclude GLOB` | Narrow the explicit non-Git layer selected by at least one `--include`. Repeatable. |
 | `--remote-dir ABSOLUTE_PATH` | Select a replaceable remote child directory for Git activation, such as `/workspace/repo`; never use the mounted `/workspace` root. |
 
-Repository candidates are inferred from sanitized `origin` and `upstream` remotes when possible. Embedded remote credentials are not transmitted or displayed. If exactly one authorised repository matches, Aient binds it automatically. If none match, ordinary offload may continue without GitHub access. Use `--repository` when candidates are ambiguous.
+Repository candidates are inferred from sanitised `origin` and `upstream` remotes when possible. Embedded remote credentials are not transmitted or displayed. If exactly one authorised repository matches, Aient binds it automatically. If none match, ordinary offload may continue without GitHub access. Use `--repository` when candidates are ambiguous.
 
 Changing a local remote cannot grant repository access. Every provider operation is re-authorised against the authenticated organisation, active GitHub App installation, and current repository permissions.
 
@@ -71,9 +71,7 @@ Changing a local remote cannot grant repository access. Every provider operation
 | `--metadata KEY=VALUE` | Non-secret control-plane metadata entry. Repeatable. |
 | `--download REMOTE=LOCAL` | Download an explicit file before cleanup. Repeatable. |
 
-`--upload PATH` uploads a non-Git file or directory instead of synchronizing Git state. It excludes `.git` and `node_modules` by default. Do not combine `--upload` and `--workspace`.
-
-Customer environments own resource sizing. Customer OAuth rejects non-default templates, CPU or memory requests and limits, and every named volume even though their low-level flags are visible in 0.6.2 help. They are not customer sizing controls.
+`--upload PATH` uploads a non-Git file or directory instead of synchronising Git state. It excludes `.git` and `node_modules` by default. Do not combine `--upload` and `--workspace`.
 
 `--env` and `--metadata` are non-secret inputs. Metadata is ordinary control-plane state: never put tokens, credentials, or sensitive values in it. It cannot override server-owned organisation, actor, environment, or repository identity.
 
@@ -85,13 +83,13 @@ Environment and GitHub credentials are injected only into an authorised sandbox 
 
 ## `aient sandbox sync`
 
-Synchronize exact local Git state into an existing unbound/operator sandbox:
+Synchronise exact local Git state into an existing sandbox without an environment binding:
 
 ```sh
 aient sandbox sync laptop-offload .
 ```
 
-The default remote workspace is `/workspace/repo`. In 0.6.2, `sync` cannot carry the environment and repository selectors needed to reopen an environment-bound customer sandbox created by `run --keep`. Start a fresh `run --keep` to transfer changed customer workspace state.
+The default remote workspace is `/workspace/repo`. In 0.7.0, `sync` cannot carry the environment and repository selectors needed to reopen an environment-bound customer sandbox created by `run --keep`. Start a fresh `run --keep` to transfer changed customer workspace state.
 
 ```sh
 aient sandbox sync laptop-offload . \
@@ -100,9 +98,9 @@ aient sandbox sync laptop-offload . \
   --remote-dir /workspace/repo
 ```
 
-The synchronized state includes the selected worktree's exact HEAD, index, tracked changes, and selected explicit extra files. Include and exclude globs use repository-relative `/` separators and support `*`, `**`, and `?`.
+The synchronised state includes the selected worktree's exact HEAD, index, tracked changes, and selected explicit extra files. Include and exclude globs use repository-relative `/` separators and support `*`, `**`, and `?`.
 
-Excludes filter only the explicit non-Git layer and are valid only when the same command has at least one `--include`. They cannot remove tracked Git state. This dependency applies to Git workspace synchronization; raw `--upload` and `files put --exclude` have their own file-transfer filters.
+Excludes filter only the explicit non-Git layer and are valid only when the same command has at least one `--include`. They cannot remove tracked Git state. This dependency applies to Git workspace synchronisation; raw `--upload` and `files put --exclude` have their own file-transfer filters.
 
 Git activation atomically replaces the destination directory. `--remote-dir` must therefore name a replaceable child on the workspace filesystem, such as `/workspace/repo` or `/workspace/alternate-repo`, never the mounted `/workspace` root itself. Raw upload may target `/workspace` because it does not use Git-directory activation.
 

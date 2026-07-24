@@ -131,7 +131,7 @@ trap - EXIT
   The `env` and `json` formats deliberately print a live bearer token. Use them only when the receiving system requires stdout, disable shell tracing, keep the output out of logs and transcripts, and unset or delete the credential when the receiving process finishes.
 </Warning>
 
-An export contains no refresh token, operator key, environment secret, repository credential, or GitHub token. Imported access-only credentials are not refreshed or persisted by the CLI. When one expires, export another or sign in on that machine.
+An export contains no refresh token, environment secret, repository credential, or GitHub token. Imported access-only credentials are not refreshed or persisted by the CLI. When one expires, export another or sign in on that machine.
 
 The CLI refuses to upload the active access-token file—or a hard link to it—through workspace sync, raw upload, or `files put`.
 
@@ -142,5 +142,3 @@ The CLI refuses to upload the active access-token file—or a hard link to it—
 | `AIENT_PROFILE` | Select one named refresh-backed profile. |
 | `AIENT_ACCESS_TOKEN` | Supply one raw short-lived access token. Treat as a secret. |
 | `AIENT_ACCESS_TOKEN_FILE` | Read one exported mode-`0600` access envelope. |
-
-Operator API keys and auth environment files are not customer authentication alternatives. They require the explicitly reserved `--profile operator` and are intended only for Aient's internal operations.

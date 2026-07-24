@@ -9,7 +9,7 @@ description: "Observe supervised commands, reconnect to live output, and transfe
 
 ## Output is live-only
 
-Aient CLI 0.6.2 does not retain command stdout or stderr for replay. `attach` receives only new live bytes after attachment. `status`, `wait`, and `cancel` return content-free execution state.
+Aient CLI 0.7.0 does not retain command stdout or stderr for replay. `attach` receives only new live bytes after attachment. `status`, `wait`, and `cancel` return content-free execution state.
 
 An authorised child receives its process capabilities and can deliberately print a mounted environment or GitHub secret. The CLI returns stdout and stderr verbatim to the connected caller, whose terminal or agent runner may record it. Avoid `env`, `printenv`, shell tracing, and echoing `GH_TOKEN`; credentials are not ordinary execution metadata or replayable output.
 
@@ -85,7 +85,7 @@ Use the same selectors as the original environment-capable `sandbox exec`.
 
 ## Explicit file commands
 
-File commands address an existing unbound/operator sandbox and an explicit path. They are separate from exact Git workspace synchronization. In 0.6.2, they cannot carry the selectors required to address an environment-bound customer sandbox.
+File commands address an existing sandbox without an environment binding and an explicit path. They are separate from exact Git workspace synchronisation. In 0.7.0, they cannot carry the selectors required to address an environment-bound customer sandbox.
 
 ### `aient sandbox files put`
 
@@ -97,7 +97,7 @@ aient sandbox files put laptop-offload ./fixtures /workspace/fixtures \
   --exclude '**/*.generated'
 ```
 
-Directory excludes support `/`-separated `*`, `**`, and `?` globs. The CLI rejects upload of the active access-token file or operator auth file, including hard links to that file.
+Directory excludes support `/`-separated `*`, `**`, and `?` globs. The CLI rejects upload of the active access-token file, including hard links to that file.
 
 ### `aient sandbox files get`
 
