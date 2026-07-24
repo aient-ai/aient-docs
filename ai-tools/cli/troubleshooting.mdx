@@ -96,7 +96,7 @@ For a large unbound/operator sync:
 aient --timeout 20m --verbose sandbox sync laptop-offload .
 ```
 
-An environment-bound customer should start a fresh `sandbox run --environment ... --keep` to transfer changed workspace state in 0.6.2.
+An environment-bound customer should start a fresh `sandbox run --environment ... --keep` to transfer changed workspace state in 0.7.0.
 
 ## Connection ended during `sandbox exec`
 
@@ -125,11 +125,11 @@ Use the unique temporary-directory and cleanup pattern in [Authentication and pr
 
 ## Customer resource flags are rejected
 
-Although 0.6.2 help exposes template, named-volume, CPU, and memory flags, customer environment sizing is server-owned. Remove non-default `--template`, every `--named-volume`, and `--cpu`, `--cpu-limit`, `--memory`, or `--memory-limit`. They remain low-level operator controls until customer size presets are released.
+Although 0.7.0 help exposes template, named-volume, CPU, and memory flags, customer environment sizing is server-owned. Remove non-default `--template`, every `--named-volume`, and `--cpu`, `--cpu-limit`, `--memory`, or `--memory-limit`. They remain low-level operator controls until customer size presets are released.
 
 ## A retained customer sandbox rejects `sync`, `shell`, or `status`
 
-An environment-bound sandbox created with `sandbox run --environment ... --keep` requires the original authority selectors on later `exec` and `execution` operations. In 0.6.2, only those selector-bearing operations, `list --environment`, and owner `delete` support the bound customer contract. `sync`, `files`, `shell`, `status`, `wait`, and `logs` cannot address the sandbox. Start a fresh `run --keep` when local workspace state changes; do not retry with operator credentials.
+An environment-bound sandbox created with `sandbox run --environment ... --keep` requires the original authority selectors on later `exec` and `execution` operations. In 0.7.0, only those selector-bearing operations, `list --environment`, and owner `delete` support the bound customer contract. `sync`, `files`, `shell`, `status`, `wait`, and `logs` cannot address the sandbox. Start a fresh `run --keep` when local workspace state changes; do not retry with operator credentials.
 
 ## Current unsupported behavior
 

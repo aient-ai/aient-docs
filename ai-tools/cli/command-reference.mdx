@@ -1,11 +1,11 @@
 ---
 title: "CLI command reference"
-description: "A compact index of the Aient CLI 0.6.2 commands and global flags."
+description: "A compact index of the Aient CLI 0.7.0 commands and global flags."
 ---
 
 # CLI command reference
 
-This page indexes the commands shipped in Aient CLI 0.6.2. Use `aient COMMAND --help` for the flags supported by your installed version.
+This page indexes the commands shipped in Aient CLI 0.7.0. Use `aient COMMAND --help` for the flags supported by your installed version.
 
 ## Authentication
 
@@ -38,8 +38,16 @@ See [Authentication and project profiles](/ai-tools/cli/authentication).
 See [Run and synchronize workspaces](/ai-tools/cli/run-and-sync) and [Retained sandbox lifecycle](/ai-tools/cli/retained-sandboxes).
 
 <Warning>
-  In 0.6.2, an environment-bound customer sandbox can be reused only through selector-bearing `exec` and `execution` commands, found with `list --environment`, and removed by its owner with `delete`. `sync`, `files`, `shell`, `status`, `wait`, and `logs` are unbound/operator-only for that sandbox. Start a fresh `run --keep` to transfer changed customer workspace state.
+  In 0.7.0, an environment-bound customer sandbox can be reused only through selector-bearing `exec` and `execution` commands, found with `list --environment`, and removed by its owner with `delete`. `sync`, `files`, `shell`, `status`, `wait`, and `logs` are unbound/operator-only for that sandbox. Start a fresh `run --keep` to transfer changed customer workspace state.
 </Warning>
+
+## Environment secrets
+
+| Command | Purpose |
+| --- | --- |
+| `aient environment secrets set --environment ENV NAME --stdin` | Set or replace one encrypted environment secret. |
+
+See [Environment secrets](/ai-tools/cli/environment-secrets). Only current organisation owners and administrators can set secrets.
 
 ## Supervised executions
 
@@ -81,7 +89,7 @@ These require `--profile operator` and internal credentials. They are not custom
 | `aient completion bash|fish|powershell|zsh` | Generate shell completion. |
 | `aient help [COMMAND]` | Show help. |
 
-`aient agent` appears in top-level help as a reserved Slice 2 command group, but it has no functional agent subcommands in 0.6.2.
+`aient agent` appears in top-level help as a reserved Slice 2 command group, but it has no functional agent subcommands in 0.7.0.
 
 ## Global customer flags
 

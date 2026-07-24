@@ -22,7 +22,7 @@ aient --timeout 15m sandbox exec laptop-offload \
 aient sandbox delete laptop-offload
 ```
 
-The one-shot command prints the created sandbox name. In Aient CLI 0.6.2, that environment-bound sandbox can be reused only through selector-bearing `sandbox exec` and `sandbox execution`, found with environment-scoped `list`, and removed by its owner with `delete`. `sync`, `files`, `shell`, `status`, `wait`, and `logs` cannot reopen it. Start a fresh `run --keep` to transfer changed workspace state.
+The one-shot command prints the created sandbox name. In Aient CLI 0.7.0, that environment-bound sandbox can be reused only through selector-bearing `sandbox exec` and `sandbox execution`, found with environment-scoped `list`, and removed by its owner with `delete`. `sync`, `files`, `shell`, `status`, `wait`, and `logs` cannot reopen it. Start a fresh `run --keep` to transfer changed workspace state.
 
 ## `aient sandbox list`
 
@@ -51,7 +51,7 @@ aient sandbox create --name laptop-offload --lease-seconds 21600
 | `--metadata KEY=VALUE` | Non-secret control-plane metadata entry. Repeatable. |
 | `--json` | Emit structured output. |
 
-The 0.6.2 help also exposes template, named-volume, and CPU and memory request/limit flags. Customer OAuth may use server defaults, but it rejects a non-default template, every named volume, and CPU or memory overrides. Low-level resource overrides are operator-only.
+The 0.7.0 help also exposes template, named-volume, and CPU and memory request/limit flags. Customer OAuth may use server defaults, but it rejects a non-default template, every named volume, and CPU or memory overrides. Low-level resource overrides are operator-only.
 
 Metadata must never contain credentials or sensitive values. It cannot override server-owned organisation, actor, environment, or repository identity.
 
@@ -66,7 +66,7 @@ aient sandbox status laptop-offload
 aient sandbox status laptop-offload --json
 ```
 
-In 0.6.2, `status` cannot address an environment-bound customer sandbox.
+In 0.7.0, `status` cannot address an environment-bound customer sandbox.
 
 ## `aient sandbox wait`
 
@@ -83,7 +83,7 @@ aient --timeout 10m sandbox wait laptop-offload
 
 The global `--timeout` limits the wait.
 
-In 0.6.2, `wait` cannot address an environment-bound customer sandbox.
+In 0.7.0, `wait` cannot address an environment-bound customer sandbox.
 
 ## `aient sandbox exec`
 
@@ -125,7 +125,7 @@ Open a new interactive PTY shell in an unbound/operator sandbox:
 aient sandbox shell laptop-offload
 ```
 
-Every invocation opens a new shell. Shell reattachment, history replay, and capability-bearing environment or repository flags are not available in 0.6.2, so `shell` cannot address an environment-bound customer sandbox. Use `sandbox exec --environment ...` for authorised non-interactive operations.
+Every invocation opens a new shell. Shell reattachment, history replay, and capability-bearing environment or repository flags are not available in 0.7.0, so `shell` cannot address an environment-bound customer sandbox. Use `sandbox exec --environment ...` for authorised non-interactive operations.
 
 ## `aient sandbox logs`
 
@@ -139,7 +139,7 @@ aient sandbox logs laptop-offload --json
 
 This is a sandbox runtime log snapshot, not stored command stdout/stderr history.
 
-In 0.6.2, `logs` cannot address an environment-bound customer sandbox.
+In 0.7.0, `logs` cannot address an environment-bound customer sandbox.
 
 ## `aient sandbox delete`
 

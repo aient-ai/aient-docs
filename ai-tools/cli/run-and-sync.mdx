@@ -73,7 +73,7 @@ Changing a local remote cannot grant repository access. Every provider operation
 
 `--upload PATH` uploads a non-Git file or directory instead of synchronizing Git state. It excludes `.git` and `node_modules` by default. Do not combine `--upload` and `--workspace`.
 
-Customer environments own resource sizing. Customer OAuth rejects non-default templates, CPU or memory requests and limits, and every named volume even though their low-level flags are visible in 0.6.2 help. They are not customer sizing controls.
+Customer environments own resource sizing. Customer OAuth rejects non-default templates, CPU or memory requests and limits, and every named volume even though their low-level flags are visible in 0.7.0 help. They are not customer sizing controls.
 
 `--env` and `--metadata` are non-secret inputs. Metadata is ordinary control-plane state: never put tokens, credentials, or sensitive values in it. It cannot override server-owned organisation, actor, environment, or repository identity.
 
@@ -91,7 +91,7 @@ Synchronize exact local Git state into an existing unbound/operator sandbox:
 aient sandbox sync laptop-offload .
 ```
 
-The default remote workspace is `/workspace/repo`. In 0.6.2, `sync` cannot carry the environment and repository selectors needed to reopen an environment-bound customer sandbox created by `run --keep`. Start a fresh `run --keep` to transfer changed customer workspace state.
+The default remote workspace is `/workspace/repo`. In 0.7.0, `sync` cannot carry the environment and repository selectors needed to reopen an environment-bound customer sandbox created by `run --keep`. Start a fresh `run --keep` to transfer changed customer workspace state.
 
 ```sh
 aient sandbox sync laptop-offload . \

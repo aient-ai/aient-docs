@@ -151,6 +151,7 @@
             "pages": [
               "ai-tools/cli",
               "ai-tools/cli/authentication",
+              "ai-tools/cli/environment-secrets",
               "ai-tools/cli/run-and-sync",
               "ai-tools/cli/retained-sandboxes",
               "ai-tools/cli/executions-and-files",
