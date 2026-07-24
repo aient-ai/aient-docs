@@ -14,8 +14,8 @@ The `aient` command runs local development work in isolated remote sandboxes. Th
   <Card title="Environment secrets" icon="lock" href="/ai-tools/cli/environment-secrets">
     Set or replace an encrypted environment secret without exposing its value in a command line.
   </Card>
-  <Card title="Run and synchronize" icon="rotate" href="/ai-tools/cli/run-and-sync">
-    Run a local Git worktree remotely or synchronize its exact state into a retained sandbox.
+  <Card title="Run and synchronise" icon="rotate" href="/ai-tools/cli/run-and-sync">
+    Run a local Git worktree remotely or synchronise its exact state into a retained sandbox.
   </Card>
   <Card title="Retained sandboxes" icon="box" href="/ai-tools/cli/retained-sandboxes">
     Create, inspect, reuse, enter, and delete sandboxes.
@@ -85,18 +85,15 @@ aient --timeout 15m sandbox exec laptop-offload \
 aient sandbox delete laptop-offload
 ```
 
-In 0.7.0, an environment-bound customer sandbox can be reused only through selector-bearing `sandbox exec` and `sandbox execution` commands, found with `sandbox list --environment`, and removed by its owner with `sandbox delete`. `sandbox sync`, `files`, `shell`, `status`, `wait`, and `logs` cannot yet reopen that bound sandbox. To transfer changed local state, delete it and start a fresh `sandbox run --keep`; never fall back to operator credentials.
+In 0.7.0, an environment-bound customer sandbox can be reused only through selector-bearing `sandbox exec` and `sandbox execution` commands, found with `sandbox list --environment`, and removed by its owner with `sandbox delete`. `sandbox sync`, `files`, `shell`, `status`, `wait`, and `logs` cannot reopen that bound sandbox. To transfer changed local state, delete it and start a fresh `sandbox run --keep`.
 
-The lower-level `sandbox create`, `sync`, and selector-less `exec` loop is an unbound/operator workflow. It does not mount a customer's environment or repository capabilities.
+Commands without `--environment` operate without environment or repository capabilities.
 
-## Current preview boundary
+## Current limitations
 
 The commands documented in this section are the surface shipped in Aient CLI 0.7.0.
 
-- `aient agent` is reserved for a later release. It does not yet start a Thread-backed Aient agent.
 - Commands cannot be deliberately detached. `sandbox execution attach` can follow an already-known live execution, but output is not retained for replay.
 - `sandbox shell` always opens a new shell. Shell reattachment and shell history are unavailable.
-- Public port exposure and sandbox size presets are not yet available.
-- Non-default templates, CPU or memory overrides, named volumes, and the Docker lifecycle helper are operator controls, not customer sizing features.
 
 See [Current limits and troubleshooting](/ai-tools/cli/troubleshooting) for recovery guidance and common errors.

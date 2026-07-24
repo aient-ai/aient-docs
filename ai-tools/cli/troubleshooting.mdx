@@ -21,7 +21,7 @@ Ask an organisation administrator to open the environment's **Sandbox** settings
 aient sandbox run --environment development -- pnpm test
 ```
 
-This is a policy denial before sandbox creation. An operator API key is not a customer workaround.
+This is a policy denial before sandbox creation.
 
 ## Profile is not logged in
 
@@ -90,7 +90,7 @@ If you invoke `aient` from an agent, build tool, or wrapper:
 - do not treat completion of the outer wrapper as completion of the CLI; and
 - do not mutate the target workspace while the upload is active.
 
-For a large unbound/operator sync:
+For a large sandbox without an environment binding:
 
 ```sh
 aient --timeout 20m --verbose sandbox sync laptop-offload .
@@ -123,24 +123,17 @@ Imported access-only credentials are never refreshed. Export another from a refr
 
 Use the unique temporary-directory and cleanup pattern in [Authentication and project profiles](/ai-tools/cli/authentication). Delete the old access-only file. Do not copy refresh tokens or keychain data.
 
-## Customer resource flags are rejected
-
-Although 0.7.0 help exposes template, named-volume, CPU, and memory flags, customer environment sizing is server-owned. Remove non-default `--template`, every `--named-volume`, and `--cpu`, `--cpu-limit`, `--memory`, or `--memory-limit`. They remain low-level operator controls until customer size presets are released.
-
 ## A retained customer sandbox rejects `sync`, `shell`, or `status`
 
-An environment-bound sandbox created with `sandbox run --environment ... --keep` requires the original authority selectors on later `exec` and `execution` operations. In 0.7.0, only those selector-bearing operations, `list --environment`, and owner `delete` support the bound customer contract. `sync`, `files`, `shell`, `status`, `wait`, and `logs` cannot address the sandbox. Start a fresh `run --keep` when local workspace state changes; do not retry with operator credentials.
+An environment-bound sandbox created with `sandbox run --environment ... --keep` requires the original authority selectors on later `exec` and `execution` operations. In 0.7.0, only those selector-bearing operations, `list --environment`, and owner `delete` support the bound customer contract. `sync`, `files`, `shell`, `status`, `wait`, and `logs` cannot address the sandbox. Start a fresh `run --keep` when local workspace state changes.
 
-## Current unsupported behavior
+## Current unsupported behaviour
 
-- `aient agent` does not yet start an Aient agent.
 - Commands cannot deliberately detach.
 - Execution output is live-only and cannot be replayed.
 - `sandbox shell` cannot reattach and has no history replay.
 - Interactive shells cannot request environment or repository capabilities.
-- Environment-bound customer sandboxes cannot yet use `sync`, `files`, `shell`, `status`, `wait`, or `logs`.
-- Public port/domain exposure is not available.
-- Customer sandbox size presets are not available.
+- Environment-bound customer sandboxes cannot use `sync`, `files`, `shell`, `status`, `wait`, or `logs`.
 - `files get` downloads a file, not a directory.
 
-For other failures, rerun with `--verbose`. It prints safe correlation metadata without printing OAuth, operator, environment, or provider credentials.
+For other failures, rerun with `--verbose`. It prints safe correlation metadata without printing OAuth, environment, or provider credentials.
