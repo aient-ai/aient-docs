@@ -89,7 +89,7 @@ Synchronise exact local Git state into an existing sandbox without an environmen
 aient sandbox sync laptop-offload .
 ```
 
-The default remote workspace is `/workspace/repo`. In 0.7.0, `sync` cannot carry the environment and repository selectors needed to reopen an environment-bound customer sandbox created by `run --keep`. Start a fresh `run --keep` to transfer changed customer workspace state.
+The default remote workspace is `/workspace/repo`. In 0.8.2, `sync` cannot carry the environment and repository selectors needed to reopen an environment-bound customer sandbox created by `run --keep`. Start a fresh `run --keep` to transfer changed customer workspace state.
 
 ```sh
 aient sandbox sync laptop-offload . \
@@ -120,10 +120,14 @@ When an explicit non-Git layer is present, the CLI prints a second `Synchronized
 
 Partial transfer progress is not completion. If another program invokes the CLI, it must preserve the child process's complete lifecycle result—including a running session handle, final exit status, and terminal output. Completion of an outer wrapper is not evidence that the CLI child has exited.
 
-For a large snapshot, increase the request budget:
+Workspace archive uploads treat `--timeout` as an inactivity budget. The budget resets while source bytes continue to flow and when the server begins its response, so a healthy large transfer may exceed five minutes in total. A stalled upload or response still fails with a deadline-classified error.
+
+For a slow connection, increase the allowed inactivity gap:
 
 ```sh
 aient --timeout 20m --verbose sandbox sync laptop-offload .
 ```
 
 `--verbose` prints safe request correlation and detailed progress; it does not print credentials.
+
+An interrupted upload is not byte-resumable. Re-running `sync` starts a new delta or snapshot attempt against the last successfully activated remote revision.

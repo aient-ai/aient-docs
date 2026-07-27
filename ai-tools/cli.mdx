@@ -5,7 +5,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 # Aient CLI
 
-The `aient` command runs local development work in isolated remote sandboxes. This guide documents Aient CLI 0.7.0, available as a static binary for macOS and Linux on Intel and Arm.
+The `aient` command runs local development work in isolated remote sandboxes. This guide documents Aient CLI 0.8.2, available as a static binary for macOS and Linux on Intel and Arm.
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -85,13 +85,13 @@ aient --timeout 15m sandbox exec laptop-offload \
 aient sandbox delete laptop-offload
 ```
 
-In 0.7.0, an environment-bound customer sandbox can be reused only through selector-bearing `sandbox exec` and `sandbox execution` commands, found with `sandbox list --environment`, and removed by its owner with `sandbox delete`. `sandbox sync`, `files`, `shell`, `status`, `wait`, and `logs` cannot reopen that bound sandbox. To transfer changed local state, delete it and start a fresh `sandbox run --keep`.
+In 0.8.2, repeat `--environment` when using `status`, `wait`, or `logs` with an environment-bound customer sandbox. Selector-bearing `sandbox exec` and `sandbox execution` commands also require their original environment and repository selectors. `sandbox sync`, `files`, and `shell` still cannot reopen that bound sandbox. To transfer changed local state, delete it and start a fresh `sandbox run --keep`.
 
 Commands without `--environment` operate without environment or repository capabilities.
 
 ## Current limitations
 
-The commands documented in this section are the surface shipped in Aient CLI 0.7.0.
+The commands documented in this section are the surface shipped in Aient CLI 0.8.2.
 
 - Commands cannot be deliberately detached. `sandbox execution attach` can follow an already-known live execution, but output is not retained for replay.
 - `sandbox shell` always opens a new shell. Shell reattachment and shell history are unavailable.
