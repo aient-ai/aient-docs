@@ -90,13 +90,17 @@ If you invoke `aient` from an agent, build tool, or wrapper:
 - do not treat completion of the outer wrapper as completion of the CLI; and
 - do not mutate the target workspace while the upload is active.
 
-For a large sandbox without an environment binding:
+In Aient CLI 0.8.2, `sandbox sync` resets its timeout while upload bytes continue to flow and when the server begins responding. If a current transfer fails despite continuing progress, check `aient version`; releases before 0.8.2 applied the default five-minute budget to the whole HTTP request.
+
+For an unusually slow connection, increase the permitted inactivity gap:
 
 ```sh
 aient --timeout 20m --verbose sandbox sync laptop-offload .
 ```
 
-An environment-bound customer should start a fresh `sandbox run --environment ... --keep` to transfer changed workspace state in 0.7.0.
+An environment-bound customer should start a fresh `sandbox run --environment ... --keep` to transfer changed workspace state in 0.8.2.
+
+Retrying `sync` starts a new delta or snapshot attempt. It does not continue the previous multipart upload from its last reported byte.
 
 ## Connection ended during `sandbox exec`
 
@@ -123,9 +127,9 @@ Imported access-only credentials are never refreshed. Export another from a refr
 
 Use the unique temporary-directory and cleanup pattern in [Authentication and project profiles](/ai-tools/cli/authentication). Delete the old access-only file. Do not copy refresh tokens or keychain data.
 
-## A retained customer sandbox rejects `sync`, `shell`, or `status`
+## A retained customer sandbox rejects `sync`, `files`, or `shell`
 
-An environment-bound sandbox created with `sandbox run --environment ... --keep` requires the original authority selectors on later `exec` and `execution` operations. In 0.7.0, only those selector-bearing operations, `list --environment`, and owner `delete` support the bound customer contract. `sync`, `files`, `shell`, `status`, `wait`, and `logs` cannot address the sandbox. Start a fresh `run --keep` when local workspace state changes.
+An environment-bound sandbox created with `sandbox run --environment ... --keep` requires the original authority selectors on later `exec` and `execution` operations. `status`, `wait`, and `logs` require the original `--environment` selector. In 0.8.2, `sync`, `files`, and `shell` cannot address the sandbox. Start a fresh `run --keep` when local workspace state changes.
 
 ## Current unsupported behaviour
 
@@ -133,7 +137,7 @@ An environment-bound sandbox created with `sandbox run --environment ... --keep`
 - Execution output is live-only and cannot be replayed.
 - `sandbox shell` cannot reattach and has no history replay.
 - Interactive shells cannot request environment or repository capabilities.
-- Environment-bound customer sandboxes cannot use `sync`, `files`, `shell`, `status`, `wait`, or `logs`.
+- Environment-bound customer sandboxes cannot use `sync`, `files`, or `shell`.
 - `files get` downloads a file, not a directory.
 
 For other failures, rerun with `--verbose`. It prints safe correlation metadata without printing OAuth, environment, or provider credentials.

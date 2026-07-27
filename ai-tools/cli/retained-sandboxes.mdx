@@ -22,7 +22,7 @@ aient --timeout 15m sandbox exec laptop-offload \
 aient sandbox delete laptop-offload
 ```
 
-The one-shot command prints the created sandbox name. In Aient CLI 0.7.0, that environment-bound sandbox can be reused only through selector-bearing `sandbox exec` and `sandbox execution`, found with environment-scoped `list`, and removed by its owner with `delete`. `sync`, `files`, `shell`, `status`, `wait`, and `logs` cannot reopen it. Start a fresh `run --keep` to transfer changed workspace state.
+The one-shot command prints the created sandbox name. In Aient CLI 0.8.2, that environment-bound sandbox can be reused through selector-bearing `sandbox exec` and `sandbox execution`, found with environment-scoped `list`, inspected with environment-scoped `status`, `wait`, and `logs`, and removed by its owner with `delete`. `sync`, `files`, and `shell` cannot reopen it. Start a fresh `run --keep` to transfer changed workspace state.
 
 ## `aient sandbox list`
 
@@ -57,21 +57,23 @@ For customer work that needs an environment's authorised development capabilitie
 
 ## `aient sandbox status`
 
-Show the current state of a sandbox without an environment binding:
+Show the current state of a sandbox:
 
 ```sh
 aient sandbox status laptop-offload
 aient sandbox status laptop-offload --json
+aient sandbox status laptop-offload --environment development
 ```
 
-In 0.7.0, `status` cannot address an environment-bound customer sandbox.
+Repeat the original `--environment` selector for an environment-bound customer sandbox.
 
 ## `aient sandbox wait`
 
-Wait until a sandbox without an environment binding becomes ready:
+Wait until a sandbox becomes ready:
 
 ```sh
 aient --timeout 10m sandbox wait laptop-offload
+aient --timeout 10m sandbox wait laptop-offload --environment development
 ```
 
 | Flag | Meaning |
@@ -81,7 +83,7 @@ aient --timeout 10m sandbox wait laptop-offload
 
 The global `--timeout` limits the wait.
 
-In 0.7.0, `wait` cannot address an environment-bound customer sandbox.
+Repeat the original `--environment` selector for an environment-bound customer sandbox.
 
 ## `aient sandbox exec`
 
@@ -123,21 +125,22 @@ Open a new interactive PTY shell in a sandbox without an environment binding:
 aient sandbox shell laptop-offload
 ```
 
-Every invocation opens a new shell. Shell reattachment, history replay, and capability-bearing environment or repository flags are not available in 0.7.0, so `shell` cannot address an environment-bound customer sandbox. Use `sandbox exec --environment ...` for authorised non-interactive operations.
+Every invocation opens a new shell. Shell reattachment, history replay, and capability-bearing environment or repository flags are not available in 0.8.2, so `shell` cannot address an environment-bound customer sandbox. Use `sandbox exec --environment ...` for authorised non-interactive operations.
 
 ## `aient sandbox logs`
 
-Read a bounded recent log snapshot from a sandbox without an environment binding:
+Read a bounded recent log snapshot from a sandbox:
 
 ```sh
 aient sandbox logs laptop-offload
 aient sandbox logs laptop-offload --tail-lines 500
 aient sandbox logs laptop-offload --json
+aient sandbox logs laptop-offload --environment development
 ```
 
 This is a sandbox runtime log snapshot, not stored command stdout/stderr history.
 
-In 0.7.0, `logs` cannot address an environment-bound customer sandbox.
+Repeat the original `--environment` selector for an environment-bound customer sandbox.
 
 ## `aient sandbox delete`
 

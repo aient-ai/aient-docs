@@ -1,11 +1,11 @@
 ---
 title: "CLI command reference"
-description: "A compact index of the Aient CLI 0.7.0 commands and global flags."
+description: "A compact index of the Aient CLI 0.8.2 commands and global flags."
 ---
 
 # CLI command reference
 
-This page indexes the commands shipped in Aient CLI 0.7.0. Use `aient COMMAND --help` for the flags supported by your installed version.
+This page indexes the commands shipped in Aient CLI 0.8.2. Use `aient COMMAND --help` for the flags supported by your installed version.
 
 ## Authentication
 
@@ -38,7 +38,7 @@ See [Authentication and project profiles](/ai-tools/cli/authentication).
 See [Run and synchronise workspaces](/ai-tools/cli/run-and-sync) and [Retained sandbox lifecycle](/ai-tools/cli/retained-sandboxes).
 
 <Warning>
-  In 0.7.0, an environment-bound customer sandbox can be reused only through selector-bearing `exec` and `execution` commands, found with `list --environment`, and removed by its owner with `delete`. `sync`, `files`, `shell`, `status`, `wait`, and `logs` apply only to sandboxes without an environment binding. Start a fresh `run --keep` to transfer changed customer workspace state.
+  An environment-bound customer sandbox requires `--environment` on `status`, `wait`, and `logs`, and its original environment and repository selectors on `exec` and `execution`. `sync`, `files`, and `shell` apply only to sandboxes without an environment binding. Start a fresh `run --keep` to transfer changed customer workspace state.
 </Warning>
 
 ## Environment secrets
@@ -85,7 +85,7 @@ Repeat the original `--environment` and `--repository` selectors on every execut
 | --- | --- |
 | `--profile NAME` | Select a named customer profile. |
 | `--access-token-file PATH` | Read one mode-`0600` access-only JSON envelope. |
-| `--timeout DURATION` | API request budget; for `sandbox exec`, also the remote command budget. Default `5m`. |
+| `--timeout DURATION` | API request budget; for `sandbox exec`, also the remote command budget. For workspace-sync archives, this is an inactivity budget that resets while bytes flow or a response begins. Default `5m`. |
 | `--verbose` | Print safe request metadata and detailed progress. |
 | `--version`, `-v` | Print version information. |
 | `--help`, `-h` | Show help. |
