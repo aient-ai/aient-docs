@@ -5,17 +5,16 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 # Aient CLI
 
-The `aient` command runs local development work in isolated remote sandboxes. This guide documents Aient CLI 0.8.2, available as a static binary for macOS and Linux on Intel and Arm.
+The `aient` command runs local development work in isolated remote sandboxes. The current invited preview is available as a static binary for macOS and Linux on Intel and Arm.
+
+Current invited-preview release: `0.8.2`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
     Keep separate customer sessions and bind each checkout to the intended Aient profile.
   </Card>
-  <Card title="Environment secrets" icon="lock" href="/ai-tools/cli/environment-secrets">
-    Set or replace an encrypted environment secret without exposing its value in a command line.
-  </Card>
-  <Card title="Run and synchronise" icon="rotate" href="/ai-tools/cli/run-and-sync">
-    Run a local Git worktree remotely or synchronise its exact state into a retained sandbox.
+  <Card title="Run and synchronize" icon="rotate" href="/ai-tools/cli/run-and-sync">
+    Run a local Git worktree remotely or synchronize its exact state into a retained sandbox.
   </Card>
   <Card title="Retained sandboxes" icon="box" href="/ai-tools/cli/retained-sandboxes">
     Create, inspect, reuse, enter, and delete sandboxes.
@@ -42,10 +41,11 @@ aient auth status
 From a local Git checkout:
 
 ```sh
-aient sandbox run --environment development -- pnpm test
+aient sandbox run --environment development --size medium -- pnpm test
 ```
 
 With `--environment`, the CLI synchronizes the current workspace by default. It shows the organisation, resolved environment, inferred or selected repository, and brokered GitHub capabilities before creating the sandbox.
+Use `--size small|medium|large` to request a product-owned compute class, or omit it to use the environment default. The server owns the underlying template and resource envelope.
 
 ```text
 Organisation: Example Engineering
@@ -65,35 +65,68 @@ The local checkout is the workspace source. A configured Git remote is only a re
 Use `sandbox run` for a disposable command:
 
 ```sh
-aient sandbox run --environment development -- go test ./...
+aient sandbox run --environment development --size medium -- go test ./...
 ```
 
-Use `--keep` when you want to retain the created, environment-bound sandbox:
+Use `--keep` when you want to retain the created sandbox:
 
 ```sh
-aient sandbox run \
-  --name laptop-offload \
-  --keep \
-  --environment development \
-  --repository example/widget \
-  -- true
+aient sandbox run --environment development --keep -- pnpm install
 aient sandbox list --environment development
+```
+
+Use a named retained sandbox when you want follow-up lifecycle reads and supervised execution:
+
+```sh
+aient sandbox run --environment development --size medium \
+  --name laptop-offload --keep -- true
+aient sandbox status laptop-offload --environment development
 aient --timeout 15m sandbox exec laptop-offload \
   --environment development \
-  --repository example/widget \
-  --workdir /workspace/repo -- pnpm test
+  --workdir /workspace/repo -- go test ./...
+aient sandbox logs laptop-offload --environment development
 aient sandbox delete laptop-offload
 ```
 
-In 0.8.2, repeat `--environment` when using `status`, `wait`, or `logs` with an environment-bound customer sandbox. Selector-bearing `sandbox exec` and `sandbox execution` commands also require their original environment and repository selectors. `sandbox sync`, `files`, and `shell` still cannot reopen that bound sandbox. To transfer changed local state, delete it and start a fresh `sandbox run --keep`.
+Environment-bound `status`, `wait`, and `logs` calls must repeat `--environment`. Without it, the owner-only read deliberately cannot see the environment-bound sandbox.
 
-Commands without `--environment` operate without environment or repository capabilities.
+To select all ignored and untracked non-Git paths and subtract explicit exclusions:
 
-## Current limitations
+```sh
+aient sandbox run --environment development \
+  --exclude '**/node_modules/**' \
+  --exclude '.local/**' \
+  --exclude '**/.env*' \
+  -- go test ./...
+```
+
+Exclude-only selection never replaces Git-tracked content or includes `.git` metadata. It has no implicit cache or secret exclusions. Review the selected scope and explicitly exclude `.env` files, credentials, tokens, private keys, and other secret-bearing non-Git paths.
+
+## Environment secrets
+
+Organisation owners and administrators can replace an encrypted environment secret after consenting to the dedicated write capability:
+
+```sh
+printf '%s' "$STRIPE_SECRET_KEY" | aient environment secrets set \
+  --environment development STRIPE_SECRET_KEY --stdin
+```
+
+The command never returns the secret value. Server-managed environment secrets are separate from local files selected for workspace synchronization.
+
+## Current preview boundary
 
 The commands documented in this section are the surface shipped in Aient CLI 0.8.2.
 
+- Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
+- Exclude-only workspace selection starts from the broad non-Git inventory, keeps Git state authoritative, and applies no hidden exclusions.
+- Idle and timeout cleanup acts only on the exact sandbox revision it evaluated. This protects an accepted concurrent refresh without renewing or extending the operation lease or server-owned hard expiry.
+- Customer create and run support the `small`, `medium`, and `large` product-owned compute classes.
+- Owner/admin environment-secret writes are encrypted, capability-gated, and write-only from the CLI.
+
+- `aient agent` is reserved for a later release. It does not yet start a Thread-backed Aient agent.
 - Commands cannot be deliberately detached. `sandbox execution attach` can follow an already-known live execution, but output is not retained for replay.
 - `sandbox shell` always opens a new shell. Shell reattachment and shell history are unavailable.
+- Public port exposure is not yet available.
+- CPU and memory override flags and the Docker lifecycle helper are operator controls, not customer sizing features.
 
 See [Current limits and troubleshooting](/ai-tools/cli/troubleshooting) for recovery guidance and common errors.
