@@ -37,13 +37,22 @@ Browsers only: call `registerOTelBrowser` from a **client** component after moun
 import { useEffect, useRef } from 'react'
 import { registerOTelBrowser, type BrowserSDK } from '@aient/otel-browser'
 
-export function TelemetryInit({ userId, pseudoId, businessId }: { userId?: string | null; pseudoId?: string | null; businessId?: string | null }) {
+export function TelemetryInit({ analyticsConsent, userId, pseudoId, businessId }: { analyticsConsent: boolean; userId?: string | null; pseudoId?: string | null; businessId?: string | null }) {
   const sdkRef = useRef<BrowserSDK | null>(null)
 
   useEffect(() => {
+    const installationKey = 'my-app.otel.installation-id'
+    if (!analyticsConsent) {
+      localStorage.removeItem(installationKey)
+      return
+    }
+    const installationId = localStorage.getItem(installationKey) ?? crypto.randomUUID()
+    localStorage.setItem(installationKey, installationId)
+
     const sdk = registerOTelBrowser({
       publishableKey: process.env.NEXT_PUBLIC_AIENT_PUBLISHABLE_KEY!,
       serviceName: process.env.NEXT_PUBLIC_OTEL_SERVICE_NAME ?? 'web',
+      installationId,
       release: {
         commit: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? 'dev',
         branch: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF ?? 'local',
@@ -52,9 +61,10 @@ export function TelemetryInit({ userId, pseudoId, businessId }: { userId?: strin
     })
     sdkRef.current = sdk
     return () => {
+      sdkRef.current = null
       void sdk.shutdown()
     }
-  }, [])
+  }, [analyticsConsent])
 
   useEffect(() => {
     if (userId || pseudoId) {
@@ -62,23 +72,29 @@ export function TelemetryInit({ userId, pseudoId, businessId }: { userId?: strin
     } else {
       sdkRef.current?.clearUser()
     }
-  }, [userId, pseudoId])
+  }, [analyticsConsent, userId, pseudoId])
 
   useEffect(() => {
     sdkRef.current?.setContextAttributes(businessId ? { 'business.id': businessId } : null)
-  }, [businessId])
+  }, [analyticsConsent, businessId])
 
   return null
 }
 ```
 
-In the App Router, render `TelemetryInit` from `app/layout.tsx` (or a client shell), passing the authenticated id as `userId` and your app's persisted anonymous id as `pseudoId`. For the Pages Router, mount the same component under `_app`. Use `NEXT_PUBLIC_*` only for values that are safe to expose to the browser (the publishable key is designed for that).
+In the App Router, render `TelemetryInit` from `app/layout.tsx` (or a client shell). Pass analytics permission from your consent manager as `analyticsConsent`, the authenticated id as `userId`, and only pass `pseudoId` when you have a distinct pseudonymous person identifier. The caller-owned installation ID is a separate application-installation lifetime and is persisted only while analytics consent permits it. For the Pages Router, mount the same component under `_app`. Use `NEXT_PUBLIC_*` only for values that are safe to expose to the browser (the publishable key is designed for that).
 
 ## Dynamic context
 
 Use static `attributes` for resource facts that do not change during the SDK lifetime, such as deployment metadata. Supply a caller-owned `installationId` for one application installation; the SDK emits it as `app.installation.id` but does not persist it. Use `contextAttributes` and `sdk.setContextAttributes()` for mutable correlation values such as the active business, account, or workspace. `identify()` replaces the whole user snapshot and `clearUser()` removes it while preserving the installation.
 
 Each span captures dynamic context when it starts. Updating context affects future spans and outgoing Fetch/XHR baggage, but does not mutate in-flight or ended spans.
+
+## Click capture
+
+The SDK owns one document-level capture listener and emits exactly one synchronous point span for each eligible DOM click event that reaches the document, including synthetic clicks. A target handler may call `preventDefault()`, return `false`, or stop propagation without suppressing the span because capture has already run. Disabled targets are excluded.
+
+Click spans are point observations, not parents for application work triggered by the click. Fetch/XHR and other later spans keep their natural active-context parentage.
 
 ## Release metadata
 
