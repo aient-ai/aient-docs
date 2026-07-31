@@ -7,7 +7,7 @@ description: "Configuration options for @aient/otel-browser including publishabl
 
 `@aient/otel-browser` sends browser traces and logs to Aient using public OTLP HTTP endpoints. Use a publishable key and release metadata from your build environment.
 
-For React or Next.js (client mount, `setUserContext`, and cleanup), see the [browser quickstart](../quickstart/browser).
+For React or Next.js (client mount, `identify`/`clearUser`, and cleanup), see the [browser quickstart](../quickstart/browser).
 
 ## Configuration
 
@@ -15,6 +15,7 @@ For React or Next.js (client mount, `setUserContext`, and cleanup), see the [bro
 | --- | --- |
 | `publishableKey` | Aient environment publishable key safe for browser code |
 | `serviceName` | Frontend service name; match source map uploads |
+| `installationId` | Caller-owned application installation ID, emitted as a resource and untrusted baggage correlation field |
 | `attributes` | Static resource attributes fixed for the SDK lifetime |
 | `contextAttributes` | Initial mutable string context for future spans and outgoing baggage |
 | `release.environment` | Deployment environment slug |
@@ -42,22 +43,22 @@ sdk.setContextAttributes({
 sdk.setContextAttributes(null)
 ```
 
-Future spans capture the current snapshot at span start; in-flight and ended spans are not changed retroactively. Outgoing Fetch/XHR baggage preserves unrelated entries and replaces SDK-owned keys. All `enduser.*` keys are reserved for `setUserContext` and are omitted from generic context.
+Future spans capture the current snapshot at span start; in-flight and ended spans are not changed retroactively. Outgoing Fetch/XHR baggage preserves unrelated entries and replaces SDK-owned keys. All `enduser.*` keys and `app.installation.id` are omitted from generic context.
 
 Browser context and baggage are untrusted telemetry correlation data. Never use them for authorization; downstream services must derive identity and access from trusted server-side sessions or credentials.
 
 ## User context and baggage
 
-Call `sdk.setUserContext({ userId, pseudoId, email, role })` after sign-in to tag in-process browser spans with `enduser.id`, `enduser.pseudo.id`, `enduser.email`, and `enduser.role`. Pass `null` on sign-out to clear it.
+Call `sdk.identify({ userId, pseudoId, email, role })` after sign-in to replace the complete user snapshot and tag future browser spans/logs. Call `sdk.clearUser()` on sign-out. `sdk.getIdentity()` returns a clone containing the installation plus current user fields. The legacy user-context methods remain aliases.
 
-For privacy and integrity, only `enduser.pseudo.id` is propagated as W3C `baggage` on outgoing requests from the browser. The trusted `enduser.id`, `enduser.email`, and `enduser.role` are not sent over the wire, since browser-supplied identity cannot be trusted by downstream services. Aient backends derive the authenticated `enduser.id` from your session on the server and add it to server spans.
+`app.installation.id`, `enduser.id`, and `enduser.pseudo.id` may propagate as W3C `baggage`. They are correlation hints, not authentication. Email and role do not propagate. Aient backends derive authenticated `enduser.id` from the verified server session and overwrite the browser value before downstream work.
 
 Use a stable, non-reversible hash (for example, an HMAC of the user id with a server-side secret) for `pseudoId` so you can correlate sessions without exposing PII.
 
 ```ts
-sdk.setUserContext({
-  userId: 'user_123',          // local span attribute only
-  pseudoId: 'pseudo_abc',      // propagated as baggage
+sdk.identify({
+  userId: 'user_123',          // untrusted baggage correlation
+  pseudoId: 'pseudo_abc',      // untrusted baggage correlation
   email: 'user@example.com',   // local span attribute only
   role: 'admin',               // local span attribute only
 })
