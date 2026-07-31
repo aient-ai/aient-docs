@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current invited preview is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current invited-preview release: `0.8.2`
+Current invited-preview release: `0.9.1`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -115,13 +115,15 @@ The command never returns the secret value. Server-managed environment secrets a
 
 ## Current preview boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.8.2.
+The commands documented in this section are the surface shipped in Aient CLI 0.9.1.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad non-Git inventory, keeps Git state authoritative, and applies no hidden exclusions.
 - Idle and timeout cleanup acts only on the exact sandbox revision it evaluated. This protects an accepted concurrent refresh without renewing or extending the operation lease or server-owned hard expiry.
 - Customer create and run support the `small`, `medium`, and `large` product-owned compute classes.
 - Owner/admin environment-secret writes are encrypted, capability-gated, and write-only from the CLI.
+- Synchronization to `/workspace/repo` negotiates typed V2 immutable-candidate activation with attested servers; older servers remain on the compatible V1 route.
+- If workspace layout certification is in progress, execution returns an actionable “workspace layout is temporarily busy” response without dispatching or replaying the command.
 
 - `aient agent` is reserved for a later release. It does not yet start a Thread-backed Aient agent.
 - Commands cannot be deliberately detached. `sandbox execution attach` can follow an already-known live execution, but output is not retained for replay.
