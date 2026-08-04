@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current invited preview is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current invited-preview release: `0.10.0`
+Current invited-preview release: `0.10.1`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -115,7 +115,7 @@ The command never returns the secret value. Server-managed environment secrets a
 
 ## Current preview boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.10.0.
+The commands documented in this section are the surface shipped in Aient CLI 0.10.1.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad non-Git inventory, keeps Git state authoritative, and applies no hidden exclusions.
@@ -123,7 +123,7 @@ The commands documented in this section are the surface shipped in Aient CLI 0.1
 - Customer create and run support the `small`, `medium`, and `large` product-owned compute classes.
 - Owner/admin environment-secret writes are encrypted, capability-gated, and write-only from the CLI.
 - Synchronization to `/workspace/repo` negotiates V3 immutable-candidate activation when an exact attested server advertises the closed V3 capability; it retains typed V2 on V2 servers and compatible V1 on older servers. V3 selection rejects unknown, duplicate, mixed, or invalid capability evidence before upload and never falls back after selection.
-- If workspace layout certification is in progress, execution returns an actionable “workspace layout is temporarily busy” response without dispatching or replaying the command.
+- If workspace layout certification is still in progress immediately after this `sandbox run` activated `--workspace`, the server returns the actionable “workspace layout is temporarily busy” response and the CLI retries only that exact pre-dispatch rejection for up to 10 seconds. It honors `Retry-After`; generic, transport, outcome-ambiguous, ordinary command, standalone `sandbox exec`, and non-workspace-run failures are not replayed.
 
 - `aient agent` is reserved for a later release. It does not yet start a Thread-backed Aient agent.
 - Commands cannot be deliberately detached. `sandbox execution attach` can follow an already-known live execution, but output is not retained for replay.
