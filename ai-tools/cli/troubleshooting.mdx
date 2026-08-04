@@ -90,7 +90,7 @@ If you invoke `aient` from an agent, build tool, or wrapper:
 - do not treat completion of the outer wrapper as completion of the CLI; and
 - do not mutate the target workspace while the upload is active.
 
-In Aient CLI 0.8.2, `sandbox sync` resets its timeout while upload bytes continue to flow and when the server begins responding. If a current transfer fails despite continuing progress, check `aient version`; releases before 0.8.2 applied the default five-minute budget to the whole HTTP request.
+Since Aient CLI 0.8.2, `sandbox sync` resets its timeout while upload bytes continue to flow and when the server begins responding. If a current transfer fails despite continuing progress, check `aient version`; releases before 0.8.2 applied the default five-minute budget to the whole HTTP request.
 
 For an unusually slow connection, increase the permitted inactivity gap:
 
@@ -98,7 +98,7 @@ For an unusually slow connection, increase the permitted inactivity gap:
 aient --timeout 20m --verbose sandbox sync laptop-offload .
 ```
 
-An environment-bound customer should start a fresh `sandbox run --environment ... --keep` to transfer changed workspace state in 0.8.2.
+An environment-bound customer should start a fresh `sandbox run --environment ... --keep` to transfer changed workspace state in 0.10.0.
 
 Retrying `sync` starts a new delta or snapshot attempt. It does not continue the previous multipart upload from its last reported byte.
 
@@ -129,7 +129,7 @@ Use the unique temporary-directory and cleanup pattern in [Authentication and pr
 
 ## A retained customer sandbox rejects `sync`, `files`, or `shell`
 
-An environment-bound sandbox created with `sandbox run --environment ... --keep` requires the original authority selectors on later `exec` and `execution` operations. `status`, `wait`, and `logs` require the original `--environment` selector. In 0.8.2, `sync`, `files`, and `shell` cannot address the sandbox. Start a fresh `run --keep` when local workspace state changes.
+An environment-bound sandbox created with `sandbox run --environment ... --keep` requires the original authority selectors on later `exec` and `execution` operations. `status`, `wait`, and `logs` require the original `--environment` selector. In 0.10.0, `sync`, `files`, and `shell` cannot address the sandbox. Start a fresh `run --keep` when local workspace state changes.
 
 ## Current unsupported behaviour
 

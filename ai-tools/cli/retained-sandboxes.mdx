@@ -22,7 +22,7 @@ aient --timeout 15m sandbox exec laptop-offload \
 aient sandbox delete laptop-offload
 ```
 
-The one-shot command prints the created sandbox name. In Aient CLI 0.8.2, that environment-bound sandbox can be reused through selector-bearing `sandbox exec` and `sandbox execution`, found with environment-scoped `list`, inspected with environment-scoped `status`, `wait`, and `logs`, and removed by its owner with `delete`. `sync`, `files`, and `shell` cannot reopen it. Start a fresh `run --keep` to transfer changed workspace state.
+The one-shot command prints the created sandbox name. In Aient CLI 0.10.0, that environment-bound sandbox can be reused through selector-bearing `sandbox exec` and `sandbox execution`, found with environment-scoped `list`, inspected with environment-scoped `status`, `wait`, and `logs`, and removed by its owner with `delete`. `sync`, `files`, and `shell` cannot reopen it. Start a fresh `run --keep` to transfer changed workspace state.
 
 ## `aient sandbox list`
 
@@ -125,7 +125,7 @@ Open a new interactive PTY shell in a sandbox without an environment binding:
 aient sandbox shell laptop-offload
 ```
 
-Every invocation opens a new shell. Shell reattachment, history replay, and capability-bearing environment or repository flags are not available in 0.8.2, so `shell` cannot address an environment-bound customer sandbox. Use `sandbox exec --environment ...` for authorised non-interactive operations.
+Every invocation opens a new shell. Shell reattachment, history replay, and capability-bearing environment or repository flags are not available in 0.10.0, so `shell` cannot address an environment-bound customer sandbox. Use `sandbox exec --environment ...` for authorised non-interactive operations.
 
 ## `aient sandbox logs`
 
