@@ -122,7 +122,7 @@ The commands documented in this section are the surface shipped in Aient CLI 0.1
 - Idle and timeout cleanup acts only on the exact sandbox revision it evaluated. This protects an accepted concurrent refresh without renewing or extending the operation lease or server-owned hard expiry.
 - Customer create and run support the `small`, `medium`, and `large` product-owned compute classes.
 - Owner/admin environment-secret writes are encrypted, capability-gated, and write-only from the CLI.
-- Synchronization to `/workspace/repo` negotiates typed V2 immutable-candidate activation with attested servers; older servers remain on the compatible V1 route.
+- Synchronization to `/workspace/repo` negotiates V3 immutable-candidate activation when an exact attested server advertises the closed V3 capability; it retains typed V2 on V2 servers and compatible V1 on older servers. V3 selection rejects unknown, duplicate, mixed, or invalid capability evidence before upload and never falls back after selection.
 - If workspace layout certification is in progress, execution returns an actionable “workspace layout is temporarily busy” response without dispatching or replaying the command.
 
 - `aient agent` is reserved for a later release. It does not yet start a Thread-backed Aient agent.

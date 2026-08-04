@@ -50,8 +50,8 @@ printf '%s\n' 'pnpm lint && pnpm test' |
 | `--workspace PATH` | Synchronise a local Git checkout or linked worktree. |
 | `--repository OWNER/NAME` | Explicit repository selector for disambiguation and provider access. |
 | `--include GLOB` | Add an untracked or ignored repository-relative file layer. Repeatable. |
-| `--exclude GLOB` | Narrow the explicit non-Git layer selected by at least one `--include`. Repeatable. |
-| `--remote-dir ABSOLUTE_PATH` | Select a replaceable remote child directory for Git activation, such as `/workspace/repo`; never use the mounted `/workspace` root. |
+| `--exclude GLOB` | Remove matching paths from the explicit non-Git layer. Without `--include`, selection starts from every ignored and untracked path. Repeatable. |
+| `--remote-dir ABSOLUTE_PATH` | Select a replaceable remote child directory for V1/V2 activation. V3 is fixed at `/workspace/repo` and rejects a custom root; never use the mounted `/workspace` root. |
 
 Repository candidates are inferred from sanitised `origin` and `upstream` remotes when possible. Embedded remote credentials are not transmitted or displayed. If exactly one authorised repository matches, Aient binds it automatically. If none match, ordinary offload may continue without GitHub access. Use `--repository` when candidates are ambiguous.
 
@@ -89,7 +89,7 @@ Synchronise exact local Git state into an existing sandbox without an environmen
 aient sandbox sync laptop-offload .
 ```
 
-The default remote workspace is `/workspace/repo`. In 0.8.2, `sync` cannot carry the environment and repository selectors needed to reopen an environment-bound customer sandbox created by `run --keep`. Start a fresh `run --keep` to transfer changed customer workspace state.
+The default remote workspace is `/workspace/repo`. In 0.10.0, `sync` cannot carry the environment and repository selectors needed to reopen an environment-bound customer sandbox created by `run --keep`. Start a fresh `run --keep` to transfer changed customer workspace state.
 
 ```sh
 aient sandbox sync laptop-offload . \
@@ -100,13 +100,13 @@ aient sandbox sync laptop-offload . \
 
 The synchronised state includes the selected worktree's exact HEAD, index, tracked changes, and selected explicit extra files. Include and exclude globs use repository-relative `/` separators and support `*`, `**`, and `?`.
 
-Excludes filter only the explicit non-Git layer and are valid only when the same command has at least one `--include`. They cannot remove tracked Git state. This dependency applies to Git workspace synchronisation; raw `--upload` and `files put --exclude` have their own file-transfer filters.
+Excludes filter only the explicit non-Git layer and cannot remove tracked Git state. With one or more `--include` patterns, they subtract from those selected paths. With no `--include`, exclude-only mode starts from the complete ignored and untracked inventory, then subtracts every matching path. This broad mode has no implicit cache or secret exclusions, so explicitly exclude `.env` files, credentials, private keys, dependency caches, and other unwanted local content. Raw `--upload` and `files put --exclude` have their own file-transfer filters.
 
 Git activation atomically replaces the destination directory. `--remote-dir` must therefore name a replaceable child on the workspace filesystem, such as `/workspace/repo` or `/workspace/alternate-repo`, never the mounted `/workspace` root itself. Raw upload may target `/workspace` because it does not use Git-directory activation.
 
 ### Atomic activation and the workspace fence
 
-Aient constructs and verifies a candidate before activating it as `/workspace/repo`. Activation replaces the live child on the same filesystem while holding the exclusive workspace fence; the `/workspace` mount point itself is not replaced.
+Aient constructs and verifies a candidate before activating it as `/workspace/repo`. V3 is selected only from a closed, exactly attested capability, publishes one immutable full-snapshot or retained-delta candidate, and never falls back after selection. Activation replaces the live child on the same filesystem while holding the exclusive workspace fence; the `/workspace` mount point itself is not replaced.
 
 `sandbox exec`, `sandbox shell`, and workspace reads hold the shared fence. A sync waits before activation rather than replacing the live tree under an admitted command. Direct file operations currently fail with a busy response instead of waiting.
 
