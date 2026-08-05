@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current invited preview is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current invited-preview release: `0.10.1`
+Current invited-preview release: `0.10.2`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -102,6 +102,16 @@ aient sandbox run --environment development \
 
 Exclude-only selection never replaces Git-tracked content or includes `.git` metadata. It has no implicit cache or secret exclusions. Review the selected scope and explicitly exclude `.env` files, credentials, tokens, private keys, and other secret-bearing non-Git paths.
 
+To replace an exact generated remote directory without changing its local contents:
+
+```sh
+aient sandbox run --environment development \
+  --reset-remote-dir packages/otel/dist \
+  -- pnpm install
+```
+
+`--reset-remote-dir` is repeatable explicit authority. It publishes an ordinary empty candidate-owned directory through atomic activation so build cleanup can remove or recreate it. Other ignored remote state remains preserved. Reset paths must be exact repository-relative non-Git directories and cannot be combined with `--exclude`.
+
 ## Environment secrets
 
 Organisation owners and administrators can replace an encrypted environment secret after consenting to the dedicated write capability:
@@ -115,10 +125,11 @@ The command never returns the secret value. Server-managed environment secrets a
 
 ## Current preview boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.10.1.
+The commands documented in this section are the surface shipped in Aient CLI 0.10.2.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad non-Git inventory, keeps Git state authoritative, and applies no hidden exclusions.
+- Exact `--reset-remote-dir` selection replaces a named remote non-Git directory with an ordinary empty candidate-owned directory without modifying the local source or weakening atomic activation.
 - Idle and timeout cleanup acts only on the exact sandbox revision it evaluated. This protects an accepted concurrent refresh without renewing or extending the operation lease or server-owned hard expiry.
 - Customer create and run support the `small`, `medium`, and `large` product-owned compute classes.
 - Owner/admin environment-secret writes are encrypted, capability-gated, and write-only from the CLI.
