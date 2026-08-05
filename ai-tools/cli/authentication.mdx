@@ -24,6 +24,10 @@ aient auth login --profile client-a
 
 Use a distinct profile for each organisation context you work in. Existing OAuth sessions may need a new login when Aient introduces additional consented capabilities.
 
+Customer MCP management adds `mcp_connections:read` and `mcp_connections:manage`. Run
+`aient auth login` again if an existing profile receives `403` for `aient environment mcp` after
+upgrading to a CLI release that includes those commands.
+
 ## `aient auth status`
 
 Verify the selected login and display its issuer, organisation, and granted scopes:
