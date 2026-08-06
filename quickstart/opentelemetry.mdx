@@ -1,0 +1,211 @@
+---
+title: "OpenTelemetry quickstarts"
+description: "Instrument Python, Java, .NET, Ruby, PHP, Go, and Elixir applications with Aient OTLP ingest, bearer authentication, and deploy metadata."
+---
+
+# OpenTelemetry quickstarts
+
+Use this guide when your service does not run on Node.js. Aient accepts standard OTLP/HTTP, so you can use the OpenTelemetry SDK or auto-instrumentation for your runtime.
+
+Every example sends traces to Aient with a bearer-authenticated publishable key and the release metadata Aient uses to group a deployment and correlate source maps.
+
+## Set shared deployment values
+
+Create an Aient environment publishable key, then set these values in your deployment environment. Do not commit the key or a real token to source control.
+
+```bash
+export AIENT_PUBLISHABLE_KEY='pk_…'
+export OTEL_EXPORTER_OTLP_ENDPOINT='https://ingest.aient.ai'
+export OTEL_EXPORTER_OTLP_PROTOCOL='http/protobuf'
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer ${AIENT_PUBLISHABLE_KEY}"
+
+export OTEL_SERVICE_NAME='payments-api'
+export SERVICE_VERSION='2026.08.06.1'
+export COMMIT_SHA='a full deployed Git SHA'
+export COMMIT_REF='main'
+export DEPLOYMENT_ENVIRONMENT='production'
+export OTEL_RESOURCE_ATTRIBUTES="service.version=${SERVICE_VERSION},deployment.commit_sha=${COMMIT_SHA},deployment.commit_ref=${COMMIT_REF},deployment.environment=${DEPLOYMENT_ENVIRONMENT}"
+```
+
+`OTEL_EXPORTER_OTLP_ENDPOINT` is a base URL. Standard OTLP SDKs append `/v1/traces` for traces. `OTEL_EXPORTER_OTLP_HEADERS` makes each export request send `Authorization: Bearer <publishableKey>`.
+
+Use the immutable version that identifies the deployed build, such as a release tag or build number, for `service.version`. Set `deployment.commit_sha` to the exact revision running in production, not the revision currently checked out by a CI job after deployment. The same `service.name` and commit SHA must be used when you upload source maps.
+
+<Note>
+  Aient accepts OTLP/HTTP. Do not use an OTLP/gRPC-only endpoint. If your SDK ignores the shared protocol variables, configure its HTTP/protobuf exporter explicitly, as shown below.
+</Note>
+
+## Python: Django, FastAPI, or Flask
+
+Install the HTTP exporter and the instrumentation package for your framework.
+
+```bash
+pip install opentelemetry-distro opentelemetry-exporter-otlp-proto-http
+pip install opentelemetry-instrumentation-django
+# Or: opentelemetry-instrumentation-fastapi / opentelemetry-instrumentation-flask
+```
+
+With the shared deployment values set, launch through the OpenTelemetry wrapper:
+
+```bash
+opentelemetry-instrument \
+  --traces_exporter otlp \
+  --metrics_exporter none \
+  gunicorn myproject.wsgi:application
+```
+
+For FastAPI or Flask, run the normal ASGI or WSGI command through `opentelemetry-instrument`. The wrapper instruments installed framework packages before your application loads.
+
+## Java: Spring Boot and JVM services
+
+Download the [OpenTelemetry Java agent](https://opentelemetry.io/docs/zero-code/java/agent/) as part of your build or container image, then run the service with it. The shared deployment values configure the endpoint, bearer header, service, version, commit, ref, and environment.
+
+```bash
+java -javaagent:/app/opentelemetry-javaagent.jar -jar /app/service.jar
+```
+
+The Java agent auto-instruments supported frameworks, HTTP clients, JDBC, and more. Keep `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`: the public Aient ingest endpoint is OTLP/HTTP.
+
+## .NET: ASP.NET Core
+
+Install the SDK, OTLP exporter, and ASP.NET Core instrumentation.
+
+```bash
+dotnet add package OpenTelemetry.Extensions.Hosting
+dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol
+dotnet add package OpenTelemetry.Instrumentation.AspNetCore
+```
+
+Add OpenTelemetry before building the application. The shared deployment values provide the resource attributes and bearer-authenticated HTTP exporter configuration.
+
+```csharp
+using OpenTelemetry.Trace;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation()
+        .AddOtlpExporter());
+
+var app = builder.Build();
+app.MapGet("/health", () => Results.Ok());
+app.Run();
+```
+
+## Ruby: Rails
+
+Add the OpenTelemetry packages to your Gemfile.
+
+```ruby
+gem 'opentelemetry-sdk'
+gem 'opentelemetry-exporter-otlp'
+gem 'opentelemetry-instrumentation-all'
+```
+
+Then initialise tracing before Rails loads the application. The Ruby OTLP exporter reads the shared endpoint, bearer header, and resource environment variables.
+
+```ruby
+# config/initializers/opentelemetry.rb
+require 'opentelemetry/sdk'
+require 'opentelemetry/instrumentation/all'
+require 'opentelemetry-exporter-otlp'
+
+OpenTelemetry::SDK.configure do |config|
+  config.service_name = ENV.fetch('OTEL_SERVICE_NAME')
+  config.use_all
+end
+```
+
+## PHP: Laravel or Symfony
+
+Install the auto-instrumentation package for the framework.
+
+```bash
+composer require open-telemetry/opentelemetry-auto-laravel
+# Or: composer require open-telemetry/opentelemetry-auto-symfony
+```
+
+Add these PHP-specific variables alongside the shared deployment values:
+
+```bash
+export OTEL_PHP_AUTOLOAD_ENABLED=true
+export OTEL_TRACES_EXPORTER=otlp
+```
+
+PHP loads the exporter and instrumentation from the environment. Keep the shared `OTEL_EXPORTER_OTLP_HEADERS` value intact: it is the bearer token header.
+
+## Go: net/http, Gin, or other HTTP services
+
+Install the SDK, HTTP exporter, and the instrumentation package for your router.
+
+```bash
+go get go.opentelemetry.io/otel/sdk
+go get go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp
+go get go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin
+```
+
+Configure the HTTP exporter and resource before creating your router. This example uses Gin; keep the same resource fields for other routers.
+
+```go
+ctx := context.Background()
+
+exporter, err := otlptracehttp.New(ctx,
+	otlptracehttp.WithEndpoint("ingest.aient.ai"),
+	otlptracehttp.WithURLPath("/v1/traces"),
+	otlptracehttp.WithHeaders(map[string]string{
+		"Authorization": "Bearer " + os.Getenv("AIENT_PUBLISHABLE_KEY"),
+	}),
+)
+if err != nil {
+	log.Fatal(err)
+}
+
+res, err := resource.New(ctx, resource.WithAttributes(
+	semconv.ServiceName(os.Getenv("OTEL_SERVICE_NAME")),
+	attribute.String("service.version", os.Getenv("SERVICE_VERSION")),
+	attribute.String("deployment.commit_sha", os.Getenv("COMMIT_SHA")),
+	attribute.String("deployment.commit_ref", os.Getenv("COMMIT_REF")),
+	attribute.String("deployment.environment", os.Getenv("DEPLOYMENT_ENVIRONMENT")),
+))
+if err != nil {
+	log.Fatal(err)
+}
+
+provider := sdktrace.NewTracerProvider(
+	sdktrace.WithBatcher(exporter),
+	sdktrace.WithResource(res),
+)
+otel.SetTracerProvider(provider)
+defer provider.Shutdown(ctx)
+```
+
+The snippet requires the normal Go imports for `context`, `log`, `os`, `go.opentelemetry.io/otel`, `go.opentelemetry.io/otel/attribute`, `go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp`, `go.opentelemetry.io/otel/sdk/resource`, `go.opentelemetry.io/otel/sdk/trace`, and your Semantic Conventions package. Add your router middleware after registering the provider.
+
+## Elixir: Phoenix
+
+Add OpenTelemetry and Phoenix instrumentation to `mix.exs`, then configure the OTLP exporter in `runtime.exs` before the application starts.
+
+```elixir
+config :opentelemetry, :resource,
+  service: [name: System.fetch_env!("OTEL_SERVICE_NAME")],
+  "service.version": System.fetch_env!("SERVICE_VERSION"),
+  "deployment.commit_sha": System.fetch_env!("COMMIT_SHA"),
+  "deployment.commit_ref": System.fetch_env!("COMMIT_REF"),
+  "deployment.environment": System.fetch_env!("DEPLOYMENT_ENVIRONMENT")
+
+config :opentelemetry, :processors,
+  otel_batch_processor: %{
+    exporter: {:opentelemetry_exporter,
+      %{endpoints: ["https://ingest.aient.ai/v1/traces"],
+        headers: [{"Authorization", "Bearer #{System.fetch_env!("AIENT_PUBLISHABLE_KEY")}"}]}}
+  }
+```
+
+Use `:opentelemetry_phoenix` to instrument Phoenix after the exporter is configured.
+
+## Verify the connection
+
+Deploy the instrumented service, make one request that reaches the application, then check Aient's telemetry view for the service name. The trace should show the `service.version`, deployed commit SHA, branch, and environment you set above.
+
+If no traces arrive, first confirm that the process received `AIENT_PUBLISHABLE_KEY` and that the exported header is exactly `Authorization: Bearer <publishableKey>`. Then confirm the exporter uses `https://ingest.aient.ai` over OTLP/HTTP, not gRPC. See [OpenTelemetry endpoints](../reference/otlp-endpoints) for the endpoint contract.

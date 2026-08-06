@@ -78,6 +78,7 @@
         "pages": [
           "quickstart/server",
           "quickstart/browser",
+          "quickstart/opentelemetry",
           "vercel/drain",
           "aws/firehose",
           "source-maps/upload",
