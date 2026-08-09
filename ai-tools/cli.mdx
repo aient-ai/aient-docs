@@ -5,9 +5,9 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 # Aient CLI
 
-The `aient` command runs local development work in isolated remote sandboxes. The current invited preview is available as a static binary for macOS and Linux on Intel and Arm.
+The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current invited-preview release: `0.10.2`
+Current release: `0.10.7`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -90,7 +90,7 @@ aient sandbox delete laptop-offload
 
 Environment-bound `status`, `wait`, and `logs` calls must repeat `--environment`. Without it, the owner-only read deliberately cannot see the environment-bound sandbox.
 
-To select all ignored and untracked non-Git paths and subtract explicit exclusions:
+To select ignored and untracked non-Git paths broadly, omit regular AppleDouble sidecars, and subtract explicit exclusions:
 
 ```sh
 aient sandbox run --environment development \
@@ -100,7 +100,7 @@ aient sandbox run --environment development \
   -- go test ./...
 ```
 
-Exclude-only selection never replaces Git-tracked content or includes `.git` metadata. It has no implicit cache or secret exclusions. Review the selected scope and explicitly exclude `.env` files, credentials, tokens, private keys, and other secret-bearing non-Git paths.
+Exclude-only selection never replaces Git-tracked content or includes `.git` metadata. Regular macOS AppleDouble `._*` files are omitted from broad non-Git selection before archive, manifest, byte-count, or digest construction; the local source remains unchanged. There are no implicit cache or secret exclusions, so review the selected scope and explicitly exclude `.env` files, credentials, tokens, private keys, and other secret-bearing non-Git paths.
 
 To replace an exact generated remote directory without changing its local contents:
 
@@ -110,7 +110,30 @@ aient sandbox run --environment development \
   -- pnpm install
 ```
 
-`--reset-remote-dir` is repeatable explicit authority. It publishes an ordinary empty candidate-owned directory through atomic activation so build cleanup can remove or recreate it. Other ignored remote state remains preserved. Reset paths must be exact repository-relative non-Git directories and cannot be combined with `--exclude`.
+`--reset-remote-dir` is repeatable explicit authority. It publishes an ordinary empty candidate-owned directory through atomic activation so build cleanup can remove or recreate it. On legacy servers, other ignored remote state keeps its existing preservation behavior. When explicit repository path ownership is advertised, unselected non-Git paths are absent unless named by `--preserve-remote-dir`. Reset paths must be exact repository-relative non-Git directories and cannot be combined with `--exclude`.
+
+In that negotiated mode, unselected generated, dependency, and cache directories are absent from a new candidate instead of becoming inferred preservation mount roots. Package tooling can remove and recreate them normally.
+
+To retain an exact ordinary remote directory across synchronization:
+
+```sh
+aient sandbox sync retained-sandbox . \
+  --preserve-remote-dir .cache/tool
+```
+
+`--preserve-remote-dir` is repeatable explicit authority. Preservation roots must be exact repository-relative non-Git directories and cannot overlap Git content, selected uploads, reset paths, symlinks, files, or one another. A server without explicit path-ownership support rejects preservation instead of silently changing its meaning.
+
+For a deliberately incomplete parent-only checkout when submodules are initialized locally:
+
+```sh
+aient sandbox run --environment development \
+  --submodules=gitlinks \
+  -- go test ./...
+```
+
+`--submodules=gitlinks` recursively verifies every initialized child is clean, untracked-free, and checked out at the exact parent-index object before any remote request. It omits child bytes and binds the complete sorted parent-index Gitlink set into manifest-backed activation. This is an incomplete Gitlink-only workspace, not recursive submodule transfer; commands that need child files must initialize them separately.
+
+Default snapshots keep raw uninitialized Gitlink index paths exact without applying explicit-manifest UTF-8, backslash, or entry-count limits. Those snapshots emit no Gitlink manifest. Explicit `--submodules=gitlinks` remains fail-closed and applies the portability rules plus the 512-entry bound before any remote request.
 
 ## Environment secrets
 
@@ -123,20 +146,24 @@ printf '%s' "$STRIPE_SECRET_KEY" | aient environment secrets set \
 
 The command never returns the secret value. Server-managed environment secrets are separate from local files selected for workspace synchronization.
 
-## Current preview boundary
+## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.10.2.
+The commands documented in this section are the surface shipped in Aient CLI 0.10.7.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
-- Exclude-only workspace selection starts from the broad non-Git inventory, keeps Git state authoritative, and applies no hidden exclusions.
+- Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
 - Exact `--reset-remote-dir` selection replaces a named remote non-Git directory with an ordinary empty candidate-owned directory without modifying the local source or weakening atomic activation.
+- Unselected non-Git paths are absent under explicit repository path ownership, so generated and cache directories remain ordinary removable directories instead of inferred bind-mount roots.
+- Repeatable `--preserve-remote-dir` retains only exact declared ordinary remote directories; collision and size checks fail locally before upload, and unsupported servers reject explicit preservation.
+- Explicit `--submodules=gitlinks` omits clean exact child checkouts only after recursive local verification and binds the complete parent-index Gitlink boundary into V2 or V3 activation; it does not transfer submodule content.
+- Default snapshots preserve raw uninitialized Gitlink index entries without applying constraints that belong only to the explicit Gitlink manifest; explicit mode continues to require UTF-8 portable paths, reject literal backslashes, and enforce the 512-entry bound.
 - Idle and timeout cleanup acts only on the exact sandbox revision it evaluated. This protects an accepted concurrent refresh without renewing or extending the operation lease or server-owned hard expiry.
 - Customer create and run support the `small`, `medium`, and `large` product-owned compute classes.
 - Owner/admin environment-secret writes are encrypted, capability-gated, and write-only from the CLI.
 - Synchronization to `/workspace/repo` negotiates V3 immutable-candidate activation when an exact attested server advertises the closed V3 capability; it retains typed V2 on V2 servers and compatible V1 on older servers. V3 selection rejects unknown, duplicate, mixed, or invalid capability evidence before upload and never falls back after selection.
 - If workspace layout certification is still in progress immediately after this `sandbox run` activated `--workspace`, the server returns the actionable “workspace layout is temporarily busy” response and the CLI retries only that exact pre-dispatch rejection for up to 10 seconds. It honors `Retry-After`; generic, transport, outcome-ambiguous, ordinary command, standalone `sandbox exec`, and non-workspace-run failures are not replayed.
 
-- `aient agent` is reserved for a later release. It does not yet start a Thread-backed Aient agent.
+- `aient agent` is not available in this release. It does not start a Thread-backed Aient agent.
 - Commands cannot be deliberately detached. `sandbox execution attach` can follow an already-known live execution, but output is not retained for replay.
 - `sandbox shell` always opens a new shell. Shell reattachment and shell history are unavailable.
 - Public port exposure is not yet available.
