@@ -1,11 +1,11 @@
 ---
 title: "CLI command reference"
-description: "A compact index of the Aient CLI 0.10.2 commands and global flags."
+description: "A compact index of current Aient CLI commands and global flags."
 ---
 
 # CLI command reference
 
-This page indexes the commands shipped in Aient CLI 0.10.2. Use `aient COMMAND --help` for the flags supported by your installed version. Customer MCP management was merged after this release; see [Customer MCP connections](/ai-tools/customer-mcp-connections) for its next-release command family and the currently available UI, API, and MCP surfaces.
+This page indexes the current customer CLI surface, including Aient CLI 0.10.15. Use `aient COMMAND --help` to confirm the flags supported by your installed version.
 
 ## Authentication
 
@@ -17,6 +17,7 @@ This page indexes the commands shipped in Aient CLI 0.10.2. Use `aient COMMAND -
 | `aient auth profiles` | List named non-secret profile metadata. |
 | `aient auth profiles default NAME` | Set the fallback customer profile. |
 | `aient auth export` | Deliberately export a short-lived access-only credential. |
+| `aient auth exec -- COMMAND...` | Run a trusted task with a renewable, restricted Aient credential. |
 
 See [Authentication and project profiles](/ai-tools/cli/authentication).
 
@@ -40,6 +41,16 @@ See [Run and synchronise workspaces](/ai-tools/cli/run-and-sync) and [Retained s
 <Warning>
   An environment-bound customer sandbox requires `--environment` on `status`, `wait`, and `logs`, and its original environment and repository selectors on `exec` and `execution`. `sync`, `files`, and `shell` apply only to sandboxes without an environment binding. Start a fresh `run --keep` to transfer changed customer workspace state.
 </Warning>
+
+## Retained workspace operations
+
+| Command | Purpose |
+| --- | --- |
+| `aient sandbox workspace status OPERATION` | Inspect the current phase of one retained workspace publication. |
+| `aient sandbox workspace resume OPERATION` | Continue that exact interrupted workspace publication. |
+| `aient sandbox workspace discard OPERATION` | Release an uncommitted retained publication after the server confirms it is safe. |
+
+These commands use the immutable local receipt created by a workspace-backed `sandbox run` or `sandbox sync`. They never rebuild a new operation under the same ID. See [Run and synchronise workspaces](/ai-tools/cli/run-and-sync#recover-an-interrupted-workspace-publication).
 
 ## Environment secrets
 

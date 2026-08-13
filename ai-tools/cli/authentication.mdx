@@ -1,6 +1,6 @@
 ---
 title: "Authentication and project profiles"
-description: "Use browser OAuth, named profiles, folder configuration, and short-lived access-only exports."
+description: "Use browser OAuth, named profiles, folder configuration, access-only exports, and restricted task credentials."
 ---
 
 # Authentication and project profiles
@@ -138,6 +138,24 @@ trap - EXIT
 An export contains no refresh token, environment secret, repository credential, or GitHub token. Imported access-only credentials are not refreshed or persisted by the CLI. When one expires, export another or sign in on that machine.
 
 The CLI refuses to upload the active access-token file—or a hard link to it—through workspace sync, raw upload, or `files put`.
+
+## `aient auth exec`
+
+Run a trusted local task with a renewable, access-only credential rather than exposing the selected profile or its refresh token:
+
+```sh
+aient auth exec --profile client-a -- ./trusted-wrapper
+```
+
+The child receives `AIENT_ACCESS_TOKEN_FILE` only. The CLI removes Aient profile, token, and sandbox-control variables from the child environment, creates a temporary access-only file, renews it while the task runs, and removes it when the task finishes.
+
+`auth exec` requires a refresh-backed customer profile. It rejects an imported access token and operator authority. If you do not provide `--profile`, the nearest project configuration must contain a canonical organisation UUID.
+
+By default, the delegated credential covers sandbox reads, creation, deletion, execution, shell access, file operations, and authorised environment use. Use repeatable `--scope` only when the task needs a different exact scope set; it replaces the default set. Repository-write and pull-request scopes also require an exact project repository, a matching `origin` or `upstream` remote, and `--confirm-repository OWNER/NAME`.
+
+<Warning>
+  `auth exec` minimises Aient credentials; it is not a local process sandbox. A same-user child can still reach the host filesystem, home directory, credential store, session, and sibling processes. Use an external confinement boundary for untrusted code.
+</Warning>
 
 ## Environment variables
 
