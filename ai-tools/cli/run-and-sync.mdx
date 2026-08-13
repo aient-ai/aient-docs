@@ -131,3 +131,25 @@ aient --timeout 20m --verbose sandbox sync laptop-offload .
 `--verbose` prints safe request correlation and detailed progress; it does not print credentials.
 
 An interrupted upload is not byte-resumable. Re-running `sync` starts a new delta or snapshot attempt against the last successfully activated remote revision.
+
+## Recover an interrupted workspace publication
+
+When a workspace-backed `sandbox run` or `sandbox sync` loses its foreground connection after Aient has started publication, the CLI keeps one immutable local receipt. Do not start a second sync to guess whether the first one completed. Inspect the recorded operation first:
+
+```sh
+aient sandbox workspace status "${OPERATION_ID}"
+```
+
+Resume the exact candidate, revision, and retained artifacts when the operation remains incomplete:
+
+```sh
+aient sandbox workspace resume "${OPERATION_ID}"
+```
+
+If you no longer want an uncommitted publication, discard it explicitly:
+
+```sh
+aient sandbox workspace discard "${OPERATION_ID}"
+```
+
+Discard does not remove an activated or activation-pending workspace. On a transport failure or an unsupported helper, the CLI preserves the local receipt so you can retry safely. It removes the receipt only after the server proves that the exact operation was discarded or was already absent.

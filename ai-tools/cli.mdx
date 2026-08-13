@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.10.7`
+Current release: `0.10.15`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -148,7 +148,7 @@ The command never returns the secret value. Server-managed environment secrets a
 
 ## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.10.7.
+The commands documented in this section are available in Aient CLI 0.10.15.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
@@ -158,6 +158,8 @@ The commands documented in this section are the surface shipped in Aient CLI 0.1
 - Explicit `--submodules=gitlinks` omits clean exact child checkouts only after recursive local verification and binds the complete parent-index Gitlink boundary into V2 or V3 activation; it does not transfer submodule content.
 - Default snapshots preserve raw uninitialized Gitlink index entries without applying constraints that belong only to the explicit Gitlink manifest; explicit mode continues to require UTF-8 portable paths, reject literal backslashes, and enforce the 512-entry bound.
 - Idle and timeout cleanup acts only on the exact sandbox revision it evaluated. This protects an accepted concurrent refresh without renewing or extending the operation lease or server-owned hard expiry.
+- Workspace-backed `sandbox run` and `sandbox sync` retain an immutable local operation receipt after foreground loss. Use `sandbox workspace status`, `resume`, or `discard` against that exact receipt instead of starting a replacement publication.
+- `auth exec` gives a trusted local task a renewable access-only credential without passing through the selected refresh-backed profile. It is credential minimisation, not a local process sandbox.
 - Customer create and run support the `small`, `medium`, and `large` product-owned compute classes.
 - Owner/admin environment-secret writes are encrypted, capability-gated, and write-only from the CLI.
 - Synchronization to `/workspace/repo` negotiates V3 immutable-candidate activation when an exact attested server advertises the closed V3 capability; it retains typed V2 on V2 servers and compatible V1 on older servers. V3 selection rejects unknown, duplicate, mixed, or invalid capability evidence before upload and never falls back after selection.
