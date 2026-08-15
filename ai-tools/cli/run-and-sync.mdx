@@ -52,10 +52,19 @@ printf '%s\n' 'pnpm lint && pnpm test' |
 | `--include GLOB` | Add an untracked or ignored repository-relative file layer. Repeatable. |
 | `--exclude GLOB` | Remove matching paths from the explicit non-Git layer. Without `--include`, selection starts from every ignored and untracked path. Repeatable. |
 | `--remote-dir ABSOLUTE_PATH` | Select a replaceable remote child directory for V1/V2 activation. V3 is fixed at `/workspace/repo` and rejects a custom root; never use the mounted `/workspace` root. |
+| `--ssh-known-hosts auto\|none` | Bootstrap repository-scoped public SSH host trust before synchronization and execution. Default `auto`; use `none` to opt out. |
 
 Repository candidates are inferred from sanitised `origin` and `upstream` remotes when possible. Embedded remote credentials are not transmitted or displayed. If exactly one authorised repository matches, Aient binds it automatically. If none match, ordinary offload may continue without GitHub access. Use `--repository` when candidates are ambiguous.
 
 Changing a local remote cannot grant repository access. Every provider operation is re-authorised against the authenticated organisation, active GitHub App installation, and current repository permissions.
+
+### Git SSH trust bootstrap
+
+By default, `sandbox run` selects SSH hosts only from the chosen repository's `origin`, `upstream`, and root `.gitmodules`. It copies matching public records already present in the host user's standard `known_hosts` files and atomically merges them into the sandbox user's `~/.ssh/known_hosts`. Existing unrelated sandbox entries are preserved.
+
+This never copies private keys, SSH configuration, an SSH agent/socket, credentials, or the complete host trust file. When `github.com` is selected, the sandbox user's Git configuration also rewrites the common GitHub SSH URL forms to HTTPS, where an authorised repository-capability-bearing command can use Aient's request-local scoped credential. Other SSH hosts receive trust only; they still need their own sandbox-available authentication.
+
+If local trust is absent or the sandbox runtime cannot install it, Aient prints a warning and continues creating the sandbox. Use `--ssh-known-hosts=none` when repository policy requires the image-provided trust state to remain unchanged.
 
 ### Command and lifecycle flags
 

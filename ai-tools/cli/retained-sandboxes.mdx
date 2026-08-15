@@ -50,8 +50,11 @@ aient sandbox create --name laptop-offload --lease-seconds 21600
 | `--lease-seconds N` | Requested lease. Default `7200`. |
 | `--metadata KEY=VALUE` | Non-secret control-plane metadata entry. Repeatable. |
 | `--json` | Emit structured output. |
+| `--ssh-known-hosts auto\|none` | Bootstrap repository-scoped public SSH host trust for the sandbox user. Default `auto`; use `none` to opt out. |
 
 Metadata must never contain credentials or sensitive values. It cannot override server-owned organisation, actor, environment, or repository identity.
+
+The default Git transport bootstrap uses only hosts selected by the current repository's `origin`, `upstream`, and root `.gitmodules`. It merges matching public host records into the guest and, for GitHub, configures the sandbox user to use scoped HTTPS repository authority for SSH-form URLs. It does not copy private keys, SSH configuration, agents, sockets, or credentials. Installation restrictions produce a warning without turning successful sandbox creation into a failure.
 
 For customer work that needs an environment's authorised development capabilities, prefer `sandbox run --environment ... --keep` or supply `--environment` on later `exec` and execution-observation operations.
 
