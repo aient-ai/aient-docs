@@ -52,6 +52,8 @@ printf '%s\n' 'pnpm lint && pnpm test' |
 | `--include GLOB` | Add an untracked or ignored repository-relative file layer. Repeatable. |
 | `--exclude GLOB` | Remove matching paths from the explicit non-Git layer. Without `--include`, selection starts from every ignored and untracked path. Repeatable. |
 | `--remote-dir ABSOLUTE_PATH` | Select a replaceable remote child directory for V1/V2 activation. V3 is fixed at `/workspace/repo` and rejects a custom root; never use the mounted `/workspace` root. |
+| `--submodules gitlinks\|selected` | Choose an explicit submodule policy. `gitlinks` omits all child content; `selected` transfers only repeatable `--submodule` repositories. |
+| `--submodule PATH` | Select one repository-relative Gitlink with `--submodules=selected`. Repeatable; nested selections require every selected ancestor. |
 | `--ssh-known-hosts auto\|none` | Bootstrap repository-scoped public SSH host trust before synchronization and execution. Default `auto`; use `none` to opt out. |
 
 Repository candidates are inferred from sanitised `origin` and `upstream` remotes when possible. Embedded remote credentials are not transmitted or displayed. If exactly one authorised repository matches, Aient binds it automatically. If none match, ordinary offload may continue without GitHub access. Use `--repository` when candidates are ambiguous.
@@ -65,6 +67,55 @@ By default, `sandbox run` selects SSH hosts only from the chosen repository's `o
 This never copies private keys, SSH configuration, an SSH agent/socket, credentials, or the complete host trust file. When `github.com` is selected, the sandbox user's Git configuration also rewrites the common GitHub SSH URL forms to HTTPS, where an authorised repository-capability-bearing command can use Aient's request-local scoped credential. Other SSH hosts receive trust only; they still need their own sandbox-available authentication.
 
 If local trust is absent or the sandbox runtime cannot install it, Aient prints a warning and continues creating the sandbox. Use `--ssh-known-hosts=none` when repository policy requires the image-provided trust state to remain unchanged.
+
+### Selected nested repositories
+
+The default workspace policy rejects initialized submodules instead of
+silently transferring or omitting their checked-out bytes. If the command does
+not consume child repository content, use the explicit Gitlink-only policy:
+
+```sh
+aient sandbox run --environment development \
+  --submodules=gitlinks -- pnpm test
+```
+
+If the command consumes a nested repository, select only that dependency:
+
+```sh
+aient sandbox run --environment development \
+  --submodules=selected \
+  --submodule apps/aient-docs \
+  -- pnpm --filter aient-app build
+```
+
+The same flags work with `sandbox sync`:
+
+```sh
+aient sandbox sync laptop-offload . \
+  --submodules=selected \
+  --submodule apps/aient-docs
+```
+
+Selected mode publishes one atomic `/workspace/repo` containing the exact root
+Git state and only the explicitly selected child snapshots. Every unselected
+Gitlink remains an empty ordinary boundary, even when its local checkout is
+initialized or dirty; those bytes are not transferred, preserved, or treated
+as implicit input.
+
+Each selected child must be an ordinary initialized repository, clean and at
+the exact final parent-index Gitlink OID, with complete local history and no
+replacement refs. To select a nested descendant, repeat `--submodule` for the
+complete ancestor closure, using canonical paths from the top-level repository.
+Aient does not recursively discover descendants. The first selected protocol
+generation accepts at most 64 selected repositories and 512 Gitlink boundaries
+across the selected tree.
+
+`--submodule` without `--submodules=selected`, selected mode without a path,
+unsafe or duplicate paths, incomplete ancestry, and a custom remote root all
+fail before publication. Selected mode is fixed to `/workspace/repo`. A
+retained sandbox whose reader predates selected-submodule support returns
+`workspace_layout_selected_submodules_unavailable`; recreate or upgrade it
+rather than retrying with a broader transfer policy.
 
 ### Command and lifecycle flags
 
