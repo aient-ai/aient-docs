@@ -5,18 +5,19 @@ description: "A compact index of current Aient CLI commands and global flags."
 
 # CLI command reference
 
-This page indexes the current customer CLI surface, including Aient CLI 0.10.15. Use `aient COMMAND --help` to confirm the flags supported by your installed version.
+This page indexes the current customer CLI surface, including Aient CLI 0.10.16. Use `aient COMMAND --help` to confirm the flags supported by your installed version.
 
 ## Authentication
 
 | Command | Purpose |
 | --- | --- |
-| `aient auth login` | Sign in through browser OAuth. |
-| `aient auth status` | Verify and display the selected login. |
-| `aient auth logout` | Revoke and remove the selected login. |
+| `aient auth login [--print-url] [--project-access=auto\|none]` | Sign in through browser OAuth and, by default, reconcile bounded project access. |
+| `aient auth status` | Verify and display the selected login or repository-private project lease. |
+| `aient auth logout` | Stop the selected profile's managed project services, then revoke and remove the login. |
 | `aient auth profiles` | List named non-secret profile metadata. |
 | `aient auth profiles default NAME` | Set the fallback customer profile. |
 | `aient auth export` | Deliberately export a short-lived access-only credential. |
+| `aient auth export --store-in-project` | Repair or reconcile manager-owned access for the nearest configured project. |
 | `aient auth exec -- COMMAND...` | Run a trusted task with a renewable, restricted Aient credential. |
 
 See [Authentication and project profiles](/ai-tools/cli/authentication).

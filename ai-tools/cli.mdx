@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.10.15`
+Current release: `0.10.16`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -32,9 +32,11 @@ Each release includes static archives, SHA-256 checksums, SPDX SBOMs, Sigstore v
 
 ```sh
 aient version
-aient auth login
+aient auth login --print-url
 aient auth status
 ```
+
+From a configured Aient Git project on macOS, login establishes bounded project access by default. The refresh credential stays in Keychain while launchd rotates only a short-lived repository-private envelope for up to 90 days. Login returns only after manager-owned renewal is verified. No foreground terminal or PID owns renewal. Linux managed renewal remains preview pending a real systemd-user and D-Bus Secret Service renewal, restart, and logout canary. Use `--project-access=none` for host-only login, managed-project opt-out, or to avoid the Linux preview; use `aient --profile NAME auth export --store-in-project` to repair an existing installation.
 
 ## Quick start
 
@@ -78,17 +80,21 @@ aient sandbox list --environment development
 Use a named retained sandbox when you want follow-up lifecycle reads and supervised execution:
 
 ```sh
-aient sandbox run --environment development --size medium \
+aient sandbox run --environment development --repository owner/repository \
+  --size medium \
   --name laptop-offload --keep -- true
-aient sandbox status laptop-offload --environment development
+aient sandbox status laptop-offload \
+  --environment development --repository owner/repository
 aient --timeout 15m sandbox exec laptop-offload \
-  --environment development \
+  --environment development --repository owner/repository \
   --workdir /workspace/repo -- go test ./...
-aient sandbox logs laptop-offload --environment development
-aient sandbox delete laptop-offload
+aient sandbox logs laptop-offload \
+  --environment development --repository owner/repository
+aient sandbox delete laptop-offload \
+  --environment development --repository owner/repository
 ```
 
-Environment-bound `status`, `wait`, and `logs` calls must repeat `--environment`. Without it, the owner-only read deliberately cannot see the environment-bound sandbox.
+Environment/repository-bound retained calls must repeat both selectors; repository-independent calls repeat only `--environment`. Without the matching selectors, the owner-only client deliberately cannot see the bound sandbox.
 
 To select ignored and untracked non-Git paths broadly, omit regular AppleDouble sidecars, and subtract explicit exclusions:
 
@@ -118,6 +124,7 @@ To retain an exact ordinary remote directory across synchronization:
 
 ```sh
 aient sandbox sync retained-sandbox . \
+  --environment development --repository owner/repository \
   --preserve-remote-dir .cache/tool
 ```
 
@@ -132,6 +139,16 @@ aient sandbox run --environment development \
 ```
 
 `--submodules=gitlinks` recursively verifies every initialized child is clean, untracked-free, and checked out at the exact parent-index object before any remote request. It omits child bytes and binds the complete sorted parent-index Gitlink set into manifest-backed activation. This is an incomplete Gitlink-only workspace, not recursive submodule transfer; commands that need child files must initialize them separately.
+
+To transfer only exact nested repositories consumed by the remote command:
+
+```sh
+aient sandbox run --environment development \
+  --submodules=selected --submodule apps/aient-docs \
+  -- pnpm --filter aient-app build
+```
+
+Selected children must be initialized, clean, complete-history repositories at their exact parent-index Gitlink OIDs. Repeat `--submodule` for every selected ancestor; selection never expands recursively. Initialized but unselected children contribute no bytes and remain empty Gitlink boundaries remotely. A reader without exact selected-submodule support rejects the operation rather than weakening the policy.
 
 Default snapshots keep raw uninitialized Gitlink index paths exact without applying explicit-manifest UTF-8, backslash, or entry-count limits. Those snapshots emit no Gitlink manifest. Explicit `--submodules=gitlinks` remains fail-closed and applies the portability rules plus the 512-entry bound before any remote request.
 
@@ -148,7 +165,7 @@ The command never returns the secret value. Server-managed environment secrets a
 
 ## Current release boundary
 
-The commands documented in this section are available in Aient CLI 0.10.15.
+The commands documented in this section are the surface shipped in Aient CLI 0.10.16.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
@@ -158,12 +175,18 @@ The commands documented in this section are available in Aient CLI 0.10.15.
 - Explicit `--submodules=gitlinks` omits clean exact child checkouts only after recursive local verification and binds the complete parent-index Gitlink boundary into V2 or V3 activation; it does not transfer submodule content.
 - Default snapshots preserve raw uninitialized Gitlink index entries without applying constraints that belong only to the explicit Gitlink manifest; explicit mode continues to require UTF-8 portable paths, reject literal backslashes, and enforce the 512-entry bound.
 - Idle and timeout cleanup acts only on the exact sandbox revision it evaluated. This protects an accepted concurrent refresh without renewing or extending the operation lease or server-owned hard expiry.
-- Workspace-backed `sandbox run` and `sandbox sync` retain an immutable local operation receipt after foreground loss. Use `sandbox workspace status`, `resume`, or `discard` against that exact receipt instead of starting a replacement publication.
-- `auth exec` gives a trusted local task a renewable access-only credential without passing through the selected refresh-backed profile. It is credential minimisation, not a local process sandbox.
 - Customer create and run support the `small`, `medium`, and `large` product-owned compute classes.
+- Named sandbox creation is replay-safe under bounded ambiguous-transport retries: one public name keeps one idempotency identity, matching fingerprinted settings adopt the accepted sandbox, changed fingerprinted settings conflict, and `sandbox run` never executes in or deletes a sandbox whose returned identity is unproven.
+- Organisation selection is bound to one canonical lowercase UUID. The CLI resolves the authenticated display name and canonical organisation UUID for human-readable status and trusted legacy-project migration guidance; the display name is render-only, and every present authenticated identity source must agree before the requested operation.
+- Environment-bound sandbox commands carry one authenticated organisation/environment/repository tuple across create, synchronization, files, execution, observation, lease refresh, and deletion. New customer workspace operations retain that tuple in `workspace-operation-bundle-v2` and resume with the exact authority instead of weakening to owner-only access; legacy V1 receipts keep their established compatibility behavior.
+- The conservative supervised execution timeout ceiling is `23h56m18s`. Larger `sandbox exec` command budgets fail locally before a sandbox request and at server admission before claim creation or provider dispatch with `sandbox_execution_timeout_invalid`; a valid budget can still conflict with the remaining hard lease of an older retained sandbox.
+- `aient auth exec --profile NAME -- COMMAND...` gives a trusted same-UID host wrapper one renewable access-only credential while injecting or copying no refresh, profile, operator, or imported portable authority. It is credential minimization, not a local process sandbox; untrusted same-UID descendants require external confinement.
+- From a configured project, `aient auth login` installs bounded manager-owned project access by default. Refresh authority remains in the OS credential store; ordinary repository commands discover only the rotating short-lived envelope with no profile/token flags, foreground exporter, or PID tracking.
+- Explicit `--submodules=selected` transfers only the named clean exact Gitlink dependency closure; unselected initialized children contribute no bytes and remain empty boundaries.
 - Owner/admin environment-secret writes are encrypted, capability-gated, and write-only from the CLI.
 - Synchronization to `/workspace/repo` negotiates V3 immutable-candidate activation when an exact attested server advertises the closed V3 capability; it retains typed V2 on V2 servers and compatible V1 on older servers. V3 selection rejects unknown, duplicate, mixed, or invalid capability evidence before upload and never falls back after selection.
-- If workspace layout certification is still in progress immediately after this `sandbox run` activated `--workspace`, the server returns the actionable “workspace layout is temporarily busy” response and the CLI retries only that exact pre-dispatch rejection for up to 10 seconds. It honors `Retry-After`; generic, transport, outcome-ambiguous, ordinary command, standalone `sandbox exec`, and non-workspace-run failures are not replayed.
+- Workspace synchronization publishes complete, self-contained parent-repository Git history. Shallow, promisor, alternate-backed, grafted, or replace-influenced local sources fail before upload; incompatible sandbox helpers fail before probe or mutation instead of selecting a shallow fallback.
+- V2 workspace activation returns success only after the exact activated revision is certified under the same exclusive workspace-operation fence. If the result is lost after commit, `sandbox workspace resume` resumes the same immutable operation and revision; it does not rebuild the candidate or replay the requested command. Separately, genuine cross-writer fence contention can still return typed `workspace_layout_certification_busy`; workspace-backed `sandbox run` retries only that exact pre-dispatch response for up to 10 seconds, honors `Retry-After`, and never replays a user command.
 
 - `aient agent` is not available in this release. It does not start a Thread-backed Aient agent.
 - Commands cannot be deliberately detached. `sandbox execution attach` can follow an already-known live execution, but output is not retained for replay.
