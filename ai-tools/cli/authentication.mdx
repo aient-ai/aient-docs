@@ -1,6 +1,6 @@
 ---
 title: "Authentication and project profiles"
-description: "Use browser OAuth, named profiles, folder configuration, access-only exports, and restricted task credentials."
+description: "Use browser OAuth, durable project access, named profiles, access-only exports, and restricted task credentials."
 ---
 
 # Authentication and project profiles
@@ -12,8 +12,8 @@ Aient CLI uses customer OAuth for ordinary development work. Refresh credentials
 Open the browser consent flow and save a refresh-backed customer session:
 
 ```sh
-aient auth login
-aient auth login --profile client-a
+aient auth login --print-url
+aient auth login --profile client-a --print-url
 ```
 
 | Flag | Meaning |
@@ -21,6 +21,20 @@ aient auth login --profile client-a
 | `--profile NAME` | Save or replace the selected named customer profile. |
 | `--issuer URL` | OAuth issuer. The default is `https://aient.ai`. |
 | `--callback-timeout DURATION` | Maximum time to wait for browser consent. The default is `5m`. |
+| `--print-url` | Print the one-time authorization URL instead of opening a browser. Keep the command running while approving it. |
+| `--project-access=auto` | In the nearest configured project, install or reconcile bounded managed access. This is the default. |
+| `--project-access=none` | Keep only the host login and remove managed access for the nearest configured project. |
+
+On macOS, project access keeps refresh authority in Keychain and installs a
+launchd user service that rotates a 15-minute envelope under the Git common
+directory for up to 90 days. Login returns only after that exact manager-owned
+renewal is verified. The terminal can then close; no foreground process or PID
+owns renewal.
+
+Linux managed renewal remains preview pending a real systemd-user and D-Bus
+Secret Service renewal, restart, and logout canary. Use
+`--project-access=none` for host-only login when you do not explicitly want to
+opt into that preview.
 
 Use a distinct profile for each organisation context you work in. Existing OAuth sessions may need a new login when Aient introduces additional consented capabilities.
 
@@ -38,7 +52,7 @@ aient auth status --profile client-a
 aient auth status --all
 ```
 
-`auth status --all` displays local metadata for every profile without refreshing credentials. A status check for a selected refresh-backed profile verifies the live session. For an access-only token, status validates the envelope shape, issuer and audience claims, metadata consistency, and expiry locally; the server verifies its signature and current authority on the first API operation.
+`auth status --all` displays local metadata for every profile without refreshing credentials. A status check for a selected refresh-backed profile verifies the live session. From a configured project with no explicit profile, status discovers the repository-private access envelope, verifies its product context, and reports safe lease metadata without reading host refresh authority. A present invalid or expired project envelope fails closed instead of falling back to a host profile. An explicit `--profile` selects the host recovery view, including derived managed-service health.
 
 ## `aient auth logout`
 
@@ -48,7 +62,10 @@ Revoke and remove only the selected login:
 aient auth logout --profile client-a
 ```
 
-Logging out one profile does not remove another organisation's profile.
+Before revoking the selected profile, logout stops and removes every managed
+project service installed for that profile. A cleanup failure is reported while
+credential revocation still proceeds. Logging out one profile does not remove
+another organisation's profile.
 
 ## `aient auth profiles`
 
@@ -76,7 +93,7 @@ Create a project file in the checkout or linked worktree:
 
 ```yaml
 profile: client-a
-organisation: Example Engineering
+organisation: 11111111-1111-4111-8111-111111111111
 repository: example/widget
 ```
 
@@ -85,7 +102,7 @@ The CLI searches from the selected workspace or current directory upward and use
 | Key | Purpose |
 | --- | --- |
 | `profile` | Select a locally logged-in named profile. |
-| `organisation` | Assert the expected organisation name during preflight. |
+| `organisation` | Assert the expected canonical lowercase organisation UUID during preflight. |
 | `repository` | Supply an `owner/name` repository selector when Git remotes are absent or ambiguous. |
 
 The file is intentionally strict: it accepts only these scalar keys and must not contain credentials. The organisation and repository values are selectors and mismatch checks, never authority.
@@ -95,10 +112,12 @@ The file is intentionally strict: it accepts only these scalar keys and must not
 For each invocation, Aient resolves authentication in this order:
 
 1. An explicit access-only source: `--access-token-file`, `AIENT_ACCESS_TOKEN_FILE`, or `AIENT_ACCESS_TOKEN`.
-2. `--profile NAME` or `AIENT_PROFILE`.
-3. The nearest `.aient/config.yaml`.
-4. The user default selected by `auth profiles default`.
-5. Compatibility profile `customer`.
+2. `--profile NAME`.
+3. `AIENT_PROFILE`.
+4. A valid `<git-common-dir>/aient/access-v1.json` belonging to the nearest configured project.
+5. The profile named by the nearest `.aient/config.yaml`.
+6. The user default selected by `auth profiles default`.
+7. Compatibility profile `customer`.
 
 Conflicting explicit sources fail locally. For example, different values in `--profile` and `AIENT_PROFILE` are rejected instead of silently choosing one. A portable access token and refresh-profile selection are also mutually exclusive for the same invocation.
 
@@ -130,6 +149,18 @@ trap - EXIT
 | `--format file` | Atomically write a mode-`0600` JSON access envelope. |
 | `--output PATH` | Required destination for `file` format. |
 | `--ttl DURATION` | Requested lifetime from `1m` to `1h`; default `15m`. Actual expiry may be shorter. |
+| `--renew-for DURATION` | Keep an explicit file export renewed for `1m` to `90d`; the foreground caller owns that lifecycle. |
+| `--store-in-project` | Install or reconcile manager-owned access for the nearest configured project for up to 90 days. |
+
+Use the project form to repair an already logged-in host profile without
+re-running browser OAuth:
+
+```sh
+aient --profile client-a auth export --store-in-project
+```
+
+In Aient CLI 0.10.16 and newer, this returns after the manager-owned renewer is
+verified. It is not the old foreground exporter contract.
 
 <Warning>
   The `env` and `json` formats deliberately print a live bearer token. Use them only when the receiving system requires stdout, disable shell tracing, keep the output out of logs and transcripts, and unset or delete the credential when the receiving process finishes.
