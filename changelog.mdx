@@ -3,6 +3,16 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-08-17" description="Week of August 17">
+
+## Updates
+
+**Aient CLI 0.10.16 project access.** On macOS, `aient auth login` now sets up bounded project access by default for a configured checkout. Aient keeps the refresh authority in Keychain and renews the project-local, short-lived access envelope in the background, so a verified checkout can continue working after the login terminal closes. `auth status`, `auth logout`, and `auth export --store-in-project` now make that lifecycle explicit.
+
+**Selected nested repositories for sandbox work.** Sandbox runs and synchronisation can now transfer only the submodules a command needs. Use `--submodules=selected` with `--submodule PATH` to include an exact clean child repository, or `--submodules=gitlinks` when child contents are unnecessary. Aient rejects implicit or ambiguous submodule transfer before upload.
+
+</Update>
+
 <Update label="2026-08-10" description="Week of August 10">
 
 ## Updates
