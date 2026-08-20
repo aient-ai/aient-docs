@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.10.16`
+Current release: `0.10.19`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -36,7 +36,7 @@ aient auth login --print-url
 aient auth status
 ```
 
-From a configured Aient Git project on macOS, login establishes bounded project access by default. The refresh credential stays in Keychain while launchd rotates only a short-lived repository-private envelope for up to 90 days. Login returns only after manager-owned renewal is verified. No foreground terminal or PID owns renewal. Linux managed renewal remains preview pending a real systemd-user and D-Bus Secret Service renewal, restart, and logout canary. Use `--project-access=none` for host-only login, managed-project opt-out, or to avoid the Linux preview; use `aient --profile NAME auth export --store-in-project` to repair an existing installation.
+From a configured Aient Git project on macOS, login establishes bounded project access by default. The refresh credential stays in Keychain while launchd rotates only a short-lived repository-private envelope for up to 90 days. Login returns only after manager-owned renewal is verified. No foreground terminal or PID owns renewal. New installations persist the directory birth time so an APFS device-number change across a remount does not invalidate the same protected project. A legacy installation whose APFS device already changed still fails closed once; if the host profile is healthy, `aient --profile NAME auth export --store-in-project` replaces it without another login. Linux managed renewal remains preview pending a real systemd-user and D-Bus Secret Service renewal, restart, and logout canary. Use `--project-access=none` for host-only login, managed-project opt-out, or to avoid the Linux preview.
 
 ## Quick start
 
@@ -76,6 +76,19 @@ Use `--keep` when you want to retain the created sandbox:
 aient sandbox run --environment development --keep -- pnpm install
 aient sandbox list --environment development
 ```
+
+Use detached ownership when the command must survive the initiating client. A composed run must also be retained:
+
+```sh
+aient sandbox run --environment development --name background-tests --detach --keep -- pnpm test
+aient sandbox execution status background-tests EXECUTION_ID --environment development
+aient sandbox execution attach background-tests EXECUTION_ID --environment development
+aient sandbox execution wait background-tests EXECUTION_ID --environment development
+```
+
+The CLI prints a stable execution ID after server acceptance. `execution status|attach|wait|cancel` observes that same ID without redispatching the command. Attach resumes the live stream from the current point; output already delivered before disconnection is not replayed.
+
+Foreground execution remains connection-bound. After transport loss it must be reattached within the short server-owned reconnect grace or the service cancels it. Use `--detach` when command survival must not depend on a client attachment.
 
 Use a named retained sandbox when you want follow-up lifecycle reads and supervised execution:
 
@@ -163,9 +176,23 @@ printf '%s' "$STRIPE_SECRET_KEY" | aient environment secrets set \
 
 The command never returns the secret value. Server-managed environment secrets are separate from local files selected for workspace synchronization.
 
+## Runtime service mappings
+
+Inspect discovered runtime services and repository paths, or classify one service explicitly:
+
+```sh
+aient services list
+aient services paths owner/repository
+aient services classify web --repository owner/repository --path apps/web
+aient services apply --file service-mappings.json --json
+aient services apply --file service-mappings.json --apply --json
+```
+
+`services apply` is dry-run by default. These commands require the `services:read` and `services:manage` OAuth scopes; existing sandbox access remains valid, while an older profile may need one interactive login before service management.
+
 ## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.10.16.
+The commands documented in this section are the surface shipped in Aient CLI 0.10.19.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
@@ -183,13 +210,15 @@ The commands documented in this section are the surface shipped in Aient CLI 0.1
 - `aient auth exec --profile NAME -- COMMAND...` gives a trusted same-UID host wrapper one renewable access-only credential while injecting or copying no refresh, profile, operator, or imported portable authority. It is credential minimization, not a local process sandbox; untrusted same-UID descendants require external confinement.
 - From a configured project, `aient auth login` installs bounded manager-owned project access by default. Refresh authority remains in the OS credential store; ordinary repository commands discover only the rotating short-lived envelope with no profile/token flags, foreground exporter, or PID tracking.
 - Explicit `--submodules=selected` transfers only the named clean exact Gitlink dependency closure; unselected initialized children contribute no bytes and remain empty boundaries.
+- `sandbox run` uses supervised execution, prints a stable execution ID, streams stdout and stderr live, and gates downloads and cleanup on the truthful terminal outcome. `--detach --keep` returns after detached ownership is accepted, and later same-ID observation never redispatches the command.
+- `aient services list|paths|classify|apply` manages explicit runtime-service repository mappings. Batch apply is dry-run by default and uses the dedicated `services:read` and `services:manage` OAuth scopes.
 - Owner/admin environment-secret writes are encrypted, capability-gated, and write-only from the CLI.
 - Synchronization to `/workspace/repo` negotiates V3 immutable-candidate activation when an exact attested server advertises the closed V3 capability; it retains typed V2 on V2 servers and compatible V1 on older servers. V3 selection rejects unknown, duplicate, mixed, or invalid capability evidence before upload and never falls back after selection.
 - Workspace synchronization publishes complete, self-contained parent-repository Git history. Shallow, promisor, alternate-backed, grafted, or replace-influenced local sources fail before upload; incompatible sandbox helpers fail before probe or mutation instead of selecting a shallow fallback.
 - V2 workspace activation returns success only after the exact activated revision is certified under the same exclusive workspace-operation fence. If the result is lost after commit, `sandbox workspace resume` resumes the same immutable operation and revision; it does not rebuild the candidate or replay the requested command. Separately, genuine cross-writer fence contention can still return typed `workspace_layout_certification_busy`; workspace-backed `sandbox run` retries only that exact pre-dispatch response for up to 10 seconds, honors `Retry-After`, and never replays a user command.
 
 - `aient agent` is not available in this release. It does not start a Thread-backed Aient agent.
-- Commands cannot be deliberately detached. `sandbox execution attach` can follow an already-known live execution, but output is not retained for replay.
+- Detached execution does not imply output replay. `sandbox execution attach` follows the accepted execution from the current live point; callers must persist any output they require.
 - `sandbox shell` always opens a new shell. Shell reattachment and shell history are unavailable.
 - Public port exposure is not yet available.
 - CPU and memory override flags and the Docker lifecycle helper are operator controls, not customer sizing features.
