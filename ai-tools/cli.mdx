@@ -38,13 +38,13 @@ aient auth status
 
 ## Customer Agent messages
 
-Send one logical message with an explicit stable operation UUID:
+Send one logical message:
 
 ```sh
-aient agent message THREAD MESSAGE... --operation-id UUID [--immediate]
+aient agent message THREAD MESSAGE... [--operation-id UUID] [--immediate]
 ```
 
-Reuse the UUID only for an exact retry. Exact text and delivery mode return `duplicate`; changed text or mode returns `operation_conflict`. `--immediate` is text-only cooperative mailbox delivery: it never cancels or replaces the active task or changes its tool scope. The receipt reports `steered`, `started`, `queued`, or `duplicate`, with the applicable task ID and original steering-message ID. An incompatible active-task origin or attachment plan fails with `cooperative_steering_scope_mismatch` instead of reporting acceptance.
+`--immediate` requires one explicit stable operation UUID; an ordinary message may omit it and let the CLI generate one. Reuse an explicit UUID only for an exact retry. Exact text and delivery mode return `duplicate`; changed text or mode returns `operation_conflict`. `--immediate` is text-only cooperative mailbox delivery: it never cancels or replaces the active task or changes its tool scope. The receipt reports `steered`, `started`, `queued`, or `duplicate`, with the applicable task ID and original steering-message ID. An incompatible active-task origin or attachment plan fails with `cooperative_steering_scope_mismatch` instead of reporting acceptance.
 
 From a configured Aient Git project on macOS, login establishes bounded project access by default. The refresh credential stays in Keychain while launchd rotates only a short-lived repository-private envelope for up to 90 days. Login returns only after manager-owned renewal is verified. No foreground terminal or PID owns renewal. New installations persist the directory birth time so an APFS device-number change across a remount does not invalidate the same protected project. A legacy installation whose APFS device already changed still fails closed once; if the host profile is healthy, `aient --profile NAME auth export --store-in-project` replaces it without another login. Linux managed renewal remains preview pending a real systemd-user and D-Bus Secret Service renewal, restart, and logout canary. Use `--project-access=none` for host-only login, managed-project opt-out, or to avoid the Linux preview.
 
