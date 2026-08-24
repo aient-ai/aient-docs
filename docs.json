@@ -81,6 +81,7 @@
           "vercel/drain",
           "aws/firehose",
           "source-maps/upload",
+          "source-maps/flutter-debug-artifacts",
           "questions"
         ],
         "root": "index"
