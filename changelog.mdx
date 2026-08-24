@@ -3,6 +3,16 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-08-24" description="Week of August 24">
+
+## Updates
+
+**Aient CLI 0.10.20 customer-agent messages.** The CLI can now send an ordinary message to an Aient task, or use `--immediate` to request cooperative delivery to an active task. Immediate delivery requires a stable operation ID, and the receipt states whether the message was steered, started, queued, or deduplicated. It never cancels the active task or expands its tool scope.
+
+**Retained execution and service mappings.** Aient CLI 0.10.19 adds supervised retained execution: use `--detach --keep` when a sandbox command must outlive the initiating client, then inspect, attach to, wait for, or cancel the same execution by its stable ID. The CLI can also list, inspect, classify, and dry-run explicit runtime-service-to-repository mappings before applying them.
+
+</Update>
+
 <Update label="2026-08-17" description="Week of August 17">
 
 ## Updates
