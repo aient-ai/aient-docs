@@ -7,9 +7,11 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 
 ## Updates
 
-**Aient CLI 0.10.20 customer-agent messages.** The CLI can now send an ordinary message to an Aient task, or use `--immediate` to request cooperative delivery to an active task. Immediate delivery requires a stable operation ID, and the receipt states whether the message was steered, started, queued, or deduplicated. It never cancels the active task or expands its tool scope.
+**Aient CLI 0.10.20 customer-agent messages.** We added `aient agent message --immediate` for cooperative delivery to an active task at a stable boundary. It never cancels or replaces that task. Reuse the stable operation ID when retrying an ambiguous result; the receipt reports whether Aient accepted, queued, started, or had already recorded the message.
 
-**Retained execution and service mappings.** Aient CLI 0.10.19 adds supervised retained execution: use `--detach --keep` when a sandbox command must outlive the initiating client, then inspect, attach to, wait for, or cancel the same execution by its stable ID. The CLI can also list, inspect, classify, and dry-run explicit runtime-service-to-repository mappings before applying them.
+**Aient CLI 0.10.17 and 0.10.18 safer long-running sandbox work.** Use `--detach --keep` when a sandbox command must outlive the initiating client, then inspect, attach to, wait for, or cancel the same execution by its stable ID. The CLI can also list, classify, and dry-run explicit runtime-service-to-repository mappings before applying them.
+
+**Aient CLI 0.10.19 more resilient macOS project access.** Project access now survives a normal APFS remount while Aient continues to reject replaced directories. If an older definition needs repair, use `aient --profile NAME auth export --store-in-project` after confirming the host profile is healthy.
 
 </Update>
 
