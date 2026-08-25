@@ -1,0 +1,109 @@
+---
+title: "Upload Flutter debug artifacts"
+description: "Upload Dart AOT split debug information from trusted release CI so Aient can resolve obfuscated Flutter Android and iOS stack frames."
+---
+
+# Upload Flutter debug artifacts
+
+Flutter Web emits JavaScript and uses the regular [source map upload](./upload)
+flow. Native Flutter Android and iOS release builds instead use Dart AOT split
+debug information. Upload that private, source-equivalent artifact from trusted
+release CI with `@aient/sourcemaps` 0.3.0 or later.
+
+```bash
+pnpm dlx @aient/sourcemaps@0.3.0 upload-debug \
+  --manifest build/aient/debug-artifacts.json \
+  --distribution build/app/outputs/bundle/productionRelease/app-production-release.aab
+```
+
+Set `AIENT_API_KEY` to an upload-scoped key. Never embed this key in the app,
+`--dart-define`, mobile assets, or logs. The app uses a separate publishable
+telemetry key.
+
+The command reports validation and committed storage acceptance only. It rejects
+`--wait` until Aient exposes a real processing-status receipt; do not interpret a
+successful upload as proof that late occurrences have already been symbolicated.
+CI fails when the artifact is empty, malformed, mismatched to the manifest or
+distribution, or rejected by Aient.
+
+## Build identity
+
+Generate one opaque `release_id` before the authoritative build. Pass the same
+value into runtime telemetry and the manifest produced for that exact build.
+Commit SHA is required provenance, but Aient selects Dart debug artifacts by the
+exact service, release ID, platform, and architecture—not by commit.
+
+Set these attributes on Flutter exception telemetry:
+
+| Attribute | Value |
+| --- | --- |
+| `service.name` | Stable runtime name matching the Aient service config |
+| `deployment.commit_sha` | Exact 40-character lowercase release commit |
+| `aient.release.id` | Immutable pre-build release ID from trusted CI |
+| `aient.stacktrace.format` | `dart_aot` |
+| `os.type` | `android` or `ios` |
+| `host.arch` | `arm64`, `arm`, or `x86_64` |
+
+Build with Flutter's obfuscation and split-debug output flags. The same release
+ID must be available to the runtime, for example through a protected CI value:
+
+```bash
+flutter build appbundle \
+  --release \
+  --obfuscate \
+  --split-debug-info=build/aient/symbols \
+  --dart-define=AIENT_RELEASE_ID="$AIENT_RELEASE_ID"
+```
+
+## Manifest v1
+
+The only v1 wire shape is strict snake_case JSON. Unknown keys, absolute or
+traversing artifact paths, duplicate identities, checksum/size mismatches, and
+non-ELF or wrong-architecture Dart symbol files are rejected.
+
+```json
+{
+  "schema_version": 1,
+  "service": "cope-mobile",
+  "commit_sha": "0123456789abcdef0123456789abcdef01234567",
+  "release_id": "cope-1.2.3-42-production",
+  "app_version": "1.2.3",
+  "build_number": "42",
+  "variant": "production",
+  "distribution": {
+    "object_name": "app-production-release.aab",
+    "content_sha256": "<64 lowercase hex characters>",
+    "size_bytes": 12345678
+  },
+  "artifacts": [
+    {
+      "artifact_kind": "dart_aot_dwarf",
+      "platform": "android",
+      "architecture": "arm64",
+      "object_name": "app.android-arm64.symbols",
+      "artifact_path": "symbols/app.android-arm64.symbols",
+      "content_sha256": "<64 lowercase hex characters>",
+      "size_bytes": 2345678,
+      "content_type": "application/octet-stream"
+    }
+  ]
+}
+```
+
+`distribution` is authoritative AAB or IPA evidence. `artifact_path` is relative
+to the manifest directory, while `object_name` is a basename. The CLI hashes the
+actual distribution and artifact bytes before requesting upload URLs.
+
+## Troubleshooting
+
+- **Artifact missing:** confirm runtime `service.name`, `aient.release.id`,
+  `os.type`, and `host.arch` exactly match the manifest and upload receipt.
+- **Architecture unsupported:** ensure the manifest architecture matches the
+  intrinsic ELF `e_machine` value in the `.symbols` file.
+- **Artifact corrupt:** regenerate symbols and the manifest from the same clean
+  release build; do not rename or modify symbol bytes after hashing.
+- **Symbolizer failed:** preserve the raw occurrence and contact Aient with the
+  release ID. Do not send the upload key or private symbol bytes in support logs.
+
+Android `mapping.txt`, native ELF/so debug files, Apple dSYM bundles, and
+MetricKit symbolication are not accepted by this Dart AOT contract.
