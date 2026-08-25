@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.10.20`
+Current release: `0.11.2`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -36,15 +36,32 @@ aient auth login --print-url
 aient auth status
 ```
 
-## Customer Agent messages
+## Customer Agent conversations
 
-Send one logical message:
+From a configured project, select the refresh-backed customer OAuth profile explicitly with `aient --profile NAME agent ...`. Ambient project access is sandbox-scoped and intentionally does not grant Agent conversation authority.
+
+Attach to an existing Agent Thread:
 
 ```sh
-aient agent message THREAD MESSAGE... [--operation-id UUID] [--immediate]
+aient agent status THREAD [--json]
+aient agent events THREAD [--follow] [--json]
+aient agent message THREAD MESSAGE... [--operation-id UUID] [--immediate] [--json]
+aient agent respond THREAD INTERACTION ANSWER... [--operation-id UUID] [--json]
+aient agent cancel THREAD [--operation-id UUID] [--json]
+aient agent chat THREAD
+aient agent execution status EXECUTION [--json]
+aient agent execution attach EXECUTION
+aient agent execution wait EXECUTION [--json]
+aient agent execution cancel EXECUTION [--json]
 ```
 
-`--immediate` requires one explicit stable operation UUID; an ordinary message may omit it and let the CLI generate one. Reuse an explicit UUID only for an exact retry. Exact text and delivery mode return `duplicate`; changed text or mode returns `operation_conflict`. `--immediate` is text-only cooperative mailbox delivery: it never cancels or replaces the active task or changes its tool scope. The receipt reports `steered`, `started`, `queued`, or `duplicate`, with the applicable task ID and original steering-message ID. An incompatible active-task origin or attachment plan fails with `cooperative_steering_scope_mismatch` instead of reporting acceptance.
+Status and events require `aient.agent.read`; messages, answers, explicit cancellation, and chat mutations require `aient.agent.write`. `status --json` emits one deterministic document. `events --follow --json` emits JSONL and can resume after a durable sequence. Stable Thread, task, message, interaction, operation, sandbox, and execution identifiers preserve the reconnect path after terminal or network loss.
+
+`--immediate` requires one explicit stable operation UUID; an ordinary message may omit it and let the CLI generate one. Reuse an explicit UUID only for an exact retry. Exact text and delivery mode return `duplicate`; changed text or mode returns `operation_conflict`. Immediate delivery never cancels or replaces the active task or changes its tool scope. The receipt reports `steered`, `started`, `queued`, or `duplicate`; incompatible active-task origin or attachment plans fail with `cooperative_steering_scope_mismatch`.
+
+Inside `agent chat`, enter `! COMMAND` to run a supervised shell command in the environment and sandbox frozen from the latest rendered Agent status. The CLI shows the target and preallocated execution UUID before output, passes no workstation process environment or local repository inference, and sends no Agent message. Reconnect by passing the exact `EXECUTION` identifier to the execution commands above. Ctrl-C in ordinary chat detaches without cancelling Agent work; Ctrl-C in the active remote-command view explicitly requests cancellation of that exact execution. This release requires an existing `THREAD`; it does not start a new Agent Thread or provide Agent list/search.
+
+The standard `aient-agent` and retained `aient-pr-e2e` catalogs currently use the V2 workspace writer. The server keeps the closed V2 and V3 readers and negotiates capabilities per template; the CLI does not infer one global workspace layout version.
 
 From a configured Aient Git project on macOS, login establishes bounded project access by default. The refresh credential stays in Keychain while launchd rotates only a short-lived repository-private envelope for up to 90 days. Login returns only after manager-owned renewal is verified. No foreground terminal or PID owns renewal. New installations persist the directory birth time so an APFS device-number change across a remount does not invalidate the same protected project. A legacy installation whose APFS device already changed still fails closed once; if the host profile is healthy, `aient --profile NAME auth export --store-in-project` replaces it without another login. Linux managed renewal remains preview pending a real systemd-user and D-Bus Secret Service renewal, restart, and logout canary. Use `--project-access=none` for host-only login, managed-project opt-out, or to avoid the Linux preview.
 
@@ -202,7 +219,7 @@ aient services apply --file service-mappings.json --apply --json
 
 ## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.10.20.
+The commands documented in this section are the surface shipped in Aient CLI 0.11.2.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
@@ -227,7 +244,9 @@ The commands documented in this section are the surface shipped in Aient CLI 0.1
 - Workspace synchronization publishes complete, self-contained parent-repository Git history. Shallow, promisor, alternate-backed, grafted, or replace-influenced local sources fail before upload; incompatible sandbox helpers fail before probe or mutation instead of selecting a shallow fallback.
 - V2 workspace activation returns success only after the exact activated revision is certified under the same exclusive workspace-operation fence. If the result is lost after commit, `sandbox workspace resume` resumes the same immutable operation and revision; it does not rebuild the candidate or replay the requested command. Separately, genuine cross-writer fence contention can still return typed `workspace_layout_certification_busy`; workspace-backed `sandbox run` retries only that exact pre-dispatch response for up to 10 seconds, honors `Retry-After`, and never replays a user command.
 
-- `aient agent` is not available in this release. It does not start a Thread-backed Aient agent.
+- `aient agent status|events|message|respond|cancel|chat` attaches to an existing Agent Thread through the public API. It does not start a new Agent Thread or provide Agent list/search.
+- `agent events --follow --json` emits JSONL after durable sequence replay; Ctrl-C detaches ordinary chat without remote cancellation.
+- `! COMMAND` in Agent chat runs only in the frozen reported sandbox through supervised execution. Reconnect with `agent execution status|attach|wait|cancel`; no local shell, caller environment, repository inference, or Agent message is added.
 - Detached execution does not imply output replay. `sandbox execution attach` follows the accepted execution from the current live point; callers must persist any output they require.
 - `sandbox shell` always opens a new shell. Shell reattachment and shell history are unavailable.
 - Public port exposure is not yet available.
