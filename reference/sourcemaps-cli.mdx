@@ -34,18 +34,17 @@ native build identity from a directory.
 ```bash
 aient-sourcemaps upload-debug \
   --manifest <manifest.json> \
-  --distribution <app.aab-or.ipa> \
-  [--wait]
+  --distribution <app.aab-or.ipa>
 ```
 
 | Option | Meaning |
 | --- | --- |
 | `--manifest` | Required strict snake_case manifest v1 path |
 | `--distribution` | Required authoritative AAB or IPA described by the manifest |
-| `--api-key`, `-k` | Upload-scoped API key, or use `AIENT_API_KEY` |
+| `AIENT_API_KEY` | Required upload-scoped API key environment variable; keys are not accepted in command arguments |
 | `--api-url` | Optional Aient API URL, or use `AIENT_API_URL` |
 | `--dry-run` | Validate and hash local distribution/artifact bytes without network calls |
-| `--wait` | Wait up to 120 seconds for commit and durable backfill acknowledgement |
+| `--wait` | Rejected until Aient exposes a real processing-status receipt |
 
 See [Upload Flutter debug artifacts](../source-maps/flutter-debug-artifacts) for
 the manifest schema, runtime attributes, and release workflow.

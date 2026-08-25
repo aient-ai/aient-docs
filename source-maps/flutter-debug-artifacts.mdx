@@ -13,17 +13,18 @@ release CI with `@aient/sourcemaps` 0.3.0 or later.
 ```bash
 pnpm dlx @aient/sourcemaps@0.3.0 upload-debug \
   --manifest build/aient/debug-artifacts.json \
-  --distribution build/app/outputs/bundle/productionRelease/app-production-release.aab \
-  --wait
+  --distribution build/app/outputs/bundle/productionRelease/app-production-release.aab
 ```
 
 Set `AIENT_API_KEY` to an upload-scoped key. Never embed this key in the app,
 `--dart-define`, mobile assets, or logs. The app uses a separate publishable
 telemetry key.
 
-`--wait` bounds commit and durable backfill acknowledgement to 120 seconds. CI
-fails when the artifact is empty, malformed, mismatched to the manifest or
-distribution, rejected by Aient, or not acknowledged within that bound.
+The command reports validation and committed storage acceptance only. It rejects
+`--wait` until Aient exposes a real processing-status receipt; do not interpret a
+successful upload as proof that late occurrences have already been symbolicated.
+CI fails when the artifact is empty, malformed, mismatched to the manifest or
+distribution, or rejected by Aient.
 
 ## Build identity
 
