@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.11.4`
+Current release: `0.11.5`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -76,6 +76,7 @@ aient sandbox run --environment development --size medium -- pnpm test
 
 With `--environment`, the CLI synchronizes the current workspace by default. It shows the organisation, resolved environment, inferred or selected repository, and brokered GitHub capabilities before creating the sandbox.
 Use `--size small|medium|large` to request a product-owned compute class, or omit it to use the environment default. The server owns the underlying template and resource envelope.
+Every customer-development create advertises `developmentSizeBindingVersion: v2`. A compatible product response binds exact `aientSizeBinding=v2`, `aientSizeClass`, `aientSizeSource=requested|environment-default`, and `aientSizeEnvelope=v1|v2` selectors into the signed request target. Partial, duplicated, unknown, crossed, or mismatched bindings fail before the control-plane request. Legacy explicit V1 and an old server's unbound environment default remain supported during rollout. This reader does not enable V3 by itself; the standard catalogs remain on V2.
 
 ```text
 Organisation: Example Engineering
@@ -234,7 +235,7 @@ aient services apply --file service-mappings.json --apply --json
 
 ## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.11.4.
+The commands documented in this section are the surface shipped in Aient CLI 0.11.5.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
@@ -246,6 +247,7 @@ The commands documented in this section are the surface shipped in Aient CLI 0.1
 - `sandbox workspace list [--json]` reports retained local operation evidence without authentication or network access. New publication is bounded by 10 GiB aggregate logical bytes plus a fixed 1 GiB post-copy filesystem reserve, with no count limit, configuration override, or automatic eviction.
 - Idle and timeout cleanup acts only on the exact sandbox revision it evaluated. This protects an accepted concurrent refresh without renewing or extending the operation lease or server-owned hard expiry.
 - Customer create and run support the `small`, `medium`, and `large` product-owned compute classes.
+- Customer-development create advertises `developmentSizeBindingVersion: v2` and accepts only a complete exact `aientSizeBinding=v2`, `aientSizeClass`, `aientSizeSource=requested|environment-default`, and `aientSizeEnvelope=v1|v2` binding. Invalid combinations fail before the control-plane request; legacy explicit V1 and an old server's unbound default remain rollout-only compatibility paths.
 - Named sandbox creation is replay-safe under bounded ambiguous-transport retries: one public name keeps one idempotency identity, matching fingerprinted settings adopt the accepted sandbox, changed fingerprinted settings conflict, and `sandbox run` never executes in or deletes a sandbox whose returned identity is unproven.
 - Organisation selection is bound to one canonical lowercase UUID. The CLI resolves the authenticated display name and canonical organisation UUID for human-readable status and trusted legacy-project migration guidance; the display name is render-only, and every present authenticated identity source must agree before the requested operation.
 - Environment-bound sandbox commands carry one authenticated organisation/environment/repository tuple across create, synchronization, files, execution, observation, lease refresh, and deletion. New customer workspace operations retain that tuple in `workspace-operation-bundle-v2` and resume with the exact authority instead of weakening to owner-only access; legacy V1 receipts keep their established compatibility behavior.
