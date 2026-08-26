@@ -28,11 +28,14 @@ aient-sourcemaps upload <directory> --service <service> [options]
 
 ## Flutter Dart AOT debug artifacts
 
-Version 0.3.0 adds a separate strict manifest command. It does not scan or infer
-native build identity from a directory.
+Current supported release: `0.3.3`.
+
+Use the installed, lockfile-pinned binary from a release-tooling package. The
+command is Node-based CI tooling; it is not a Flutter runtime dependency and does
+not scan or infer native build identity from an arbitrary directory.
 
 ```bash
-aient-sourcemaps upload-debug \
+pnpm exec aient-sourcemaps upload-debug \
   --manifest <manifest.json> \
   --distribution <app.aab-or.ipa>
 ```
@@ -47,4 +50,5 @@ aient-sourcemaps upload-debug \
 | `--wait` | Rejected until Aient exposes a real processing-status receipt |
 
 See [Upload Flutter debug artifacts](../source-maps/flutter-debug-artifacts) for
-the manifest schema, runtime attributes, and release workflow.
+the pinned installation, Android and iOS build flags, native artifact retention,
+manifest schema, runtime attributes, credential boundary, and release workflow.

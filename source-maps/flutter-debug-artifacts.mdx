@@ -1,72 +1,260 @@
 ---
 title: "Upload Flutter debug artifacts"
-description: "Upload Dart AOT split debug information from trusted release CI so Aient can resolve obfuscated Flutter Android and iOS stack frames."
+description: "Build, retain, and upload the exact Dart AOT symbols for Flutter Android and iOS releases, while preserving native dSYMs and R8 mappings for their separate symbolication paths."
 ---
 
 # Upload Flutter debug artifacts
 
-Flutter Web emits JavaScript and uses the regular [source map upload](./upload)
-flow. Native Flutter Android and iOS release builds instead use Dart AOT split
-debug information. Upload that private, source-equivalent artifact from trusted
-release CI with `@aient/sourcemaps` 0.3.0 or later.
+Flutter has more than one symbol format. A native release can contain Dart AOT
+frames, iOS native frames, and Android Java/Kotlin or native frames. Those frames
+do not use JavaScript source maps and do not share one interchangeable symbol
+file.
 
-```bash
-pnpm dlx @aient/sourcemaps@0.3.0 upload-debug \
-  --manifest build/aient/debug-artifacts.json \
-  --distribution build/app/outputs/bundle/productionRelease/app-production-release.aab
+`@aient/sourcemaps` is an npm-distributed **build-time CI tool**. Aient uses npm
+to distribute one versioned, cross-platform command that can validate files and
+call the upload API from a trusted release runner. It is never linked into your
+Flutter application, added to `pubspec.yaml`, or run on a phone. Installing it
+does not inject Node.js or an Aient uploader into the app process.
+
+Flutter Web is the exception: it emits JavaScript and uses the regular
+[source map upload](./upload) flow.
+
+## What Aient accepts today
+
+| Runtime frames | Build artifact | Generate and retain? | Accepted by `upload-debug` 0.3.3? |
+| --- | --- | --- | --- |
+| Obfuscated Dart AOT on Android | `app.android-<arch>.symbols` | Yes | Yes |
+| Obfuscated Dart AOT on iOS | `app.ios-<arch>.symbols` | Yes | Yes |
+| iOS app/framework native code | `.xcarchive/dSYMs/*.dSYM` | Yes | No; retain it and use the Apple/App Store symbol flow |
+| Android Java/Kotlin after R8 | `outputs/mapping/<variant>/mapping.txt` | Yes when minification is enabled | No; retain it for Play/retrace |
+| Android NDK/native code | ELF/`.so` debug symbols | Yes when your app owns native code | No |
+
+The current command deliberately accepts only `dart_aot_dwarf` manifest items.
+It does not currently accept Apple dSYM bundles, Android R8/ProGuard mappings, or
+Android native ELF files. Generating and retaining those files now is still
+important: they are tied to the exact binary and generally cannot be recreated
+after a later rebuild. Aient support for those native formats is a separate
+backend and uploader capability; do not label a Dart-only upload as native
+symbolication.
+
+## Install the release tool
+
+Keep Node release tooling separate from Flutter runtime dependencies. For
+example, check in this file as `release-tooling/package.json`:
+
+```json
+{
+  "name": "mobile-release-tooling",
+  "private": true,
+  "packageManager": "pnpm@10.17.1",
+  "devDependencies": {
+    "@aient/sourcemaps": "0.3.3"
+  }
+}
 ```
 
-Set `AIENT_API_KEY` to an upload-scoped key. Never embed this key in the app,
-`--dart-define`, mobile assets, or logs. The app uses a separate publishable
-telemetry key.
+Create and commit the matching lockfile, then use only the installed,
+lockfile-pinned binary in release CI:
 
-The command reports validation and committed storage acceptance only. It rejects
-`--wait` until Aient exposes a real processing-status receipt; do not interpret a
-successful upload as proof that late occurrences have already been symbolicated.
-CI fails when the artifact is empty, malformed, mismatched to the manifest or
-distribution, or rejected by Aient.
+```bash
+cd release-tooling
+corepack pnpm install --frozen-lockfile
+corepack pnpm exec aient-sourcemaps --version
+```
 
-## Build identity
+With npm, the equivalent setup is:
 
-Generate one opaque `release_id` before the authoritative build. Pass the same
-value into runtime telemetry and the manifest produced for that exact build.
-Commit SHA is required provenance, but Aient selects Dart debug artifacts by the
-exact service, release ID, platform, and architecture—not by commit.
+```bash
+npm install --save-dev --save-exact @aient/sourcemaps@0.3.3
+npm ci
+npm exec -- aient-sourcemaps --version
+```
 
-Set these attributes on Flutter exception telemetry:
+Do not use an unpinned `npx`, `pnpm dlx`, branch URL, or `latest` tag in the
+authoritative release job. The committed manifest and lockfile are the supply
+chain record for the uploader version used by that release.
+
+## Keep telemetry and upload credentials separate
+
+| Value | Where it belongs | Purpose |
+| --- | --- | --- |
+| `AIENT_PUBLISHABLE_KEY` | Flutter build/runtime configuration | Sends OTLP traces and logs from the app. Use the key for the exact dev, QA, staging, or production environment selected by that build. |
+| `AIENT_API_KEY` | Protected release-CI secret only | Uploads private source-equivalent debug artifacts. Never put it in `--dart-define`, app assets, a mobile binary, or a retained manifest. |
+| `AIENT_API_URL` | Release CI, optional | Overrides the Aient API origin; omit it for `https://aient.ai`. |
+
+Publishable environment keys and the private upload credential are not
+interchangeable. A development build should use the development publishable key,
+automated app tests should use QA, staging builds should use staging, and
+TestFlight/store delivery builds should use production unless they are explicitly
+a staging distribution. None of those publishable values authorizes a symbol
+upload.
+
+The uploader does not proactively print configuration. When an upload fails, it
+does not redact, truncate, or rewrite caught failure evidence: CI receives the
+original exception/message and stack so the failure can be diagnosed. Keep
+credentials out of command arguments and user-supplied exception values; CI log
+hygiene remains the workflow owner's responsibility.
+
+## Create one immutable release identity
+
+Before the authoritative build, create one immutable `AIENT_RELEASE_ID`. Pass the
+same value to the app and to the manifest generated from that exact build. Also
+capture the exact lowercase 40-character commit SHA, app version, build number,
+platform, and flavor/variant.
+
+Set these resource attributes on Flutter exception telemetry:
 
 | Attribute | Value |
 | --- | --- |
 | `service.name` | Stable runtime name matching the Aient service config |
-| `deployment.commit_sha` | Exact 40-character lowercase release commit |
-| `aient.release.id` | Immutable pre-build release ID from trusted CI |
-| `aient.stacktrace.format` | `dart_aot` |
+| `deployment.commit_sha` | Exact release commit |
+| `deployment.environment` | Exact runtime environment such as `dev`, `qa`, `stg`, or `prod` |
+| `aient.release.id` | Immutable pre-build release ID |
+| `aient.stacktrace.format` | `dart_aot` for obfuscated AOT stacks |
 | `os.type` | `android` or `ios` |
 | `host.arch` | `arm64`, `arm`, or `x86_64` |
 
-Build with Flutter's obfuscation and split-debug output flags. The same release
-ID must be available to the runtime, for example through a protected CI value:
+Commit SHA is provenance. Aient selects Dart debug artifacts by exact service,
+release ID, platform, and architecture, so a rebuild from the same commit needs a
+new release ID and its own artifacts.
+
+## Android: produce AAB, Dart symbols, and R8 mapping
+
+Build the exact AAB that you will distribute. `--obfuscate` renames Dart symbols;
+`--split-debug-info` writes the matching per-architecture Dart debug files outside
+the AAB.
 
 ```bash
+AIENT_DART_SYMBOLS_DIR="build/debug-info/${AIENT_RELEASE_ID}/android"
+
 flutter build appbundle \
   --release \
+  --flavor production \
+  -t lib/main_production.dart \
   --obfuscate \
-  --split-debug-info=build/aient/symbols \
-  --dart-define=AIENT_RELEASE_ID="$AIENT_RELEASE_ID"
+  --split-debug-info="${AIENT_DART_SYMBOLS_DIR}" \
+  --dart-define=AIENT_RELEASE_ID="${AIENT_RELEASE_ID}" \
+  --dart-define=AIENT_COMMIT_SHA="${GITHUB_SHA}" \
+  --dart-define=AIENT_ENVIRONMENT=prod \
+  --dart-define=AIENT_PUBLISHABLE_KEY="${AIENT_PUBLISHABLE_KEY}"
 ```
 
-## Manifest v1
+Remove `--flavor` and `-t` if the project has no flavors. A flavored project
+normally produces an AAB below
+`build/app/outputs/bundle/<flavor>Release/`; an unflavored Flutter project
+normally produces it below `build/app/outputs/bundle/release/`. Select one exact
+file and fail if zero or multiple candidates exist.
 
-The only v1 wire shape is strict snake_case JSON. Unknown keys, absolute or
-traversing artifact paths, duplicate identities, checksum/size mismatches, and
-non-ELF or wrong-architecture Dart symbol files are rejected.
+The split-debug directory contains names such as:
+
+```text
+app.android-arm.symbols
+app.android-arm64.symbols
+app.android-x64.symbols
+```
+
+Use Aient architecture `x86_64` for Flutter's `x64` filename token. Include every
+architecture emitted by the distributed build in the manifest.
+
+Flutter release builds run Android's R8 shrinker. If your Android Gradle build
+minifies Java/Kotlin, preserve the exact mapping produced for the variant:
+
+```kotlin
+// android/app/build.gradle.kts
+android {
+  buildTypes {
+    getByName("release") {
+      isMinifyEnabled = true
+      isShrinkResources = true
+      proguardFiles(
+        getDefaultProguardFile("proguard-android-optimize.txt"),
+        "proguard-rules.pro",
+      )
+    }
+  }
+}
+```
+
+Only enable this when minification is part of your tested release contract. The
+mapping is build-specific and is overwritten by a later build.
+
+```text
+build/app/outputs/mapping/<variant>/mapping.txt
+```
+
+For example, a `productionRelease` variant normally writes
+`build/app/outputs/mapping/productionRelease/mapping.txt`. Confirm the real path
+in your Android Gradle Plugin version and fail the release if minification is
+enabled but the file is absent. Do not enable minification solely for Aient while
+Aient still cannot ingest the mapping; if you already enable it, retain the
+mapping for Google Play or `retrace`.
+
+## iOS: produce IPA, Dart symbols, and dSYMs
+
+For every Release configuration used for distribution, set Xcode's **Debug
+Information Format** (`DEBUG_INFORMATION_FORMAT`) to **DWARF with dSYM File**.
+Apple ties each binary to its dSYM by UUID, so a dSYM from a rebuild is not a
+substitute even when the source commit is unchanged.
+
+Build the exact archive and IPA that will be sent to TestFlight or the App Store:
+
+```bash
+AIENT_DART_SYMBOLS_DIR="build/debug-info/${AIENT_RELEASE_ID}/ios"
+
+flutter build ipa \
+  --release \
+  --flavor production \
+  -t lib/main_production.dart \
+  --obfuscate \
+  --split-debug-info="${AIENT_DART_SYMBOLS_DIR}" \
+  --export-options-plist=ios/ExportOptions.plist \
+  --dart-define=AIENT_RELEASE_ID="${AIENT_RELEASE_ID}" \
+  --dart-define=AIENT_COMMIT_SHA="${GITHUB_SHA}" \
+  --dart-define=AIENT_ENVIRONMENT=prod \
+  --dart-define=AIENT_PUBLISHABLE_KEY="${AIENT_PUBLISHABLE_KEY}"
+```
+
+The build produces four independently important outputs:
+
+| Output | Normal location | Use |
+| --- | --- | --- |
+| App Store archive | `build/ios/archive/Runner.xcarchive` | Exact app/framework binaries and their native dSYMs |
+| Distributable IPA | `build/ios/ipa/*.ipa` | Pass this exact file to `--distribution`, then upload the same bytes to App Store Connect |
+| Dart AOT symbols | The directory passed to `--split-debug-info`, for example `app.ios-arm64.symbols` | Upload to Aient with `upload-debug` |
+| Native Apple symbols | `build/ios/archive/Runner.xcarchive/dSYMs/*.dSYM` | Retain privately and include in the Apple/App Store symbol workflow; Aient does not accept it yet |
+
+`flutter build ios` is not the authoritative TestFlight artifact: use
+`flutter build ipa` so the release job owns both the `.xcarchive` and the exact
+exported IPA. Do not rebuild after manifest validation. Hash the IPA, upload the
+Dart symbols, and publish that already-built IPA.
+
+## Generate manifest v1
+
+`upload-debug` validates and uploads a manifest; it intentionally does not guess
+release identity or generate one by scanning an arbitrary build directory. Check
+in a small release helper (Dart, Node.js, Ruby, or your CI language) that:
+
+1. finds every `.symbols` regular file in the exact split-debug directory;
+2. maps the filename platform and architecture to `android|ios` and
+   `arm|arm64|x86_64`;
+3. calculates SHA-256 and byte length for every symbol file and the exact AAB or
+   IPA;
+4. writes one strict snake_case manifest beside the symbol files; and
+5. fails on empty files, unknown names, duplicates, symlinks, or more than one
+   selected distribution.
+
+Placing the manifest beside the symbol files lets each `artifact_path` be the
+file basename. The CLI requires paths relative to the manifest directory and
+rejects absolute, traversing, symlinked, non-regular, hash-mismatched,
+size-mismatched, wrong-format, and wrong-architecture inputs. Each debug artifact
+is limited to 100 MiB.
 
 ```json
 {
   "schema_version": 1,
   "service": "cope-mobile",
   "commit_sha": "0123456789abcdef0123456789abcdef01234567",
-  "release_id": "cope-1.2.3-42-production",
+  "release_id": "cope-mobile-12345678-1-android",
   "app_version": "1.2.3",
   "build_number": "42",
   "variant": "production",
@@ -81,7 +269,7 @@ non-ELF or wrong-architecture Dart symbol files are rejected.
       "platform": "android",
       "architecture": "arm64",
       "object_name": "app.android-arm64.symbols",
-      "artifact_path": "symbols/app.android-arm64.symbols",
+      "artifact_path": "app.android-arm64.symbols",
       "content_sha256": "<64 lowercase hex characters>",
       "size_bytes": 2345678,
       "content_type": "application/octet-stream"
@@ -90,20 +278,166 @@ non-ELF or wrong-architecture Dart symbol files are rejected.
 }
 ```
 
-`distribution` is authoritative AAB or IPA evidence. `artifact_path` is relative
-to the manifest directory, while `object_name` is a basename. The CLI hashes the
-actual distribution and artifact bytes before requesting upload URLs.
+Create one manifest per platform/distribution. For iOS, use `platform: "ios"`,
+the exact IPA basename and hash, and the `app.ios-*.symbols` files from the same
+build.
+
+## Validate and upload
+
+Run a local-only validation before using credentials:
+
+```bash
+cd release-tooling
+corepack pnpm exec aient-sourcemaps upload-debug \
+  --manifest "../build/debug-info/${AIENT_RELEASE_ID}/android/manifest.json" \
+  --distribution "../build/app/outputs/bundle/productionRelease/app-production-release.aab" \
+  --dry-run
+```
+
+Then upload from the protected release job:
+
+```bash
+cd release-tooling
+AIENT_API_KEY="${AIENT_API_KEY}" \
+  corepack pnpm exec aient-sourcemaps upload-debug \
+    --manifest "../build/debug-info/${AIENT_RELEASE_ID}/android/manifest.json" \
+    --distribution "../build/app/outputs/bundle/productionRelease/app-production-release.aab"
+```
+
+The command exits non-zero for an empty manifest, local validation failure,
+service lookup failure, rejected upload, incomplete bulk response, storage
+failure, or commit failure. A success summary distinguishes artifacts accepted
+and committed to private storage from artifacts explicitly enqueued for
+processing.
+
+`--wait` is rejected because the current API does not expose a truthful
+per-artifact processing-completion receipt. A successful command proves local
+validation and server storage/commit acceptance; it does not by itself prove that
+a later occurrence is already symbolicated. Verify symbolication with a
+controlled occurrence for the same service, release ID, platform, and
+architecture.
+
+## Release-CI order
+
+Use this order independently for Android and iOS:
+
+```text
+create release identity
+  -> build exact AAB or IPA once with --obfuscate and --split-debug-info
+  -> verify Dart symbols plus native dSYM/R8 outputs that apply
+  -> generate strict manifest and hash the distribution
+  -> upload Dart symbols with the pinned CLI
+  -> retain manifest, Dart symbols, dSYMs/R8 mappings as restricted CI artifacts
+  -> publish the same previously hashed AAB or IPA without rebuilding
+```
+
+Run uploads only in protected trusted release jobs. Pull requests and forks can
+run `--dry-run` against non-production fixtures, but must not receive
+`AIENT_API_KEY` or production configuration.
+
+### GitHub Actions skeleton
+
+This Android example assumes `tool/aient_debug_manifest.dart` is your checked-in
+manifest helper implementing the five rules above. Keep the helper and uploader
+version under review like any other release tooling.
+
+```yaml
+jobs:
+  android-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      AIENT_PUBLISHABLE_KEY: ${{ secrets.AIENT_PROD_PUBLISHABLE_KEY }}
+      AIENT_API_KEY: ${{ secrets.AIENT_DEBUG_ARTIFACT_UPLOAD_KEY }}
+      APP_VERSION: ${{ vars.APP_VERSION }}
+      BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      # Install your repository-pinned Flutter SDK before these steps.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - name: Install pinned uploader
+        working-directory: release-tooling
+        run: corepack pnpm install --frozen-lockfile
+      - name: Define immutable build identity
+        run: |
+          echo "AIENT_RELEASE_ID=mobile-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-android" >> "$GITHUB_ENV"
+          echo "AIENT_DART_SYMBOLS_DIR=build/debug-info/mobile-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-android/android" >> "$GITHUB_ENV"
+      - name: Build exact release once
+        run: |
+          flutter build appbundle \
+            --release \
+            --obfuscate \
+            --split-debug-info="${AIENT_DART_SYMBOLS_DIR}" \
+            --dart-define=AIENT_RELEASE_ID="${AIENT_RELEASE_ID}" \
+            --dart-define=AIENT_COMMIT_SHA="${GITHUB_SHA}" \
+            --dart-define=AIENT_ENVIRONMENT=prod \
+            --dart-define=AIENT_PUBLISHABLE_KEY="${AIENT_PUBLISHABLE_KEY}"
+      - name: Generate strict manifest
+        run: |
+          dart run tool/aient_debug_manifest.dart \
+            --symbols-directory "${AIENT_DART_SYMBOLS_DIR}" \
+            --distributable build/app/outputs/bundle/release/app.aab \
+            --service mobile \
+            --commit "${GITHUB_SHA}" \
+            --release-id "${AIENT_RELEASE_ID}" \
+            --platform android \
+            --app-version "${APP_VERSION}" \
+            --build-number "${BUILD_NUMBER}" \
+            --variant production \
+            --output "${AIENT_DART_SYMBOLS_DIR}/manifest.json"
+      - name: Validate and upload Dart symbols
+        working-directory: release-tooling
+        run: |
+          corepack pnpm exec aient-sourcemaps upload-debug \
+            --manifest "../${AIENT_DART_SYMBOLS_DIR}/manifest.json" \
+            --distribution ../build/app/outputs/bundle/release/app.aab \
+            --dry-run
+          corepack pnpm exec aient-sourcemaps upload-debug \
+            --manifest "../${AIENT_DART_SYMBOLS_DIR}/manifest.json" \
+            --distribution ../build/app/outputs/bundle/release/app.aab
+      - name: Retain private recovery artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-debug-artifacts
+          if-no-files-found: error
+          retention-days: 90
+          path: |
+            build/debug-info/**
+            build/app/outputs/mapping/**/mapping.txt
+      # Publish the already-built, previously validated AAB here. Do not rebuild.
+```
+
+Use a separate `macos` job for iOS. Replace the build with the `flutter build
+ipa` command above, pass the one selected `build/ios/ipa/*.ipa` to the manifest
+and uploader, and retain both `build/debug-info/**` and
+`build/ios/archive/Runner.xcarchive/dSYMs/**` before publishing that same IPA to
+App Store Connect.
 
 ## Troubleshooting
 
-- **Artifact missing:** confirm runtime `service.name`, `aient.release.id`,
-  `os.type`, and `host.arch` exactly match the manifest and upload receipt.
-- **Architecture unsupported:** ensure the manifest architecture matches the
-  intrinsic ELF `e_machine` value in the `.symbols` file.
-- **Artifact corrupt:** regenerate symbols and the manifest from the same clean
-  release build; do not rename or modify symbol bytes after hashing.
-- **Symbolizer failed:** preserve the raw occurrence and contact Aient with the
-  release ID. Do not send the upload key or private symbol bytes in support logs.
+- **No `.symbols` files:** both `--obfuscate` and `--split-debug-info=<directory>`
+  must be on the release build command. Confirm the directory is unique to this
+  release and platform.
+- **Distribution mismatch:** the file basename, SHA-256, and byte length must
+  match `distribution`. Upload the exact file used to create the manifest and do
+  not rebuild it.
+- **Architecture mismatch:** do not infer architecture from the runner. Map the
+  Flutter filename, then let the CLI inspect the ELF or Mach-O bytes.
+- **Artifact missing in Aient:** confirm runtime `service.name`,
+  `aient.release.id`, `os.type`, and `host.arch` exactly match the manifest.
+- **Missing dSYM:** verify Release uses DWARF with dSYM File and inspect the
+  archive's `dSYMs` directory before exporting or publishing.
+- **Missing R8 mapping:** verify whether the exact Gradle variant enables
+  minification and inspect its `outputs/mapping/<variant>/` directory. A mapping
+  from another build cannot be substituted.
 
-Android `mapping.txt`, native ELF/so debug files, Apple dSYM bundles, and
-MetricKit symbolication are not accepted by this Dart AOT contract.
+Primary platform references: [Flutter obfuscation and split debug
+information](https://docs.flutter.dev/deployment/obfuscate), [Flutter iOS release
+archives](https://docs.flutter.dev/deployment/ios), [Flutter Android release
+builds](https://docs.flutter.dev/deployment/android), [Apple dSYM build
+information](https://developer.apple.com/documentation/xcode/building-your-app-to-include-debugging-information),
+and [Android R8 mapping files](https://developer.android.com/topic/performance/app-optimization/troubleshoot-the-optimization).
