@@ -23,7 +23,8 @@ Flutter Web is the exception: it emits JavaScript and uses the regular
 
 | Runtime frames | Build artifact | Generate and retain? | Accepted by `upload-debug` 0.3.3? |
 | --- | --- | --- | --- |
-| Obfuscated Dart AOT on Android | `app.android-<arch>.symbols` | Yes | Yes |
+| Obfuscated root-loading-unit Dart AOT on Android | `app.android-<arch>.symbols` | Yes | Yes |
+| Android deferred-component/loading-unit Dart AOT | `app.android-<arch>.symbols-<unit>.part.so` | Yes | No; retain every loading-unit file |
 | Obfuscated Dart AOT on iOS | `app.ios-<arch>.symbols` | Yes | Yes |
 | iOS app/framework native code | `.xcarchive/dSYMs/*.dSYM` | Yes | No; retain it and use the Apple/App Store symbol flow |
 | Android Java/Kotlin after R8 | `outputs/mapping/<variant>/mapping.txt` | Yes when minification is enabled | No; retain it for Play/retrace |
@@ -89,11 +90,18 @@ TestFlight/store delivery builds should use production unless they are explicitl
 a staging distribution. None of those publishable values authorizes a symbol
 upload.
 
-The uploader does not proactively print configuration. When an upload fails, it
-does not redact, truncate, or rewrite caught failure evidence: CI receives the
-original exception/message and stack so the failure can be diagnosed. Keep
-credentials out of command arguments and user-supplied exception values; CI log
-hygiene remains the workflow owner's responsibility.
+In Aient, open **Settings → API keys → Create Key** and create a key with the
+`upload` scope. Copy the value when it is shown—the value is displayed only
+once—and store it in the protected CI secret used by your release workflow (the
+example below names that secret `AIENT_DEBUG_ARTIFACT_UPLOAD_KEY`). Do not grant
+`admin` scope, and do not substitute an app's publishable ingest key.
+
+The uploader does not proactively print configuration or perform secret
+redaction. String failure messages are preserved verbatim. Structured non-string
+failure values use bounded Node.js inspection (depth 8, at most 100 array items,
+and at most 100,000 characters per string) so pathological objects cannot flood
+the runner. Keep credentials out of command arguments and user-supplied exception
+values; CI log hygiene remains the workflow owner's responsibility.
 
 ## Create one immutable release identity
 
@@ -155,6 +163,13 @@ app.android-x64.symbols
 
 Use Aient architecture `x86_64` for Flutter's `x64` filename token. Include every
 architecture emitted by the distributed build in the manifest.
+
+Flutter deferred components can also emit loading-unit files such as
+`app.android-arm64.symbols-2.part.so`. Version 0.3.3 has no loading-unit identity
+field and permits only one Android `dart_aot_dwarf` item per architecture, so it
+can symbolicate only the root loading unit. Do not add loading-unit files to the
+current manifest. Retain every `*.symbols-*.part.so` file with the distributed
+build for manual recovery and future uploader support.
 
 Flutter release builds run Android's R8 shrinker. If your Android Gradle build
 minifies Java/Kotlin, preserve the exact mapping produced for the variant:
@@ -349,7 +364,6 @@ jobs:
       contents: read
     env:
       AIENT_PUBLISHABLE_KEY: ${{ secrets.AIENT_PROD_PUBLISHABLE_KEY }}
-      AIENT_API_KEY: ${{ secrets.AIENT_DEBUG_ARTIFACT_UPLOAD_KEY }}
       APP_VERSION: ${{ vars.APP_VERSION }}
       BUILD_NUMBER: ${{ github.run_number }}
     steps:
@@ -369,6 +383,8 @@ jobs:
         run: |
           flutter build appbundle \
             --release \
+            --build-name="${APP_VERSION}" \
+            --build-number="${BUILD_NUMBER}" \
             --obfuscate \
             --split-debug-info="${AIENT_DART_SYMBOLS_DIR}" \
             --dart-define=AIENT_RELEASE_ID="${AIENT_RELEASE_ID}" \
@@ -390,6 +406,8 @@ jobs:
             --output "${AIENT_DART_SYMBOLS_DIR}/manifest.json"
       - name: Validate and upload Dart symbols
         working-directory: release-tooling
+        env:
+          AIENT_API_KEY: ${{ secrets.AIENT_DEBUG_ARTIFACT_UPLOAD_KEY }}
         run: |
           corepack pnpm exec aient-sourcemaps upload-debug \
             --manifest "../${AIENT_DART_SYMBOLS_DIR}/manifest.json" \
@@ -407,15 +425,18 @@ jobs:
           retention-days: 90
           path: |
             build/debug-info/**
+            build/app/outputs/bundle/release/app.aab
             build/app/outputs/mapping/**/mapping.txt
       # Publish the already-built, previously validated AAB here. Do not rebuild.
 ```
 
 Use a separate `macos` job for iOS. Replace the build with the `flutter build
 ipa` command above, pass the one selected `build/ios/ipa/*.ipa` to the manifest
-and uploader, and retain both `build/debug-info/**` and
-`build/ios/archive/Runner.xcarchive/dSYMs/**` before publishing that same IPA to
-App Store Connect.
+and uploader, and retain `build/debug-info/**`, the complete
+`build/ios/archive/Runner.xcarchive/**`, and the exact `build/ios/ipa/*.ipa`
+before publishing that same IPA to App Store Connect. The full archive—not only
+its dSYM directory—is the authoritative recovery unit containing the matching
+binaries and UUID-bound dSYMs.
 
 ## Troubleshooting
 
