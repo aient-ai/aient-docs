@@ -1,6 +1,6 @@
 ---
 title: "@aient/sourcemaps CLI reference"
-description: "Command line options for JavaScript source maps and typed Flutter Dart AOT debug artifact uploads."
+description: "Command line options for JavaScript source maps and typed Flutter Dart AOT and Apple dSYM debug artifact uploads."
 ---
 
 # @aient/sourcemaps CLI
@@ -26,9 +26,9 @@ aient-sourcemaps upload <directory> --service <service> [options]
 | `--concurrency` | Maximum concurrent uploads |
 | `--fail-on-empty` | Exit non-zero when no source maps are found |
 
-## Flutter Dart AOT debug artifacts
+## Flutter Dart AOT and Apple dSYM debug artifacts
 
-Current supported release: `0.3.3`.
+Current supported release: `0.3.4`.
 
 Use the installed, lockfile-pinned binary from a release-tooling package. The
 command is Node-based CI tooling; it is not a Flutter runtime dependency and does
@@ -39,6 +39,11 @@ pnpm exec aient-sourcemaps upload-debug \
   --manifest <manifest.json> \
   --distribution <app.aab-or.ipa>
 ```
+
+Manifest items may be `dart_aot_dwarf` or `apple_dsym`. Each Apple item must
+point to one thin, regular Mach-O DWARF member from a dSYM bundle—not the
+directory or an archive—and declare the member's exact architecture and Mach-O
+UUID. The CLI re-validates those values from the file bytes before uploading.
 
 | Option | Meaning |
 | --- | --- |

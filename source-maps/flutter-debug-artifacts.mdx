@@ -1,6 +1,6 @@
 ---
 title: "Upload Flutter debug artifacts"
-description: "Build, retain, and upload the exact Dart AOT symbols for Flutter Android and iOS releases, while preserving native dSYMs and R8 mappings for their separate symbolication paths."
+description: "Build, retain, and upload exact Dart AOT symbols and Apple dSYM members for Flutter releases, while preserving R8 mappings for their separate symbolication path."
 ---
 
 # Upload Flutter debug artifacts
@@ -21,22 +21,23 @@ Flutter Web is the exception: it emits JavaScript and uses the regular
 
 ## What Aient accepts today
 
-| Runtime frames | Build artifact | Generate and retain? | Accepted by `upload-debug` 0.3.3? |
+| Runtime frames | Build artifact | Generate and retain? | Accepted by `upload-debug` 0.3.4? |
 | --- | --- | --- | --- |
 | Obfuscated root-loading-unit Dart AOT on Android | `app.android-<arch>.symbols` | Yes | Yes |
 | Android deferred-component/loading-unit Dart AOT | `app.android-<arch>.symbols-<unit>.part.so` | Yes | No; retain every loading-unit file |
 | Obfuscated Dart AOT on iOS | `app.ios-<arch>.symbols` | Yes | Yes |
-| iOS app/framework native code | `.xcarchive/dSYMs/*.dSYM` | Yes | No; retain it and use the Apple/App Store symbol flow |
+| iOS app/framework native code | Thin Mach-O members within `.xcarchive/dSYMs/*.dSYM` | Yes | Yes; one raw DWARF member per manifest item |
 | Android Java/Kotlin after R8 | `outputs/mapping/<variant>/mapping.txt` | Yes when minification is enabled | No; retain it for Play/retrace |
 | Android NDK/native code | ELF/`.so` debug symbols | Yes when your app owns native code | No |
 
-The current command deliberately accepts only `dart_aot_dwarf` manifest items.
-It does not currently accept Apple dSYM bundles, Android R8/ProGuard mappings, or
-Android native ELF files. Generating and retaining those files now is still
-important: they are tied to the exact binary and generally cannot be recreated
-after a later rebuild. Aient support for those native formats is a separate
-backend and uploader capability; do not label a Dart-only upload as native
-symbolication.
+The current command accepts `dart_aot_dwarf` and `apple_dsym` manifest items. An
+Apple item is one thin, raw Mach-O DWARF member inside a dSYM bundle; the bundle
+directory, ZIP archives, and fat/universal objects are rejected. Android
+R8/ProGuard mappings and Android native ELF files are not accepted. Generate and
+retain every build-specific artifact because it generally cannot be recreated
+after a rebuild. An accepted storage commit proves that Aient retained the exact
+verified bytes; it does not by itself prove that a later occurrence was
+symbolicated.
 
 ## Install the release tool
 
@@ -49,7 +50,7 @@ example, check in this file as `release-tooling/package.json`:
   "private": true,
   "packageManager": "pnpm@10.17.1",
   "devDependencies": {
-    "@aient/sourcemaps": "0.3.3"
+    "@aient/sourcemaps": "0.3.4"
   }
 }
 ```
@@ -66,7 +67,7 @@ corepack pnpm exec aient-sourcemaps --version
 With npm, the equivalent setup is:
 
 ```bash
-npm install --save-dev --save-exact @aient/sourcemaps@0.3.3
+npm install --save-dev --save-exact @aient/sourcemaps@0.3.4
 npm ci
 npm exec -- aient-sourcemaps --version
 ```
@@ -186,7 +187,7 @@ Use Aient architecture `x86_64` for Flutter's `x64` filename token. Include ever
 architecture emitted by the distributed build in the manifest.
 
 Flutter deferred components can also emit loading-unit files such as
-`app.android-arm64.symbols-2.part.so`. Version 0.3.3 has no loading-unit identity
+`app.android-arm64.symbols-2.part.so`. Version 0.3.4 has no loading-unit identity
 field and permits only one Android `dart_aot_dwarf` item per architecture, so it
 can symbolicate only the root loading unit. Do not add loading-unit files to the
 current manifest. Retain every `*.symbols-*.part.so` file with the distributed
@@ -257,12 +258,12 @@ The build produces four independently important outputs:
 | App Store archive | `build/ios/archive/Runner.xcarchive` | Exact app/framework binaries and their native dSYMs |
 | Distributable IPA | `build/ios/ipa/*.ipa` | Pass this exact file to `--distribution`, then upload the same bytes to App Store Connect |
 | Dart AOT symbols | The directory passed to `--split-debug-info`, for example `app.ios-arm64.symbols` | Upload to Aient with `upload-debug` |
-| Native Apple symbols | `build/ios/archive/Runner.xcarchive/dSYMs/*.dSYM` | Retain privately and include in the Apple/App Store symbol workflow; Aient does not accept it yet |
+| Native Apple symbols | Thin Mach-O members below `build/ios/archive/Runner.xcarchive/dSYMs/*.dSYM/Contents/Resources/DWARF/` | Upload each member to Aient and retain the complete archive privately |
 
 `flutter build ios` is not the authoritative TestFlight artifact: use
 `flutter build ipa` so the release job owns both the `.xcarchive` and the exact
 exported IPA. Do not rebuild after manifest validation. Hash the IPA, upload the
-Dart symbols, and publish that already-built IPA.
+Dart symbols and selected dSYM DWARF members, and publish that already-built IPA.
 
 ## Generate manifest v1
 
@@ -270,10 +271,11 @@ Dart symbols, and publish that already-built IPA.
 release identity or generate one by scanning an arbitrary build directory. Check
 in a small release helper (Dart, Node.js, Ruby, or your CI language) that:
 
-1. finds every `.symbols` regular file in the exact split-debug directory;
-2. maps the filename platform and architecture to `android|ios` and
-   `arm|arm64|x86_64`;
-3. calculates SHA-256 and byte length for every symbol file and the exact AAB or
+1. finds every `.symbols` regular file in the exact split-debug directory and,
+   for iOS, each selected raw DWARF member inside the archive's dSYM bundles;
+2. maps Dart filenames to `android|ios` and `arm|arm64|x86_64`, and reads each
+   Apple member's UUID and `arm64|x86_64` architecture from its Mach-O bytes;
+3. calculates SHA-256 and byte length for every debug file and the exact AAB or
    IPA;
 4. writes one strict snake_case manifest beside the symbol files; and
 5. fails on empty files, unknown names, duplicates, symlinks, or more than one
@@ -286,11 +288,12 @@ contract tests in the mobile repository so project-specific flavors and output
 paths remain explicit. Do not replace it with an unsupported build-directory
 scan or an invented `generate-debug-manifest` CLI command.
 
-Placing the manifest beside the symbol files lets each `artifact_path` be the
-file basename. The CLI requires paths relative to the manifest directory and
-rejects absolute, traversing, symlinked, non-regular, hash-mismatched,
-size-mismatched, wrong-format, and wrong-architecture inputs. Each debug artifact
-is limited to 100 MiB.
+Every `artifact_path` is relative to the manifest directory. Placing the
+manifest beside a Dart symbol file lets that path be its basename; an Apple path
+may descend into a retained dSYM directory as shown below. The CLI rejects
+absolute, traversing, symlinked, non-regular, hash-mismatched, size-mismatched,
+wrong-format, and wrong-architecture inputs. Each debug artifact is limited to
+100 MiB.
 
 ```json
 {
@@ -323,7 +326,26 @@ is limited to 100 MiB.
 
 Create one manifest per platform/distribution. For iOS, use `platform: "ios"`,
 the exact IPA basename and hash, and the `app.ios-*.symbols` files from the same
-build.
+build. Add each native member as a separate `apple_dsym` item with its canonical
+hyphenated Mach-O UUID in `debug_id`. `artifact_path` must point directly to the
+thin regular file; do not point it at the `.dSYM` directory or an archive:
+
+```json
+{
+  "artifact_kind": "apple_dsym",
+  "platform": "ios",
+  "architecture": "arm64",
+  "debug_id": "01234567-89ab-cdef-0123-456789abcdef",
+  "object_name": "Runner",
+  "artifact_path": "Runner.dSYM/Contents/Resources/DWARF/Runner",
+  "content_sha256": "<64 lowercase hex characters>",
+  "size_bytes": 3456789,
+  "content_type": "application/octet-stream"
+}
+```
+
+The CLI inspects the bytes and rejects missing or mismatched UUIDs and
+architectures, archives, fat/universal objects, symlinks, and non-regular files.
 
 ## Validate and upload
 
@@ -398,7 +420,7 @@ create release identity
   -> build exact AAB or IPA once with --obfuscate and --split-debug-info
   -> verify Dart symbols plus native dSYM/R8 outputs that apply
   -> generate strict manifest and hash the distribution
-  -> upload Dart symbols with the pinned CLI
+  -> upload Dart symbols and, for iOS, thin dSYM DWARF members with the pinned CLI
   -> retain manifest, Dart symbols, dSYMs/R8 mappings as restricted CI artifacts
   -> publish the same previously hashed AAB or IPA without rebuilding
 ```
@@ -507,8 +529,9 @@ binaries and UUID-bound dSYMs.
   Flutter filename, then let the CLI inspect the ELF or Mach-O bytes.
 - **Artifact missing in Aient:** confirm runtime `service.name`,
   `aient.release.id`, `os.type`, and `host.arch` exactly match the manifest.
-- **Missing dSYM:** verify Release uses DWARF with dSYM File and inspect the
-  archive's `dSYMs` directory before exporting or publishing.
+- **Missing or rejected dSYM member:** verify Release uses DWARF with dSYM File,
+  inspect the archive's `dSYMs` directory, and select the thin regular file under
+  `Contents/Resources/DWARF/` rather than the bundle directory or an archive.
 - **Missing R8 mapping:** verify whether the exact Gradle variant enables
   minification and inspect its `outputs/mapping/<variant>/` directory. A mapping
   from another build cannot be substituted.
