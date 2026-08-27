@@ -90,6 +90,27 @@ TestFlight/store delivery builds should use production unless they are explicitl
 a staging distribution. None of those publishable values authorizes a symbol
 upload.
 
+Make one application-owned build intent the source of both the canonical Aient
+environment slug and its publishable key:
+
+| `AIENT_BUILD_INTENT` | Typical use | `deployment.environment` | Publishable key |
+| --- | --- | --- | --- |
+| `development` | Local and internal development | `dev` | The active key issued by the Aient `dev` environment |
+| `qa` | Maestro and other automated app tests | `qa` | The active key issued by the Aient `qa` environment |
+| `staging` | An explicitly staging-targeted distribution | `stg` | The active key issued by the Aient `stg` environment |
+| `production` | TestFlight, store, and other real delivery builds | `prod` | The active key issued by the Aient `prod` environment |
+
+Do not accept an independently selected slug and arbitrary syntactically valid
+publishable key. Resolve both from the build intent, including for development,
+and make a protected release fail if an explicit override does not equal the key
+configured for that intent. Publishable keys may be embedded in a mobile client;
+the upload-scoped `AIENT_API_KEY` must never be embedded.
+
+Configure `AIENT_TELEMETRY_ENABLED` as default-on for every build intent. Only
+the normalized values `false` and `0` should opt out. Omission, `true`, and
+malformed values must leave telemetry enabled so a missing CI-only define cannot
+silently remove release observability.
+
 In Aient, open **Settings → API keys → Create Key** and create a key with the
 `upload` scope. Copy the value when it is shown—the value is displayed only
 once—and store it in the protected CI secret used by your release workflow (the
@@ -258,6 +279,13 @@ in a small release helper (Dart, Node.js, Ruby, or your CI language) that:
 5. fails on empty files, unknown names, duplicates, symlinks, or more than one
    selected distribution.
 
+The current `@aient/sourcemaps` package does not ship a manifest generator. The
+`tool/aient_debug_manifest.dart` path in the CI example below is an app-owned,
+checked-in helper—not a command installed by Aient. Keep its implementation and
+contract tests in the mobile repository so project-specific flavors and output
+paths remain explicit. Do not replace it with an unsupported build-directory
+scan or an invented `generate-debug-manifest` CLI command.
+
 Placing the manifest beside the symbol files lets each `artifact_path` be the
 file basename. The CLI requires paths relative to the manifest directory and
 rejects absolute, traversing, symlinked, non-regular, hash-mismatched,
@@ -326,11 +354,40 @@ and committed to private storage from artifacts explicitly enqueued for
 processing.
 
 `--wait` is rejected because the current API does not expose a truthful
-per-artifact processing-completion receipt. A successful command proves local
-validation and server storage/commit acceptance; it does not by itself prove that
-a later occurrence is already symbolicated. Verify symbolication with a
-controlled occurrence for the same service, release ID, platform, and
-architecture.
+per-artifact processing-completion receipt. Use this four-stage evidence ladder
+instead:
+
+| Stage | Receipt | What it proves |
+| --- | --- | --- |
+| 1. Local validation | `--dry-run` reports the expected validated artifact count | The manifest, distribution, hashes, formats, and architectures agree locally; no upload occurred |
+| 2. Storage commit | The upload summary reports the artifact as accepted and committed | Aient accepted the exact bytes into private storage and committed their immutable metadata; processing is not implied |
+| 3. Durable processing admission | The same summary reports the artifact as enqueued for processing | Aient durably acknowledged the backfill request; successful symbolication is not implied |
+| 4. Controlled occurrence | A Problem occurrence with the same service, release ID, platform, and architecture resolves the expected Dart file, function, and line with artifact/resolver provenance | The shipped identity, stored artifact, resolver, and Problem projection work end to end |
+
+`0 enqueued for processing` means no durable processing admission was
+acknowledged by that command. It does not invalidate an accepted storage commit,
+but it is not a backfill or symbolication receipt. Until a truthful processing
+status API exists, only the controlled occurrence at stage 4 proves usable
+symbolication.
+
+### Retry without changing identity
+
+After an ambiguous or transient upload failure, retry with the exact same
+manifest, symbol files, and distribution bytes. For the same service, release
+ID, artifact kind, platform, and architecture:
+
+- the same commit SHA, artifact SHA-256, and byte length is an idempotent replay;
+  the server may classify it as `already_committed`, and the CLI counts it as
+  accepted and committed;
+- a different commit SHA, artifact SHA-256, or byte length is an immutable
+  identity conflict and is not allowed to overwrite the committed artifact; and
+- rebuilding, even from the same commit, is a new build rather than an upload
+  retry. Give it a new release ID, regenerate the manifest and symbols, and
+  publish only that rebuilt distribution.
+
+A CI rerun that rebuilds with a new run-attempt release ID is therefore a new
+release candidate. A pure upload retry must reuse the retained outputs from the
+original build without rerunning Flutter.
 
 ## Release-CI order
 
