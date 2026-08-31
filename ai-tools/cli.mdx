@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.11.5`
+Current release: `0.11.8`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -62,7 +62,7 @@ aient agent execution cancel EXECUTION [--json]
 
 Inside `agent chat`, enter `! COMMAND` to run a supervised shell command in the environment and sandbox frozen from the latest rendered Agent status. The CLI shows the target and preallocated execution UUID before output, passes no workstation process environment or local repository inference, and sends no Agent message. Reconnect by passing the exact `EXECUTION` identifier to the execution commands above. Ctrl-C in ordinary chat detaches without cancelling Agent work; Ctrl-C in the active remote-command view explicitly requests cancellation of that exact execution. This release requires an existing `THREAD`; it does not start a new Agent Thread.
 
-The standard `aient-agent` and retained `aient-pr-e2e` catalogs currently use the V2 workspace writer. The server keeps the closed V2 and V3 readers and negotiates capabilities per template; the CLI does not infer one global workspace layout version.
+The standard `aient-agent` catalog uses the V3 workspace writer. The retained `aient-pr-e2e` catalog remains the V2 rollback control. The server keeps the closed V2 and V3 readers and negotiates capabilities per template; the CLI does not infer one global workspace layout version.
 
 From a configured Aient Git project on macOS, login establishes bounded project access by default. The refresh credential stays in Keychain while launchd rotates only a short-lived repository-private envelope for up to 90 days. Login returns only after manager-owned renewal is verified. No foreground terminal or PID owns renewal. New installations persist the directory birth time so an APFS device-number change across a remount does not invalidate the same protected project. A legacy installation whose APFS device already changed still fails closed once; if the host profile is healthy, `aient --profile NAME auth export --store-in-project` replaces it without another login. Linux managed renewal remains preview pending a real systemd-user and D-Bus Secret Service renewal, restart, and logout canary. Use `--project-access=none` for host-only login, managed-project opt-out, or to avoid the Linux preview.
 
@@ -76,7 +76,7 @@ aient sandbox run --environment development --size medium -- pnpm test
 
 With `--environment`, the CLI synchronizes the current workspace by default. It shows the organisation, resolved environment, inferred or selected repository, and brokered GitHub capabilities before creating the sandbox.
 Use `--size small|medium|large` to request a product-owned compute class, or omit it to use the environment default. The server owns the underlying template and resource envelope.
-Every customer-development create advertises `developmentSizeBindingVersion: v2`. A compatible product response binds exact `aientSizeBinding=v2`, `aientSizeClass`, `aientSizeSource=requested|environment-default`, and `aientSizeEnvelope=v1|v2` selectors into the signed request target. Partial, duplicated, unknown, crossed, or mismatched bindings fail before the control-plane request. Legacy explicit V1 and an old server's unbound environment default remain supported during rollout. This reader does not enable V3 by itself; the standard catalogs remain on V2.
+Every customer-development create advertises `developmentSizeBindingVersion: v2`. A compatible product response binds exact `aientSizeBinding=v2`, `aientSizeClass`, `aientSizeSource=requested|environment-default`, and `aientSizeEnvelope=v1|v2` selectors into the signed request target. Partial, duplicated, unknown, crossed, or mismatched bindings fail before the control-plane request. Legacy explicit V1 and an old server's unbound environment default remain supported during rollout. This size-binding reader does not choose the workspace writer; the standard `aient-agent` catalog uses V3 independently.
 
 ```text
 Organisation: Example Engineering
@@ -115,11 +115,12 @@ aient sandbox execution attach background-tests EXECUTION_ID --environment devel
 aient sandbox execution wait background-tests EXECUTION_ID --environment development
 ```
 
-The CLI prints a stable execution ID after server acceptance. `execution status|attach|wait|cancel` observes that same ID without redispatching the command. Attach resumes the live stream from the current point; output already delivered before disconnection is not replayed.
+Every ordinary CLI process starts one fresh execution. Recovery inside that process reuses the exact execution ID and never redispatches the command; running the same command in another process starts another execution. `sandbox run --json` and `sandbox exec --json` emit `execution_started` with `executionId` and `outputCursor` after authoritative admission and before any command output.
+`sandbox execution attach SANDBOX EXECUTION --after-cursor CURSOR` replays supervisor-retained output after the caller's last accepted cursor, then follows live output. The cursor advances only after a complete frame is presented, so reconnect may repeat one frame but cannot create an output gap.
 `--timing-json` emits one content-free JSON line on stderr without changing command output or exit status. It records process-relative preflight, create-ready, proven workspace activation, first output, truthful terminal status, downloads, and confirmed cleanup or retention. Same-execution recovery never dispatches a replacement command, and a timing-writer failure cannot mask the command result.
 Automatic disposable cleanup performs exactly one DELETE with the full configured `--timeout`, then a fresh equally bounded GET-only absence check. Ambiguous deletion is not retried. A failed lease restore keeps the primary error authoritative and reports `retained=true` with `cleanupConfirmed=false`; genuine lease-refresh failures still warn and retry while an active heartbeat continues.
 
-Foreground execution remains connection-bound. After transport loss it must be reattached within the short server-owned reconnect grace or the service cancels it. Use `--detach` when command survival must not depend on a client attachment.
+A foreground CLI reconnects the same execution during a bounded grace. If it must leave a potentially live execution, it retains the sandbox and prints the exact attach command. Cross-process reattachment is explicit; an ordinary new run always starts a fresh execution.
 
 Use a named retained sandbox when you want follow-up lifecycle reads and supervised execution:
 
@@ -208,6 +209,8 @@ aient sandbox workspace discard OPERATION
 
 `workspace list` is local and makes no authentication or network request. It reports valid operations, logical usage, the capacity boundary, unsafe residue, and copyable recovery commands. New whole-bundle publication fails before upload when the retained total would exceed 10 GiB, less than 1 GiB of filesystem space would remain after copying, or inventory is unsafe or incomplete. There is no count limit, no configuration override, and the CLI does not evict retained operations automatically. Existing receipts remain listable, resumable, and discardable, including when the store is already over limit.
 
+Automatic cross-process preparation matching lets a repeated ordinary sync or workspace-backed run resume the exact retained operation when its source generations and authenticated authority still match. Unsupported development targets announce the explicit workspace-resume fallback before capture.
+
 This boundary does not change broad non-Git selection or temporary staging. Continue to use precise `--include` and `--exclude` rules; selector and temporary-staging bloat remain separate work.
 
 ## Environment secrets
@@ -237,7 +240,7 @@ aient services apply --file service-mappings.json --apply --json
 
 ## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.11.5.
+The commands documented in this section are the surface shipped in Aient CLI 0.11.8.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
@@ -258,7 +261,7 @@ The commands documented in this section are the surface shipped in Aient CLI 0.1
 - From a configured project, `aient auth login` installs bounded manager-owned project access by default. Refresh authority remains in the OS credential store; ordinary repository commands discover only the rotating short-lived envelope with no profile/token flags, foreground exporter, or PID tracking.
 - Explicit `--submodules=selected` transfers only the named clean exact Gitlink dependency closure; unselected initialized children contribute no bytes and remain empty boundaries.
 - Selected submodules may be combined with declared parent-repository extras. The server verifies their exact receipts and capability preflight recognizes the mounted old helper generation for generation-bound resume.
-- `sandbox run` uses supervised execution, prints a stable execution ID, streams stdout and stderr live, and gates downloads and cleanup on the truthful terminal outcome. `--detach --keep` returns after detached ownership is accepted, and later same-ID observation never redispatches the command.
+- `sandbox run` uses supervised execution and allocates one fresh execution per ordinary CLI process. `--json` emits `execution_started` with `executionId` and `outputCursor` before command output; same-process recovery and explicit `--after-cursor` attach replay retained output after the last accepted cursor and never redispatch the command.
 - `sandbox run --timing-json` writes one content-free stderr receipt for proven workspace activation through cleanup or retention without changing command output or exit status.
 - Automatic cleanup issues exactly one DELETE with the full configured `--timeout`; ambiguous deletion remains an error, and genuine lease-refresh failures still warn and retry.
 - `aient services list|paths|classify|apply` manages explicit runtime-service repository mappings. Batch apply is dry-run by default and uses the dedicated `services:read` and `services:manage` OAuth scopes.
@@ -270,7 +273,7 @@ The commands documented in this section are the surface shipped in Aient CLI 0.1
 - `aient agent list|status|events|message|respond|cancel|chat` finds or attaches to an existing Agent Thread through the public API. It does not start a new Agent Thread.
 - `agent events --follow --json` emits JSONL after durable sequence replay; Ctrl-C detaches ordinary chat without remote cancellation.
 - `! COMMAND` in Agent chat runs only in the frozen reported sandbox through supervised execution. Reconnect with `agent execution status|attach|wait|cancel`; no local shell, caller environment, repository inference, or Agent message is added.
-- Detached execution does not imply output replay. `sandbox execution attach` follows the accepted execution from the current live point; callers must persist any output they require.
+- Supervisor-retained output is cursor-replayable. Cursor acceptance is frame-atomic, so reconnect may repeat the last complete frame but cannot create a gap; retention remains bounded rather than permanent command history.
 - `sandbox shell` always opens a new shell. Shell reattachment and shell history are unavailable.
 - Public port exposure is not yet available.
 - CPU and memory override flags and the Docker lifecycle helper are operator controls, not customer sizing features.

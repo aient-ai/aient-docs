@@ -3,6 +3,18 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-08-31" description="Week of August 31">
+
+## New features
+
+**Flutter debug artifacts, including Apple dSYMs.** `@aient/sourcemaps` 0.3.4 now validates and uploads matching Dart AOT symbols and thin Apple dSYM DWARF members from release CI. The upload is tied to the exact AAB or IPA, commit, release ID, and architecture, so Aient can retain the evidence needed to resolve supported mobile frames. Android R8 mappings and deferred loading-unit symbols remain retain-only while their upload support is not yet available.
+
+## Updates
+
+**Aient CLI 0.11.6 through 0.11.8.** Sandbox commands now keep one execution identity through an in-process reconnect, and explicit reattachment can resume retained output from a cursor without launching a second command. Repeated workspace preparation resumes only the exact retained operation when source and authority still match. Repository-bound projects can use the organisation development-environment default, and cache-backed workspaces transfer only an adjacent Git-object delta when a verified ancestor is available.
+
+</Update>
+
 <Update label="2026-08-24" description="Week of August 24">
 
 ## Updates
