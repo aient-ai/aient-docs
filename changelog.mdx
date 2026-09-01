@@ -11,7 +11,7 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 
 ## Updates
 
-**Aient CLI 0.11.6 through 0.11.8.** Sandbox commands now keep one execution identity through an in-process reconnect, and explicit reattachment can resume retained output from a cursor without launching a second command. Repeated workspace preparation resumes only the exact retained operation when source and authority still match. Repository-bound projects can use the organisation development-environment default, and cache-backed workspaces transfer only an adjacent Git-object delta when a verified ancestor is available.
+**Aient CLI 0.11.6 through 0.11.9.** Sandbox commands now keep one execution identity through an in-process reconnect, and explicit reattachment can resume retained output from a cursor without launching a second command. The JSON reconnect identity is now clearly separate from server admission. Repeated workspace preparation resumes only the exact retained operation when source and authority still match. Repository-bound projects can use the organisation development-environment default, and cache-backed workspaces transfer only an adjacent Git-object delta when a verified ancestor is available. Timing receipts can now distinguish candidate durability from activation when the server provides that evidence.
 
 </Update>
 
