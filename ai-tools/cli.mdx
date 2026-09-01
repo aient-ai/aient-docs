@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.11.8`
+Current release: `0.11.9`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -115,9 +115,9 @@ aient sandbox execution attach background-tests EXECUTION_ID --environment devel
 aient sandbox execution wait background-tests EXECUTION_ID --environment development
 ```
 
-Every ordinary CLI process starts one fresh execution. Recovery inside that process reuses the exact execution ID and never redispatches the command; running the same command in another process starts another execution. `sandbox run --json` and `sandbox exec --json` emit `execution_started` with `executionId` and `outputCursor` after authoritative admission and before any command output.
+Every ordinary CLI process starts one fresh execution. Recovery inside that process reuses the exact execution ID and never redispatches the command; running the same command in another process starts another execution. Before the admission request, `sandbox run --json` and `sandbox exec --json` emit `execution_started` with `executionId` and `outputCursor`. It is a reconnect identity, not proof that the server admitted or started the command; the validated server admission frame remains authoritative.
 `sandbox execution attach SANDBOX EXECUTION --after-cursor CURSOR` replays supervisor-retained output after the caller's last accepted cursor, then follows live output. The cursor advances only after a complete frame is presented, so reconnect may repeat one frame but cannot create an output gap.
-`--timing-json` emits one content-free JSON line on stderr without changing command output or exit status. It records process-relative preflight, create-ready, proven workspace activation, first output, truthful terminal status, downloads, and confirmed cleanup or retention. Same-execution recovery never dispatches a replacement command, and a timing-writer failure cannot mask the command result.
+`--timing-json` emits one content-free JSON line on stderr without changing command output or exit status. It records process-relative preflight, create-ready, proven workspace activation, first output, truthful terminal status, downloads, and confirmed cleanup or retention. For cache-backed V3 materialization, an optional candidate-phase section separates candidate durability from activation; it is absent when that evidence is unavailable. Same-execution recovery never dispatches a replacement command, and a timing-writer failure cannot mask the command result.
 Automatic disposable cleanup performs exactly one DELETE with the full configured `--timeout`, then a fresh equally bounded GET-only absence check. Ambiguous deletion is not retried. A failed lease restore keeps the primary error authoritative and reports `retained=true` with `cleanupConfirmed=false`; genuine lease-refresh failures still warn and retry while an active heartbeat continues.
 
 A foreground CLI reconnects the same execution during a bounded grace. If it must leave a potentially live execution, it retains the sandbox and prints the exact attach command. Cross-process reattachment is explicit; an ordinary new run always starts a fresh execution.
@@ -211,6 +211,8 @@ aient sandbox workspace discard OPERATION
 
 Automatic cross-process preparation matching lets a repeated ordinary sync or workspace-backed run resume the exact retained operation when its source generations and authenticated authority still match. Unsupported development targets announce the explicit workspace-resume fallback before capture.
 
+When cache admission becomes available after a rollout delay, the CLI retries only the exact retained seed intent. If capability unavailability persists, rerun the original command unchanged. A selected repository can reuse committed history only when the server has authorised that repository independently; parent-repository access never grants child history. Otherwise, its selected layer uses a safe operation-scoped direct transfer. Dependency installation can retain the sandbox-owned pnpm store without invalidating later V3 execution or synchronization.
+
 This boundary does not change broad non-Git selection or temporary staging. Continue to use precise `--include` and `--exclude` rules; selector and temporary-staging bloat remain separate work.
 
 ## Environment secrets
@@ -240,7 +242,7 @@ aient services apply --file service-mappings.json --apply --json
 
 ## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.11.8.
+The commands documented in this section are the surface shipped in Aient CLI 0.11.9.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
@@ -261,8 +263,9 @@ The commands documented in this section are the surface shipped in Aient CLI 0.1
 - From a configured project, `aient auth login` installs bounded manager-owned project access by default. Refresh authority remains in the OS credential store; ordinary repository commands discover only the rotating short-lived envelope with no profile/token flags, foreground exporter, or PID tracking.
 - Explicit `--submodules=selected` transfers only the named clean exact Gitlink dependency closure; unselected initialized children contribute no bytes and remain empty boundaries.
 - Selected submodules may be combined with declared parent-repository extras. The server verifies their exact receipts and capability preflight recognizes the mounted old helper generation for generation-bound resume.
-- `sandbox run` uses supervised execution and allocates one fresh execution per ordinary CLI process. `--json` emits `execution_started` with `executionId` and `outputCursor` before command output; same-process recovery and explicit `--after-cursor` attach replay retained output after the last accepted cursor and never redispatch the command.
-- `sandbox run --timing-json` writes one content-free stderr receipt for proven workspace activation through cleanup or retention without changing command output or exit status.
+- `sandbox run` uses supervised execution and allocates one fresh execution per ordinary CLI process. Before admission, `--json` emits `execution_started` with `executionId` and `outputCursor` as a reconnect identity, while the validated admission frame remains authoritative. Same-process recovery and explicit `--after-cursor` attach replay retained output after the last accepted cursor and never redispatch the command.
+- A rollout-delayed cache admission retries only the exact retained workspace operation. A repeated run resumes that operation only when its source generations and authenticated authority still match.
+- `sandbox run --timing-json` writes one content-free stderr receipt for proven workspace activation through cleanup or retention without changing command output or exit status. Cache-backed V3 receipts optionally separate candidate durability from activation when that evidence is available.
 - Automatic cleanup issues exactly one DELETE with the full configured `--timeout`; ambiguous deletion remains an error, and genuine lease-refresh failures still warn and retry.
 - `aient services list|paths|classify|apply` manages explicit runtime-service repository mappings. Batch apply is dry-run by default and uses the dedicated `services:read` and `services:manage` OAuth scopes.
 - Owner/admin environment-secret writes are encrypted, capability-gated, and write-only from the CLI.
