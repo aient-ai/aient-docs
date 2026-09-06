@@ -40,11 +40,6 @@
     },
     "weight": 300
   },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/haf/glimt"
-    }
-  },
   "icons": {
     "library": "lucide"
   },
@@ -56,6 +51,10 @@
   "name": "Aient",
   "navbar": {
     "links": [
+      {
+        "href": "https://aient.ai",
+        "label": "Aient website"
+      },
       {
         "href": "https://www.npmjs.com/package/@aient/otel",
         "label": "npm: @aient/otel"
@@ -76,6 +75,7 @@
         "group": "Start",
         "icon": "play",
         "pages": [
+          "quickstart/opentelemetry",
           "quickstart/server",
           "quickstart/browser",
           "vercel/drain",
@@ -159,6 +159,7 @@
               "ai-tools/cli/troubleshooting"
             ]
           },
+          "ai-tools/customer-mcp-connections",
           "agentic-x402",
           "agent-commerce"
         ],
