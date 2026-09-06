@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.11.10`
+Current release: `0.11.11`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -240,7 +240,7 @@ aient services apply --file service-mappings.json --apply --json
 
 ## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.11.10.
+The commands documented in this section are the surface shipped in Aient CLI 0.11.11.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
@@ -276,6 +276,7 @@ The commands documented in this section are the surface shipped in Aient CLI 0.1
 - `aient agent list|status|events|message|respond|cancel|chat` finds or attaches to an existing Agent Thread through the public API. It does not start a new Agent Thread.
 - `agent events --follow --json` emits JSONL after durable sequence replay; Ctrl-C detaches ordinary chat without remote cancellation.
 - `! COMMAND` in Agent chat runs only in the frozen reported sandbox through supervised execution. Reconnect with `agent execution status|attach|wait|cancel`; no local shell, caller environment, repository inference, or Agent message is added.
+- Terminal `agent execution status|wait|cancel` output failure preserves the local selector for a fresh authorized status read of the same execution; successful terminal delivery still retires it. `wait` preserves a nonzero exit even if local retirement fails. Recovery requires surviving server evidence and current authorization, not permanent execution history.
 - Supervisor-retained output is cursor-replayable. Cursor acceptance is frame-atomic, so reconnect may repeat the last complete frame but cannot create a gap; retention remains bounded rather than permanent command history.
 - `sandbox shell` always opens a new shell. Shell reattachment and shell history are unavailable.
 - Public port exposure is not yet available.
