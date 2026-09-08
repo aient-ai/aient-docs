@@ -3,6 +3,16 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-09-07" description="Week of September 7">
+
+## Updates
+
+**Aient CLI 0.11.10 faster eligible sandbox starts.** An exact-clean workspace at the default repository root can reuse one ready prewarmed repository member. Eligible starts send no committed Git bytes and skip sandbox creation and workspace materialisation. Other workspaces continue through the established cold or retained-operation paths, so we do not promise this path for every command or a fixed activation time.
+
+**More reliable CLI preparation and project access.** Immutable workspace capture can overlap remote preflight without displacing an exact retained operation. The CLI now ignores stale derived Git metadata that refers only to pruned unreachable objects, while continuing to reject a genuinely missing reachable object before network activity. Managed project access can also renew after a laptop wakes from sleep.
+
+</Update>
+
 <Update label="2026-08-31" description="Week of August 31">
 
 ## New features
