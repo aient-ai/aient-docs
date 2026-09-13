@@ -3,6 +3,16 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-09-14" description="Week of September 14">
+
+## Updates
+
+**Aient CLI 0.11.11 gives interrupted command output a safe recovery path.** If `agent execution status`, `wait`, or `cancel` cannot write its local receipt, rerun `aient agent execution status EXECUTION` with the preserved execution selector. Aient reauthorizes and observes the same execution; it does not start a replacement command or repeat a cancellation. Successful output still retires the local selector, and recovery continues to require the original server evidence and current authorization.
+
+**Environment-specific service commit evidence.** `aient services list` now reports observed commits and timestamps for each environment, including staging and QA, in both terminal and JSON output. These are telemetry observations, not deployment confirmation; older organisation-wide commit SHAs are omitted when their environment is unknown.
+
+</Update>
+
 <Update label="2026-09-07" description="Week of September 7">
 
 ## Updates
