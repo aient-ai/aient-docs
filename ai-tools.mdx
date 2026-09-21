@@ -22,6 +22,46 @@ Aient's hosted MCP server is listed in the official MCP Registry as `ai.aient/mc
 
 Use registry metadata when your assistant supports registry-based installation. Otherwise, configure the remote MCP URL directly. Request read scope for context lookup, and request write scope only when the assistant needs to report onboarding progress, retry setup steps, or control remediation workflows.
 
+## Connect from an editor
+
+Tokenless `GET /mcp` is `405`. Tokenless initialize lists only `signup` and `verify_email`. That is enough for a headless agent to create a workspace. A human OAuth client must complete the browser consent screen before it can query production telemetry.
+
+### Cursor
+
+Cursor Settings stays on those signup tools unless the server entry has a static `auth` block. Paste this into `.cursor/mcp.json`, reload the server, then click **Authenticate**:
+
+```json
+{
+  "mcpServers": {
+    "aient": {
+      "url": "https://aient.ai/mcp",
+      "auth": {
+        "CLIENT_ID": "aient-mcp-cursor",
+        "scopes": ["aient.mcp.read", "aient.mcp.onboarding", "aient.mcp.write"]
+      }
+    }
+  }
+}
+```
+
+`aient-mcp-cursor` is Aient's public Cursor client. There is no client secret. The consent screen always includes read. Tick write only when the agent must start remediation. Onboarding is offered only while the workspace is still activating.
+
+### Claude Code
+
+```bash
+claude mcp add aient --transport http https://aient.ai/mcp
+```
+
+Claude Code opens a browser to sign in.
+
+### Codex
+
+Add the same URL, then run `codex mcp login aient`. Codex registers itself (dynamic client registration). Do not paste Cursor's `auth` block into Codex.
+
+### VS Code
+
+Add an HTTP server at `https://aient.ai/mcp` in `.vscode/settings.json` under `mcp.servers`. Use the client's own OAuth UI if it offers one.
+
 ## Reopen a resolved problem
 
 If new production evidence changes the conclusion for a resolved problem, an assistant with MCP write scope can call `reopen_problem`. Include a fresh request ID and a short reason grounded in that evidence. Then re-read it with `get_problem` before making a separate remediation request.
