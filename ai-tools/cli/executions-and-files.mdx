@@ -133,6 +133,22 @@ aient sandbox files rm laptop-offload /workspace/artifacts/report.json
   `files rm` changes the remote filesystem immediately. Verify the sandbox and absolute path before running it.
 </Warning>
 
+## Agent worktree reads
+
+Use `agent worktree read` when you need one exact baseline from an Agent's existing attached repository worktree. It is read-only: it does not create a sandbox, change Agent ownership or retention, or edit the worktree.
+
+```sh
+aient agent worktree read THREAD src/config.json \
+  --repository example/widget \
+  --output agent-baseline.json
+```
+
+`PATH` is relative to the named attached repository's worktree. The command accepts one regular, single-link file up to 64 KiB and records its raw bytes, type, mode, and SHA-256. It rejects symlinks, `.git` paths, protected paths, and larger files.
+
+The destination must be new. Its existing parent must be owned by you and not writable by group or others. Aient writes the JSON artifact with mode `0600` and prints metadata rather than file content. The resulting artifact is a historical snapshot of the exact admitted binding, not a write grant or proof that the Agent still uses that worktree.
+
+The command needs both `aient.agent.read` and `aient.sandbox.files` grants, plus a CLI and server version that support the reader. If the binding changed, request a new read instead of treating an older artifact as current.
+
 ## Workspace mutation fencing
 
 Workspace reads and commands participate in a shared fence; sync activation and direct workspace mutation require the exclusive form. A file command against a busy workspace currently fails closed rather than waiting.
