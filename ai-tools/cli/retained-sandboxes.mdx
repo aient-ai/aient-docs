@@ -120,6 +120,22 @@ Exact argv, `--shell`, and `--stdin` are mutually exclusive command forms. Repos
 
 `sandbox exec` performs bounded same-execution transport recovery. It never replays an execution that may already have started.
 
+## `aient sandbox docker bootstrap`
+
+Start a tmpfs-backed Docker daemon in a retained sandbox when a workflow needs Docker across more than one supervised command:
+
+```sh
+aient --timeout 30m sandbox docker bootstrap laptop-offload \
+  --environment development \
+  --repository example/widget
+```
+
+The daemon runs as a detached supervised execution from `/workspace/repo`. On compatible servers, it keeps live workspace consistency, so the daemon remains usable while a workspace sync publishes a new revision. `--timeout` bounds the daemon lifetime; the sandbox's retention policy still applies.
+
+Use `--reset` only to replace an existing daemon. It erases Docker and containerd data before preparation. If the CLI finds a ready daemon without a known live-consistency contract, it reports `docker ready` and tells you to rerun with `--reset` or recreate the sandbox before relying on sync.
+
+An incompatible server rejects bootstrap before changing Docker state. Keep the printed execution ID if bootstrap does not complete so you can inspect its terminal state instead of starting another daemon.
+
 ## `aient sandbox shell`
 
 Open a new interactive PTY shell in a sandbox without an environment binding:
