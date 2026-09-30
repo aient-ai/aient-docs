@@ -3,6 +3,18 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-09-28" description="Week of September 28">
+
+## Updates
+
+**Aient CLI 0.11.15 through 0.11.18 make sandbox work faster to recover and easier to inspect safely.** Cold Git-cache lookups can continue from a completed local seed instead of waiting on a slow remote fetch. You can save one bounded, read-only file from an Agent-owned worktree, and a compatible supervised Docker daemon can remain available while a workspace synchronises. Retained workspace recovery preserves the original capture after cancellation or a stale base, rather than substituting later local edits.
+
+**Clearer sandbox capacity recovery.** With `--provider auto`, Aient CLI 0.11.17 and 0.11.20 can continue on Modal after a confirmed native-capacity denial, including ordinary `sandbox create`. Explicit native requests, transport ambiguity, and unrelated errors do not switch providers. The CLI prints the allocation ID and exact recovery command for an uncertain Modal result, and distinguishes a logical sandbox name from physical runtime metadata.
+
+**Run a command in an Agent-owned Modal sandbox without creating another one.** Aient CLI 0.11.18 authorises the exact existing workspace and sandbox before starting a command from `aient agent chat THREAD`. Reconnect, inspect, wait for, or cancel that same execution with its stable ID.
+
+</Update>
+
 <Update label="2026-09-21" description="Week of September 21">
 
 ## Updates
