@@ -7,11 +7,11 @@ description: "Observe supervised commands, reconnect to live output, and transfe
 
 `sandbox exec` creates one supervised execution and prints its ID before dispatch. The `sandbox execution` commands address that exact `(sandbox, execution)` pair without starting another command.
 
-## Output is live-only
+## Reconnect and replay output
 
-Aient CLI 0.10.0 does not retain command stdout or stderr for replay. `attach` receives only new live bytes after attachment. `status`, `wait`, and `cancel` return content-free execution state.
+Use `attach --after-cursor CURSOR` to replay supervisor-retained output after the last accepted cursor, then follow live output. Retention is bounded rather than permanent command history. `status`, `wait`, and `cancel` return content-free execution state.
 
-An authorised child receives its process capabilities and can deliberately print a mounted environment or GitHub secret. The CLI returns stdout and stderr verbatim to the connected caller, whose terminal or agent runner may record it. Avoid `env`, `printenv`, shell tracing, and echoing `GH_TOKEN`; credentials are not ordinary execution metadata or replayable output.
+An authorised child receives its process capabilities and can deliberately print a mounted environment or GitHub secret. The CLI returns stdout and stderr verbatim to the connected caller, whose terminal or agent runner may record it. Avoid `env`, `printenv`, shell tracing, and echoing `GH_TOKEN`; avoid printing secrets into retained output.
 
 If an attached connection is interrupted, use the printed execution ID to query status first. Do not rerun an arbitrary command to discover whether it started.
 
@@ -35,7 +35,7 @@ aient sandbox execution status \
 
 ## `aient sandbox execution attach`
 
-Attach to future live output from a known execution:
+Attach to output from a known execution:
 
 ```sh
 aient sandbox execution attach \
@@ -44,7 +44,7 @@ aient sandbox execution attach \
   laptop-offload "${EXECUTION_ID}"
 ```
 
-This is execution attachment, not command detachment. It cannot replay bytes emitted before attachment. Use one active attachment per execution.
+Add `--after-cursor CURSOR` to replay retained output after the last accepted cursor. Cursor acceptance is frame-atomic, so reconnect may repeat the last complete frame without creating an output gap or starting another command. Use `sandbox run --detach --keep` or `sandbox exec --detach` when the command must outlive its initiating client.
 
 ## `aient sandbox execution wait`
 
@@ -85,7 +85,7 @@ Use the same selectors as the original environment-capable `sandbox exec`.
 
 ## Explicit file commands
 
-File commands address an existing sandbox without an environment binding and an explicit path. They are separate from exact Git workspace synchronisation. In 0.10.0, they cannot carry the selectors required to address an environment-bound customer sandbox.
+File commands address an existing sandbox without an environment binding and an explicit path. They are separate from exact Git workspace synchronisation. They cannot carry the selectors required to address an environment-bound customer sandbox.
 
 ### `aient sandbox files put`
 

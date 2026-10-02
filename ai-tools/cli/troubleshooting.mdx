@@ -98,9 +98,9 @@ For an unusually slow connection, increase the permitted inactivity gap:
 aient --timeout 20m --verbose sandbox sync laptop-offload .
 ```
 
-An environment-bound customer should start a fresh `sandbox run --environment ... --keep` to transfer changed workspace state in 0.10.0.
+Reuse an environment-bound customer sandbox with `sandbox sync SANDBOX . --environment ENV --repository OWNER/REPO`, repeating its original selectors.
 
-Retrying `sync` starts a new delta or snapshot attempt. It does not continue the previous multipart upload from its last reported byte.
+An interrupted upload does not continue from its last reported byte. Inspect and [recover the retained workspace operation](/ai-tools/cli/run-and-sync#recover-an-interrupted-workspace-publication). Eligible native V3 Git-cache recovery in 0.11.22 preserves the original captured files, including when later local edits exist.
 
 ## Connection ended during `sandbox exec`
 
@@ -119,7 +119,7 @@ aient sandbox execution attach \
   laptop-offload "${EXECUTION_ID}"
 ```
 
-`attach` receives only future live output. There is no stored stdout/stderr history. Use `execution wait` when you need only the terminal outcome.
+Use `attach --after-cursor CURSOR` to replay supervisor-retained output after the last accepted cursor, then follow live output. Retention is bounded. Use `execution wait` when you need only the terminal outcome.
 
 ## Portable access token expired
 
@@ -129,15 +129,13 @@ Use the unique temporary-directory and cleanup pattern in [Authentication and pr
 
 ## A retained customer sandbox rejects `sync`, `files`, or `shell`
 
-An environment-bound sandbox created with `sandbox run --environment ... --keep` requires the original authority selectors on later `exec` and `execution` operations. `status`, `wait`, and `logs` require the original `--environment` selector. In 0.10.0, `sync`, `files`, and `shell` cannot address the sandbox. Start a fresh `run --keep` when local workspace state changes.
+An environment-bound sandbox created with `sandbox run --environment ... --keep` requires the original environment and repository selectors on later `sync`, `exec`, and `execution` operations. `status`, `wait`, and `logs` require the original `--environment` selector. Upgrade an older CLI before retrying `sync`. `files` and `shell` cannot address an environment-bound sandbox.
 
 ## Current unsupported behaviour
 
-- Commands cannot deliberately detach.
-- Execution output is live-only and cannot be replayed.
 - `sandbox shell` cannot reattach and has no history replay.
 - Interactive shells cannot request environment or repository capabilities.
-- Environment-bound customer sandboxes cannot use `sync`, `files`, or `shell`.
+- Environment-bound customer sandboxes cannot use `files` or `shell`.
 - `files get` downloads a file, not a directory.
 
 For other failures, rerun with `--verbose`. It prints safe correlation metadata without printing OAuth, environment, or provider credentials.
