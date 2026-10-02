@@ -138,18 +138,26 @@ rather than retrying with a broader transfer policy.
 Environment and GitHub credentials are injected only into an authorised sandbox process. Raw credentials are not returned as OAuth, profile, operation-result, metadata, or workspace-revision fields, and generic file APIs do not project mounted secrets. The CLI does not retain normal command output. An authorised child can nevertheless deliberately print or copy a mounted secret; stdout and stderr are returned verbatim to the connected caller, child-created files can contain those bytes, and either may be captured by its terminal or agent transcript. Avoid `env`, `printenv`, shell tracing, or echoing `GH_TOKEN`.
 
 <Note>
-  `sandbox run` is buffered. It is convenient for bounded commands, but it does not provide durable detach or output replay. For long commands whose live progress matters, retain a sandbox and use `sandbox exec`.
+  Use `sandbox run --detach --keep` when a command must outlive the initiating client. Keep its execution ID so you can inspect, attach to, wait for, or cancel that same command. See [Executions, output, and files](/ai-tools/cli/executions-and-files).
 </Note>
 
 ## `aient sandbox sync`
 
-Synchronise exact local Git state into an existing sandbox without an environment binding:
+Synchronise exact local Git state into an existing sandbox:
 
 ```sh
 aient sandbox sync laptop-offload .
 ```
 
-The default remote workspace is `/workspace/repo`. In 0.10.0, `sync` cannot carry the environment and repository selectors needed to reopen an environment-bound customer sandbox created by `run --keep`. Start a fresh `run --keep` to transfer changed customer workspace state.
+The default remote workspace is `/workspace/repo`. For an environment-bound customer sandbox, repeat the original environment and repository selectors:
+
+```sh
+aient sandbox sync laptop-offload . \
+  --environment development \
+  --repository example/widget
+```
+
+Use the logical sandbox name, not a Modal `sessionId`. Aient CLI 0.11.22 reuses shared Git history for eligible native V3 workspaces during `sandbox sync` and `sandbox exec --workspace`. A workspace-backed command starts only after activation succeeds.
 
 ```sh
 aient sandbox sync laptop-offload . \
@@ -190,21 +198,33 @@ aient --timeout 20m --verbose sandbox sync laptop-offload .
 
 `--verbose` prints safe request correlation and detailed progress; it does not print credentials.
 
-An interrupted upload is not byte-resumable. Re-running `sync` starts a new delta or snapshot attempt against the last successfully activated remote revision.
+An interrupted upload does not resume from its last reported byte. Recover the retained workspace operation below before starting a new publication.
 
 ## Recover an interrupted workspace publication
 
-When a workspace-backed `sandbox run` or `sandbox sync` loses its foreground connection after Aient has started publication, the CLI keeps one immutable local receipt. Do not start a second sync to guess whether the first one completed. Inspect the recorded operation first:
+When a workspace-backed `sandbox run`, `sandbox sync`, or `sandbox exec --workspace` loses its foreground connection after publication starts, the CLI retains the operation and its captured files. Inspect the recorded operation first:
+
+```sh
+aient sandbox workspace list
+```
+
+Use its operation ID to check the publication:
 
 ```sh
 aient sandbox workspace status "${OPERATION_ID}"
 ```
 
-Resume the exact candidate, revision, and retained artifacts when the operation remains incomplete:
+Resume the exact candidate, revision, and retained artefacts when the operation remains incomplete:
 
 ```sh
 aient sandbox workspace resume "${OPERATION_ID}"
 ```
+
+`workspace resume` continues publication only; it does not run the original command.
+
+For eligible native V3 Git-cache transfers in 0.11.22, repeating the original command can recover the retained operation even after you edit local files. Recovery uses the original captured files. Publish later edits in a subsequent sync after recovery completes.
+
+Recovery, lease refresh, and cleanup remain tied to the original allocation and workspace. A replacement sandbox with the same name is rejected before mutation. Older retained Git-cache captures without an allocation UUID remain readable, but cannot be resumed with mutations; their saved bytes are preserved.
 
 If you no longer want an uncommitted publication, discard it explicitly:
 

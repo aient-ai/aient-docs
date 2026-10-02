@@ -112,6 +112,7 @@ Keep the sandbox name and execution ID if you may need to inspect or reconnect t
 
 | Flag | Meaning |
 | --- | --- |
+| `--workspace PATH` | Synchronise a local checkout before running the command. |
 | `--workdir ABSOLUTE_PATH` | Working directory. Default `/workspace`. |
 | `--env KEY=VALUE` | Non-secret environment value. Repeatable. |
 | `--environment SLUG_OR_ID` | Authorise use of customer development capabilities. |
@@ -147,7 +148,7 @@ Open a new interactive PTY shell in a sandbox without an environment binding:
 aient sandbox shell laptop-offload
 ```
 
-Every invocation opens a new shell. Shell reattachment, history replay, and capability-bearing environment or repository flags are not available in 0.10.0, so `shell` cannot address an environment-bound customer sandbox. Use `sandbox exec --environment ...` for authorised non-interactive operations.
+Every invocation opens a new shell. Shell reattachment, history replay, and capability-bearing environment or repository flags are not available, so `shell` cannot address an environment-bound customer sandbox. Use `sandbox exec --environment ...` for authorised non-interactive operations.
 
 ## `aient sandbox logs`
 

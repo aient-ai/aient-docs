@@ -5,7 +5,7 @@ description: "A compact index of current Aient CLI commands and global flags."
 
 # CLI command reference
 
-This page indexes the current customer CLI surface, including Aient CLI 0.11.15. Use `aient COMMAND --help` to confirm the flags supported by your installed version.
+This page indexes the current customer CLI surface, including Aient CLI 0.11.22. Use `aient COMMAND --help` to confirm the flags supported by your installed version.
 
 ## Authentication
 
@@ -41,7 +41,7 @@ See [Authentication and project profiles](/ai-tools/cli/authentication).
 See [Run and synchronise workspaces](/ai-tools/cli/run-and-sync) and [Retained sandbox lifecycle](/ai-tools/cli/retained-sandboxes).
 
 <Warning>
-  An environment-bound customer sandbox requires `--environment` on `status`, `wait`, and `logs`, and its original environment and repository selectors on `exec` and `execution`. `sync`, `files`, and `shell` apply only to sandboxes without an environment binding. Start a fresh `run --keep` to transfer changed customer workspace state.
+  An environment-bound customer sandbox requires `--environment` on `status`, `wait`, and `logs`, and its original environment and repository selectors on `sync`, `exec`, and `execution`. `files` and `shell` apply only to sandboxes without an environment binding.
 </Warning>
 
 ## Retained workspace operations
@@ -74,7 +74,7 @@ See [Environment secrets](/ai-tools/cli/environment-secrets). Only current organ
 
 | Command | Purpose |
 | --- | --- |
-| `aient sandbox execution attach SANDBOX EXECUTION` | Receive new live output. |
+| `aient sandbox execution attach SANDBOX EXECUTION [--after-cursor CURSOR]` | Replay retained output after a cursor, then follow live output. |
 | `aient sandbox execution status SANDBOX EXECUTION` | Read content-free current state. |
 | `aient sandbox execution wait SANDBOX EXECUTION` | Wait for a content-free terminal outcome. |
 | `aient sandbox execution cancel SANDBOX EXECUTION` | Cancel the exact execution. |
