@@ -27,22 +27,6 @@ aient sandbox delete laptop-offload
 
 The one-shot command prints the logical sandbox name (the `name` field in JSON). In Aient CLI 0.11.17, that environment-bound sandbox can be reused through selector-bearing `sandbox sync`, `sandbox exec`, and `sandbox execution`, found with environment-scoped `list`, inspected with environment-scoped `status`, `wait`, and `logs`, and removed by its owner with `delete`. Run `sync` to publish changed workspace state. A Modal `sessionId` identifies the physical runtime and is not a command target. `files` and `shell` cannot reopen the sandbox.
 
-## Native sandbox billing
-
-Use Aient CLI 0.11.21 or later to create native customer sandboxes or claim a ready repository sandbox. Older clients cannot create a native allocation through the current billing contract.
-
-| Size | Hourly rate |
-| --- | --- |
-| Small | €0.15 |
-| Medium | €0.60 |
-| Large | €1.20 |
-
-We bill native sandbox occupancy in whole seconds and round the final session amount once to the nearest cent. Existing sessions keep their original terms.
-
-An initial €5 reservation counts against your spending limits. It is not a session cap: usage can exceed €5 while your user and organisation limits allow it, within the sandbox's finite lease. Delete a retained sandbox when you finish using it.
-
-If billing denies creation, the CLI reports that no sandbox was created. If the creation result is uncertain, use the exact sandbox name and recovery command printed by the CLI. A transport retry reuses the original allocation and reservation.
-
 ## `aient sandbox list`
 
 List sandboxes visible to the selected profile:
