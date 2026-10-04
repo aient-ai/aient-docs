@@ -22,3 +22,25 @@ description: "Configuration options for the @aient/otel Node.js package includin
 By default, traces use `https://ingest.aient.ai/v1/traces` and logs use `https://ingest.aient.ai/v1/logs`.
 
 The SDK sends OTLP HTTP JSON payloads. Legacy `http/protobuf` protocol values are accepted for compatibility but fall back to JSON.
+
+## Release metadata
+
+Aient matches telemetry to a deployed release by its full 40-character commit SHA. From `@aient/otel` 2.2.0, `deployment.commit_sha` uses the first valid value from:
+
+1. `release.commit`
+2. `COMMIT_SHA`, `NEXT_PUBLIC_COMMIT_SHA`, `AIENT_COMMIT_SHA`, `NEXT_PUBLIC_AIENT_COMMIT_SHA`
+3. Vercel: `VERCEL_GIT_COMMIT_SHA`, `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA`
+4. Heroku (`HEROKU_BUILD_COMMIT`, `HEROKU_SLUG_COMMIT`), Railway (`RAILWAY_GIT_COMMIT_SHA`), Render (`RENDER_GIT_COMMIT`), Cloudflare Pages (`CF_PAGES_COMMIT_SHA`), and Netlify (`COMMIT_REF` when `NETLIFY=true`)
+5. Build systems: `SOURCE_VERSION`, `CODEBUILD_RESOLVED_SOURCE_VERSION`, `CI_COMMIT_SHA`, `BITBUCKET_COMMIT`, `CIRCLE_SHA1`, `GITHUB_SHA`
+
+Values are trimmed and lowercased. A value that is not 7 to 40 (or 64) hex characters, such as `dev`, is skipped. `attributes` and `OTEL_RESOURCE_ATTRIBUTES` still override the result.
+
+Variables that a host sets only during the build, such as Netlify's and Cloudflare Pages', reach the running service only if your build passes them on. On other hosts, set `COMMIT_SHA` yourself:
+
+```bash
+COMMIT_SHA=$(git rev-parse HEAD)
+```
+
+On Netlify, `COMMIT_REF` is the commit SHA, so `deployment.commit_ref` comes from `HEAD`, then `BRANCH`. Elsewhere `COMMIT_REF` remains the branch.
+
+If the commit is missing or short, the SDK logs one warning per process. With `logLevel` or `OTEL_LOG_LEVEL` set, the warning follows that level. Otherwise it prints once with `console.warn`, except when `NODE_ENV` is `development` or `test`.
