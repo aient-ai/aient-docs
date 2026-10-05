@@ -3,6 +3,16 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-10-05" description="Week of October 5">
+
+## Updates
+
+**Watch selected source files in a running sandbox.** Aient CLI 0.11.23 adds experimental live sync: upload explicitly selected files, then send local saves through a shell stream or the files API. Each file is replaced atomically. Initial publication overwrites the selected remote files; concurrent edit protection, deletion propagation, and reconnect recovery are not supported. See [setup and limits](/ai-tools/cli/run-and-sync#experimental-selected-file-live-sync).
+
+**Reuse Git history when synchronising an existing sandbox.** Aient CLI 0.11.22 reuses the shared Git cache for eligible native V3 workspaces in `sandbox sync` and `sandbox exec --workspace`. Interrupted preparation retains the original captured files, so repeating the command can continue that transfer after further local edits. Recovery stays tied to the original allocation and workspace, and commands start only after activation succeeds. See [workspace recovery](/ai-tools/cli/run-and-sync#recover-an-interrupted-workspace-publication).
+
+</Update>
+
 <Update label="2026-09-28" description="Week of September 28">
 
 ## Updates

@@ -200,6 +200,29 @@ aient --timeout 20m --verbose sandbox sync laptop-offload .
 
 An interrupted upload does not resume from its last reported byte. Recover the retained workspace operation below before starting a new publication.
 
+## Experimental selected-file live sync
+
+Aient CLI 0.11.23 adds two experimental modes for watching selected local files in an existing sandbox. Use them when you want to send source edits without publishing a complete Git workspace on every save.
+
+Start with a running sandbox whose workspace has already been synchronised. For `--live-stream`, use a compatible native V3 sandbox with an attested workspace and customer shell permission. Pass the actual remote worktree path, with existing parent directories for every selected file:
+
+```sh
+aient sandbox sync laptop-offload /absolute/local/repository \
+  --environment development --repository example/widget \
+  --live-stream --remote-dir /workspace/repo \
+  --live-path src/app.ts
+```
+
+Repeat `--live-path` to select up to 128 existing regular files, each at most 32 MiB. Paths are relative to the local repository. The usual Git and explicit extra-file selection rules apply; Git control paths, credentials, symlink sources, and submodules are rejected.
+
+The initial upload overwrites the selected remote files. Later saves replace each file atomically, including ordinary editor saves that replace the local file. Identical captured content is skipped. Each acknowledgement confirms that file's byte count and SHA-256; it does not confirm application readiness or browser hot reload.
+
+The stream holds a shared workspace fence, so full workspace activation and exclusive file uploads remain blocked until it shuts down. Press Ctrl-C to request shutdown. If the CLI prints `termination UNVERIFIED`, the remote helper and fence may still be active. Starting another watcher does not recover that session and overwrites the selected files again. The reported session and process IDs are diagnostic information, not permission to terminate a process.
+
+To send selected files through the files API instead, replace `--live-stream` with `--live`. This mode requires an attested existing workspace and customer files permission. Both modes require explicit `--remote-dir` and `--live-path`; choose only one mode.
+
+Live sync does not transfer Git metadata, protect concurrent edits, propagate deletions or renames, select newly created files, or transfer mode changes. It provides neither an atomic update across multiple files nor reconnect recovery. Errors stop the watcher. Ending the watcher leaves the sandbox running, subject to its existing lifetime limits.
+
 ## Recover an interrupted workspace publication
 
 When a workspace-backed `sandbox run`, `sandbox sync`, or `sandbox exec --workspace` loses its foreground connection after publication starts, the CLI retains the operation and its captured files. Inspect the recorded operation first:
