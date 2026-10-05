@@ -5,7 +5,7 @@ description: "A compact index of current Aient CLI commands and global flags."
 
 # CLI command reference
 
-This page indexes the current customer CLI surface, including Aient CLI 0.11.22. Use `aient COMMAND --help` to confirm the flags supported by your installed version.
+This page indexes the current customer CLI surface, including Aient CLI 0.11.24. Use `aient COMMAND --help` to confirm the flags supported by your installed version.
 
 ## Authentication
 
@@ -31,6 +31,7 @@ See [Authentication and project profiles](/ai-tools/cli/authentication).
 | `aient sandbox status SANDBOX` | Show sandbox state. |
 | `aient sandbox wait SANDBOX` | Wait for readiness. |
 | `aient sandbox sync SANDBOX [LOCAL_WORKSPACE]` | Synchronize exact Git and selected extra-file state. |
+| `aient sandbox sync SANDBOX LOCAL_WORKSPACE --live-stream --remote-dir PATH --live-path FILE` | Watch selected existing files over one shell stream (experimental). Use `--live` for the files API mode. See [live sync](/ai-tools/cli/run-and-sync#experimental-selected-file-live-sync). |
 | `aient sandbox run -- COMMAND...` | Create, run, and clean up a disposable sandbox. |
 | `aient sandbox exec SANDBOX -- COMMAND...` | Run a supervised command in a retained sandbox. |
 | `aient sandbox shell SANDBOX` | Open a new interactive shell. |
