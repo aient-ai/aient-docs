@@ -29,26 +29,6 @@ The SDK sends OTLP HTTP JSON payloads. `http/protobuf` is not bundled; legacy pr
 
 Avoid high-cardinality span names and avoid attaching sensitive user input to attributes.
 
-## Release metadata
-
-Aient matches browser telemetry and source maps to a release by its full 40-character commit SHA. From `@aient/otel-browser` 0.7.0, `deployment.commit_sha` uses the first valid value from `release.commit`, `NEXT_PUBLIC_COMMIT_SHA`, `NEXT_PUBLIC_AIENT_COMMIT_SHA`, and `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA`. A value that is not 7 to 40 (or 64) hex characters, such as `dev`, is skipped.
-
-Next.js builds with webpack or Turbopack inline those `NEXT_PUBLIC_*` values into the SDK, so Vercel deployments need no configuration. Outside Vercel, set the variable for the build:
-
-```bash
-NEXT_PUBLIC_COMMIT_SHA=$(git rev-parse HEAD) next build
-```
-
-Other bundlers, such as Vite, do not provide these variables to dependencies. Pass the commit explicitly:
-
-```ts
-registerOTelBrowser({
-  release: { commit: import.meta.env.VITE_COMMIT_SHA },
-})
-```
-
-If the commit is missing or short, the SDK logs one console warning per page, except in development and test builds. With `logLevel` set, the warning follows that level.
-
 ## Dynamic context
 
 Call `sdk.setContextAttributes()` after a business, account, or workspace switch. The call synchronously replaces the whole snapshot; `null` or an empty object clears it. `sdk.getContextAttributes()` returns a clone.
