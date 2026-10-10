@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.11.24`
+Current release: `0.11.27`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -63,6 +63,19 @@ aient agent execution cancel EXECUTION [--json]
 Inside `agent chat`, enter `! COMMAND` to run a supervised shell command in the environment and sandbox frozen from the latest rendered Agent status. The CLI shows the target and preallocated execution UUID before output, passes no workstation process environment or local repository inference, and sends no Agent message. Reconnect by passing the exact `EXECUTION` identifier to the execution commands above. Ctrl-C in ordinary chat detaches without cancelling Agent work; Ctrl-C in the active remote-command view explicitly requests cancellation of that exact execution. This release requires an existing `THREAD`; it does not start a new Agent Thread.
 
 The standard `aient-agent` catalog uses the V3 workspace writer. The retained `aient-pr-e2e` catalog remains the V2 rollback control. The server keeps the closed V2 and V3 readers and negotiates capabilities per template; the CLI does not infer one global workspace layout version.
+
+### Sync selected files into an Agent checkout
+
+```sh
+aient --profile "$PROFILE" agent worktree sync THREAD /absolute/local/repository \
+  --repository OWNER/REPO --path apps/frontend/src/App.tsx --json
+```
+
+Repeat `--path` for 1–128 existing regular files, each at most 64 KiB. This one-shot command targets the Agent’s current primary Modal checkout; native runtimes and another repository are rejected. Selection follows Git/extras policy; `--include` explicitly allows ignored source. Git control files, `.aient`, active credentials, symlinks and submodules are rejected.
+
+Each write atomically replaces an existing single-link regular destination, preserving its mode; remote parents must already exist. Whole-file updates use last completed write wins, while the model’s line-hash edit checks remain in force. Agent ownership, incarnation and lease remain unchanged; Git metadata is not synchronised.
+
+JSON separates confirmed `writes` from `notification`. Exact path, byte count, SHA-256 acknowledgement and terminal exit zero confirm each write. After the batch succeeds, a cooperative path-change notice asks the Agent to reread. Delivery does not prove a model read or application reload. Failed or ambiguous writes send no success notice; earlier confirmed writes remain applied. If notification alone fails, retry only `agent message` with the returned exact text, operation ID and `--immediate`.
 
 From a configured Aient Git project on macOS, login establishes bounded project access by default. The refresh credential stays in Keychain while launchd rotates only a short-lived repository-private envelope for up to 90 days. Login returns only after manager-owned renewal is verified. No foreground terminal or PID owns renewal. New installations persist the directory birth time so an APFS device-number change across a remount does not invalidate the same protected project. A legacy installation whose APFS device already changed still fails closed once; if the host profile is healthy, `aient --profile NAME auth export --store-in-project` replaces it without another login. Linux managed renewal remains preview pending a real systemd-user and D-Bus Secret Service renewal, restart, and logout canary. Use `--project-access=none` for host-only login, managed-project opt-out, or to avoid the Linux preview.
 
@@ -240,7 +253,7 @@ aient services apply --file service-mappings.json --apply --json
 
 ## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.11.24.
+The commands documented in this section are the surface shipped in Aient CLI 0.11.27.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.

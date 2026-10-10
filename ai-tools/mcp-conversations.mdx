@@ -1,0 +1,30 @@
+---
+title: "Start a conversation through MCP"
+description: "Ask Aient a question from your assistant and continue in the same conversation."
+---
+
+# Start a conversation through MCP
+
+Connect your assistant to `https://aient.ai/mcp` with a human OAuth account and approve the `aient.mcp.write` scope. Organisation viewers cannot start a conversation. These tools are available on the OAuth MCP server, not the wallet-backed `/mcp-x402` endpoint.
+
+## Start and continue a conversation
+
+Call `send_thread_message` with non-empty text and omit `threadId`:
+
+```json
+{
+  "text": "Please list your available skills."
+}
+```
+
+Keep the returned `threadId`. Include it in later `send_thread_message` calls to continue the same conversation; omitting it starts another one. Use `get_thread` with that ID to read Aient's response, which arrives asynchronously.
+
+Attachments and immediate delivery require an existing thread. To send a cooperative update to an active task, include `immediate: true` and a stable `requestId`. This does not cancel or replace the task. Reuse that request ID only for an exact retry of the same message.
+
+## Recover an uncertain result
+
+If an error returns `attemptedThreadId`, creation is unconfirmed. Check that ID with `get_thread`: reuse it if the thread exists, or omit `threadId` to retry creation if it is confirmed absent. If the lookup itself fails, resolve that error before starting another conversation.
+
+If a send fails after confirmed creation and returns `threadId`, keep that ID for the retry. An unknown real thread UUID is rejected; it does not create a conversation.
+
+See [MCP discovery and setup](/ai-tools#discover-the-mcp-server) for connection guidance.

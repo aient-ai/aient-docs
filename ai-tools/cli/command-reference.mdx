@@ -5,7 +5,7 @@ description: "A compact index of current Aient CLI commands and global flags."
 
 # CLI command reference
 
-This page indexes the current customer CLI surface, including Aient CLI 0.11.24. Use `aient COMMAND --help` to confirm the flags supported by your installed version.
+This page indexes the current customer CLI surface, including Aient CLI 0.11.27. Use `aient COMMAND --help` to confirm the flags supported by your installed version.
 
 ## Authentication
 
@@ -31,7 +31,7 @@ See [Authentication and project profiles](/ai-tools/cli/authentication).
 | `aient sandbox status SANDBOX` | Show sandbox state. |
 | `aient sandbox wait SANDBOX` | Wait for readiness. |
 | `aient sandbox sync SANDBOX [LOCAL_WORKSPACE]` | Synchronize exact Git and selected extra-file state. |
-| `aient sandbox sync SANDBOX LOCAL_WORKSPACE --live-stream --remote-dir PATH --live-path FILE` | Watch selected existing files over one shell stream (experimental). Use `--live` for the files API mode. See [live sync](/ai-tools/cli/run-and-sync#experimental-selected-file-live-sync). |
+| `aient sandbox sync SANDBOX LOCAL_WORKSPACE --live-stream --remote-dir PATH --live-path FILE` | Watch selected existing files over one shell stream (experimental). Use `--live` for the files API or `--live --live-transport exec` for Modal. See [live sync](/ai-tools/cli/run-and-sync#experimental-selected-file-live-sync). |
 | `aient sandbox run -- COMMAND...` | Create, run, and clean up a disposable sandbox. |
 | `aient sandbox exec SANDBOX -- COMMAND...` | Run a supervised command in a retained sandbox. |
 | `aient sandbox shell SANDBOX` | Open a new interactive shell. |
@@ -62,6 +62,14 @@ These commands use the immutable local receipt created by a workspace-backed `sa
 | `aient agent worktree read THREAD PATH --repository OWNER/REPO --output NEW.json` | Save one bounded, read-only baseline from an Agent's attached repository worktree. |
 
 See [Agent worktree reads](/ai-tools/cli/executions-and-files#agent-worktree-reads). The command requires a compatible server and the `aient.agent.read` and `aient.sandbox.files` grants.
+
+## Agent worktree sync
+
+| Command | Purpose |
+| --- | --- |
+| `aient agent worktree sync THREAD LOCAL_WORKSPACE --repository OWNER/REPO --path FILE --json` | Send selected existing files to an Agent's current primary Modal checkout and ask it to reread them. |
+
+Available from Aient CLI 0.11.27. Use a customer OAuth profile and repeat `--path` for each file. See [Agent checkout sync](/ai-tools/cli#sync-selected-files-into-an-agent-checkout) for file limits, overwrite behaviour, and notification recovery.
 
 ## Environment secrets
 
