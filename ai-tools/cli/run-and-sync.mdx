@@ -28,7 +28,7 @@ Use exact argv after `--`:
 aient sandbox run --environment development -- go test ./...
 ```
 
-Use an explicit shell only when shell syntax is required:
+Use `--shell` when shell syntax is required. Aient CLI 0.11.26 and later use Bash for `--shell` and `--stdin`; arguments after `--` remain literal:
 
 ```sh
 aient sandbox run --environment development \
@@ -222,6 +222,23 @@ The stream holds a shared workspace fence, so full workspace activation and excl
 To send selected files through the files API instead, replace `--live-stream` with `--live`. This mode requires an attested existing workspace and customer files permission. Both modes require explicit `--remote-dir` and `--live-path`; choose only one mode.
 
 Live sync does not transfer Git metadata, protect concurrent edits, propagate deletions or renames, select newly created files, or transfer mode changes. It provides neither an atomic update across multiple files nor reconnect recovery. Errors stop the watcher. Ending the watcher leaves the sandbox running, subject to its existing lifetime limits.
+
+### Live sync in a Modal sandbox
+
+Aient CLI 0.11.26 adds an experimental exec transport for an existing customer Modal workspace. Start the watcher before starting a long-running application: setup needs an exclusive workspace fence. After setup, writes share the fence with ordinary application execution.
+
+```sh
+aient sandbox sync laptop-offload /absolute/local/repository \
+  --environment development --repository example/widget \
+  --live --live-transport exec --remote-dir /workspace/repo \
+  --live-path src/app.ts
+```
+
+Use the environment and repository that own the sandbox, and set `--remote-dir` to its actual worktree path. Each selected file must already exist remotely as a regular file with one hard link, with existing ordinary parent directories. This transport limits each captured file to 64 KiB and preserves the remote file mode. Native sandboxes and operator profiles are unsupported; there is no automatic transport fallback.
+
+An exact path, byte count, SHA-256 acknowledgement, and successful command completion confirm each write. If the CLI reports `write UNCONFIRMED`, remote bytes may have changed. The watcher stops without retrying; inspect and reconcile the selected files before restarting. Each write command has a 30-second limit, and the sandbox's existing expiry still applies.
+
+The overwrite and recovery limits above also apply here: delivery does not confirm application readiness or browser hot reload. Use [Agent checkout sync](/ai-tools/cli#sync-selected-files-into-an-agent-checkout) for a one-shot update to an Agent-owned checkout.
 
 ## Recover an interrupted workspace publication
 
