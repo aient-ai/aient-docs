@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.11.27`
+Current release: `0.11.28`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -71,7 +71,7 @@ aient --profile "$PROFILE" agent worktree sync THREAD /absolute/local/repository
   --repository OWNER/REPO --path apps/frontend/src/App.tsx --json
 ```
 
-Repeat `--path` for 1–128 existing regular files, each at most 64 KiB. This one-shot command targets the Agent’s current primary Modal checkout; native runtimes and another repository are rejected. Selection follows Git/extras policy; `--include` explicitly allows ignored source. Git control files, `.aient`, active credentials, symlinks and submodules are rejected.
+Repeat `--path` for 1–128 existing regular files, each at most 64 KiB. This one-shot command targets the Agent’s current primary checkout on a compatible runtime; unsupported runtimes and another repository are rejected. Selection follows Git/extras policy; `--include` explicitly allows ignored source. Git control files, `.aient`, active credentials, symlinks and submodules are rejected.
 
 Each write atomically replaces an existing single-link regular destination, preserving its mode; remote parents must already exist. Whole-file updates use last completed write wins, while the model’s line-hash edit checks remain in force. Agent ownership, incarnation and lease remain unchanged; Git metadata is not synchronised.
 
@@ -253,7 +253,7 @@ aient services apply --file service-mappings.json --apply --json
 
 ## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.11.27.
+The commands documented in this section are the surface shipped in Aient CLI 0.11.28.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
