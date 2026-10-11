@@ -157,7 +157,7 @@ aient sandbox sync laptop-offload . \
   --repository example/widget
 ```
 
-Use the logical sandbox name, not a Modal `sessionId`. Aient CLI 0.11.22 reuses shared Git history for eligible native V3 workspaces during `sandbox sync` and `sandbox exec --workspace`. A workspace-backed command starts only after activation succeeds.
+Use the logical sandbox name, not a physical runtime `sessionId`. Aient CLI 0.11.22 reuses shared Git history for eligible native V3 workspaces during `sandbox sync` and `sandbox exec --workspace`. A workspace-backed command starts only after activation succeeds.
 
 ```sh
 aient sandbox sync laptop-offload . \
@@ -198,7 +198,7 @@ aient --timeout 20m --verbose sandbox sync laptop-offload .
 
 `--verbose` prints safe request correlation and detailed progress; it does not print credentials.
 
-An interrupted upload does not resume from its last reported byte. Recover the retained workspace operation below before starting a new publication.
+An interrupted upload does not resume from its last reported byte. See [transfer recovery](#recover-an-interrupted-workspace-publication) for automatic retries and retained-operation recovery.
 
 ## Experimental selected-file live sync
 
@@ -223,9 +223,9 @@ To send selected files through the files API instead, replace `--live-stream` wi
 
 Live sync does not transfer Git metadata, protect concurrent edits, propagate deletions or renames, select newly created files, or transfer mode changes. It provides neither an atomic update across multiple files nor reconnect recovery. Errors stop the watcher. Ending the watcher leaves the sandbox running, subject to its existing lifetime limits.
 
-### Live sync in a Modal sandbox
+### Live sync through supervised execution
 
-Aient CLI 0.11.26 adds an experimental exec transport for an existing customer Modal workspace. Start the watcher before starting a long-running application: setup needs an exclusive workspace fence. After setup, writes share the fence with ordinary application execution.
+Aient CLI 0.11.26 adds an experimental exec transport for a compatible existing customer workspace. Start the watcher before starting a long-running application: setup needs an exclusive workspace fence. After setup, writes share the fence with ordinary application execution.
 
 ```sh
 aient sandbox sync laptop-offload /absolute/local/repository \
@@ -234,7 +234,7 @@ aient sandbox sync laptop-offload /absolute/local/repository \
   --live-path src/app.ts
 ```
 
-Use the environment and repository that own the sandbox, and set `--remote-dir` to its actual worktree path. Each selected file must already exist remotely as a regular file with one hard link, with existing ordinary parent directories. This transport limits each captured file to 64 KiB and preserves the remote file mode. Native sandboxes and operator profiles are unsupported; there is no automatic transport fallback.
+Use the environment and repository that own the sandbox, and set `--remote-dir` to its actual worktree path. Each selected file must already exist remotely as a regular file with one hard link, with existing ordinary parent directories. This transport limits each captured file to 64 KiB and preserves the remote file mode. Unsupported runtimes and operator profiles reject this transport; there is no automatic transport fallback.
 
 An exact path, byte count, SHA-256 acknowledgement, and successful command completion confirm each write. If the CLI reports `write UNCONFIRMED`, remote bytes may have changed. The watcher stops without retrying; inspect and reconcile the selected files before restarting. Each write command has a 30-second limit, and the sandbox's existing expiry still applies.
 
@@ -242,7 +242,13 @@ The overwrite and recovery limits above also apply here: delivery does not confi
 
 ## Recover an interrupted workspace publication
 
-When a workspace-backed `sandbox run`, `sandbox sync`, or `sandbox exec --workspace` loses its foreground connection after publication starts, the CLI retains the operation and its captured files. Inspect the recorded operation first:
+Aient CLI 0.11.28 automatically retries supported transient network failures and incomplete responses during workspace transfers. Use the existing `sandbox sync`, workspace-backed `sandbox run`, or `sandbox exec --workspace` command; no new flag is required.
+
+Retries keep the originally captured files and obtain fresh authorisation for the same target and operation. Candidate uploads replay the captured archive. Numbered Git-cache uploads replay only the affected part, so a lost response does not restart the whole pack.
+
+Retries are bounded. Cancellation and authorisation failures stop the transfer. Partially streamed downloads and other mutations are not automatically replayed after an ambiguous failure. Selected-file Agent sync and experimental live sync keep their existing recovery limits.
+
+If the command exits after publication starts, the CLI retains the operation and its captured files. Inspect the recorded operation before starting a new publication:
 
 ```sh
 aient sandbox workspace list
