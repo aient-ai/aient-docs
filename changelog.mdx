@@ -3,6 +3,20 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-10-12" description="Week of October 12">
+
+## Updates
+
+**Recover interrupted workspace transfers automatically.** Aient CLI 0.11.28 retries supported transient network failures and incomplete responses while keeping the files captured at the start of the operation. Numbered Git-cache uploads retry only the affected part. Retries are bounded; cancellation and authorisation failures still stop the transfer. Use your existing workspace commands with no new flag. See [transfer recovery](/ai-tools/cli/run-and-sync#recover-an-interrupted-workspace-publication).
+
+**Send selected files to an Agent's checkout.** Aient CLI 0.11.27 adds `agent worktree sync` for one-shot updates to an Agent's current primary checkout on a compatible runtime. Select up to 128 existing files, each at most 64 KiB. Confirmed writes replace files atomically, then ask the Agent to reread them. If that notification fails, retry the notification without repeating the writes. See [Agent checkout sync](/ai-tools/cli#sync-selected-files-into-an-agent-checkout) for compatibility and overwrite limits.
+
+**Watch source edits through supervised execution.** Aient CLI 0.11.26 adds the experimental `--live --live-transport exec` mode for compatible running sandboxes. Start the watcher before the application and select existing files of at most 64 KiB each. An unconfirmed write stops the watcher and requires reconciliation. See [live-sync setup and limits](/ai-tools/cli/run-and-sync#live-sync-through-supervised-execution).
+
+**Start an Aient conversation from your MCP assistant.** With a human OAuth connection and the approved write scope, call `send_thread_message` without a thread ID to start a conversation. Keep the returned ID for follow-ups and use `get_thread` to read the response. Organisation viewers cannot start conversations. See [MCP conversations](/ai-tools/mcp-conversations) for setup and uncertain-result recovery.
+
+</Update>
+
 <Update label="2026-10-05" description="Week of October 5">
 
 ## Updates
