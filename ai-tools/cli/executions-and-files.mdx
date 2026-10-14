@@ -11,9 +11,21 @@ description: "Observe supervised commands, reconnect to live output, and transfe
 
 Use `attach --after-cursor CURSOR` to replay supervisor-retained output after the last accepted cursor, then follow live output. Retention is bounded rather than permanent command history. `status`, `wait`, and `cancel` return content-free execution state.
 
-An authorised child receives its process capabilities and can deliberately print a mounted environment or GitHub secret. The CLI returns stdout and stderr verbatim to the connected caller, whose terminal or agent runner may record it. Avoid `env`, `printenv`, shell tracing, and echoing `GH_TOKEN`; avoid printing secrets into retained output.
+An authorised child receives its process capabilities and can deliberately print a mounted environment or GitHub secret. During uninterrupted streaming, the CLI returns stdout and stderr verbatim to the connected caller, whose terminal or agent runner may record it. Avoid `env`, `printenv`, shell tracing, and echoing `GH_TOKEN`; avoid printing secrets into retained output.
 
 If an attached connection is interrupted, use the printed execution ID to query status first. Do not rerun an arbitrary command to discover whether it started.
+
+## Incomplete output after a reconnect
+
+In Aient CLI 0.11.29, `sandbox exec` and `sandbox execution attach` report when a reconnect resumes after output the server no longer retains. While the client stays connected, the command runs at the client's pace, including when a pager pauses reading.
+
+If output is missing:
+
+- stdout keeps only the bytes received before the gap;
+- the retained tail goes to stderr between an `aient: output incomplete: bytes FROM-TO lost; ...` header and an `aient: output incomplete: end of retained tail` line; and
+- the CLI exits with status **74** when it receives the terminal result. The header reports the command's own outcome, including its exit code when known.
+
+With `--json`, the CLI emits an `execution_output_gap` event and also exits 74 at the terminal result. Treat the output as incomplete even if the command itself succeeded. Keep the retained tail for diagnosis, and use the execution ID with `status` or `wait` to inspect the command's outcome. Reattaching cannot restore bytes that are no longer retained; only rerun a command if repeating its effects is safe.
 
 ## `aient sandbox execution status`
 
