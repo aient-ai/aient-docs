@@ -68,6 +68,12 @@ aient sandbox run \
 
 Changing `origin` cannot grant access to another organisation's private repository.
 
+## `sandbox_allocation_terms_conflict`
+
+Aient CLI 0.11.29 reports this HTTP 409 error when a sandbox name already has an allocation with a different size, CPU, memory, or environment. The allocation can belong to a live sandbox or a creation attempt refused in the last few minutes. The failed request creates nothing.
+
+Retry with the original options, choose another `--name`, or [delete the existing sandbox](/ai-tools/cli/retained-sandboxes#aient-sandbox-delete) before recreating it if you no longer need its contents. Repeating the conflicting request unchanged will not resolve the error.
+
 ## `workspace busy`
 
 An admitted command or workspace read holds the shared workspace fence, while sync and file mutations require exclusive access.
@@ -119,7 +125,7 @@ aient sandbox execution attach \
   laptop-offload "${EXECUTION_ID}"
 ```
 
-Use `attach --after-cursor CURSOR` to replay supervisor-retained output after the last accepted cursor, then follow live output. Retention is bounded. Use `execution wait` when you need only the terminal outcome.
+Use `attach --after-cursor CURSOR` to replay supervisor-retained output after the last accepted cursor, then follow live output. Retention is bounded. Use `execution wait` when you need only the terminal outcome. If you see `output incomplete` or exit status 74, follow the [incomplete-output guidance](/ai-tools/cli/executions-and-files#incomplete-output-after-a-reconnect).
 
 ## Portable access token expired
 
