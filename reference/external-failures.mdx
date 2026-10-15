@@ -1,0 +1,48 @@
+---
+title: "Record external-service failures"
+description: "Attach external-service failures to Node.js spans and update attribute queries for @aient/otel 2.1.1."
+---
+
+# Record external-service failures
+
+Use the `@aient/otel` helpers to attach a failed external call to its span. First [configure the Node.js SDK](../quickstart/server). The helpers mark an existing span as an error and add an `exception` event; they do not retry the call or change your application's error handling.
+
+## Record a failure
+
+Call `recordExternalFailure` inside an active OpenTelemetry span. It records the external system, attempted operation and error:
+
+```ts
+import { recordExternalFailure } from '@aient/otel'
+
+try {
+  await fetchCatalogue()
+} catch (error) {
+  recordExternalFailure({
+    system: 'catalogue-api',
+    operation: 'fetchCatalogue',
+    error,
+  })
+  throw error
+}
+```
+
+Here, `fetchCatalogue()` represents your application's external call. If you already hold the span, use `recordExternalFailureOnSpan(span, input)` with the same input fields.
+
+For a failure reported as a reason string, use `recordExternalFailureReason({ system, operation, reason })`. It records an `ExternalServiceError` exception event without inventing a stack trace. Both active-span helpers do nothing when no span is active.
+
+Optional `attributes` add diagnostic context, and `statusDescription` overrides the span's error description. Keep error messages and attributes free of secrets, tokens and sensitive request data.
+
+## Update attribute queries
+
+From `@aient/otel` 2.1.1, these helpers write the following span attributes:
+
+| Attribute | Meaning |
+| --- | --- |
+| `aient.external.system` | External service involved |
+| `aient.external.operation` | Attempted operation |
+| `aient.external.error_type` | Error type, or `ExternalServiceError` for a reason string |
+| `aient.external.error_message` | Error message or supplied reason |
+
+Update filters or queries that use the older `glimt.external.*` names. Previously stored telemetry keeps its original keys, and applications running older SDK versions continue to emit them. When querying across versions, read the corresponding legacy field when the Aient field is absent.
+
+Custom diagnostic attributes do not change the authenticated organisation or environment. The [publishable key](./otlp-endpoints#authentication) identifies the telemetry source.
