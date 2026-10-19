@@ -7,6 +7,8 @@ description: "Ask Aient a question from your assistant and continue in the same 
 
 Connect your assistant to `https://aient.ai/mcp` with a human OAuth account and approve the `aient.mcp.write` scope. Organisation viewers cannot start a conversation. These tools are available on the OAuth MCP server, not the wallet-backed `/mcp-x402` endpoint.
 
+If your client cannot open a browser, [email signup](/ai-tools/mcp-signup) provides read and onboarding access. You still need the separate OAuth write consent described above to send conversation messages.
+
 ## Start and continue a conversation
 
 Call `send_thread_message` with non-empty text and omit `threadId`:

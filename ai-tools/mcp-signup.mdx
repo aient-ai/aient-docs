@@ -1,0 +1,43 @@
+---
+title: "Connect to MCP without a browser"
+description: "Verify your email, connect an MCP client to Aient, and recover an expired token."
+---
+
+# Connect to MCP without a browser
+
+Use `https://aient.ai/mcp/signup` when your MCP client can send a bearer token but cannot open a browser for sign-in. You need access to your email inbox. An existing account signs in to its workspace; a new account gets a workspace after email verification.
+
+Clients with browser-based OAuth should connect to `https://aient.ai/mcp` and follow the sign-in prompt. A `401` response before sign-in is expected.
+
+## Verify your email and connect
+
+1. Configure a Streamable HTTP MCP connection to `https://aient.ai/mcp/signup` without an `Authorization` header. The available tools are `signup` and `verify_email`.
+2. Call `signup` with your email address:
+
+   ```json
+   { "email": "you@example.com" }
+   ```
+
+3. Read the one-time code from your inbox, then call `verify_email` with the same `email` and the code as a string. Use the actual code from the email.
+4. Store the returned `access_token` securely. Reconnect to the returned `mcp_url`, sending `Authorization: Bearer <access_token>` on every request. Check `organisation_id` before continuing in the workspace.
+5. Call `verify_connection`. If onboarding is incomplete, call `get_activation_status` and follow its `nextActions`. Ask the user for requested choices and confirmations. Connecting services such as GitHub can still require browser consent.
+
+Treat the email code, sign-in link and access token as credentials. Keep them out of logs, source files and shared transcripts.
+
+## Token permissions and expiry
+
+The token grants `aient.mcp.read` and `aient.mcp.onboarding`. It does not grant the `aient.mcp.write` scope needed to [start a conversation](/ai-tools/mcp-conversations). Use browser-based OAuth and approve that scope for conversation writes.
+
+The response's `expires_in` gives the token lifetime in seconds. There is no refresh token: repeat `signup` and `verify_email` when it expires.
+
+## Recover a failed attempt
+
+| Result | Next step |
+| --- | --- |
+| `confirmation_expired` | Call `signup` again and use the new code. |
+| `confirmation_failed` | Check the email address and code before retrying. |
+| `workspace_unavailable` | The code was accepted but workspace preparation failed. Call `signup` again for a new code; the used code cannot be reused. |
+| `rate_limited` | Wait for the returned retry interval before trying again. |
+| Expired access token | Reconnect to `/mcp/signup` without the expired bearer, then repeat email verification. |
+
+The signup endpoint uses MCP over HTTP POST. Opening it in a browser with GET returns `405`; use an MCP client to connect.
