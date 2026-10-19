@@ -3,6 +3,20 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-10-19" description="Week of October 19">
+
+## Updates
+
+**Recognise incomplete command output.** Aient CLI 0.11.29 reports when a reconnect skips output that the server no longer retains. It keeps the retained tail separate from stdout and exits with status 74, even if the command succeeded. Inspect the original execution before deciding whether it is safe to rerun. See [output recovery](/ai-tools/cli/executions-and-files#incomplete-output-after-a-reconnect).
+
+**Resolve conflicting sandbox options.** Reusing a sandbox name with different size, CPU, memory or environment options now returns a clear conflict. Retry with the original options or choose a different name. See [sandbox-name recovery](/ai-tools/cli/troubleshooting#sandbox-allocation-terms-conflict).
+
+**Update external-failure queries for the SDK.** The failure helpers in `@aient/otel` 2.1.1 write `aient.external.*` attributes. Update queries that use `glimt.external.*`, keeping a fallback for older telemetry. The helpers attach the external system, operation and error to an existing span. See [external-service failures](/reference/external-failures).
+
+**Connect an MCP client without a browser.** The dedicated `https://aient.ai/mcp/signup` endpoint supports email verification for new and existing accounts. The returned token grants read and onboarding access; conversation writes still require separate OAuth consent. Ordinary OAuth clients continue to use `/mcp`. See [email signup and recovery](/ai-tools/mcp-signup).
+
+</Update>
+
 <Update label="2026-10-12" description="Week of October 12">
 
 ## Updates
