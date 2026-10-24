@@ -136,10 +136,79 @@ The manifest creates these objects in namespace `aient`:
 | ClusterRole and ClusterRoleBinding `aient-kconn-<id>-viewer` | Your declared RBAC, bound to the viewer. |
 | ConfigMap `aient-connection` | The broker URL and the connection ID. |
 | Deployment `aient-kube-connector` | One non-root replica with a read-only root filesystem. |
-| NetworkPolicy `aient-kube-connector` | No ingress. Egress only to cluster DNS and TCP 443 and 6443. |
+| NetworkPolicy `aient-kube-connector` | No ingress. Egress only to cluster DNS and TCP 443 and 6443. On Cilium you can [narrow it](#restrict-egress-on-cilium). |
 
 The script can be run again. A repeat run after success changes nothing. A run interrupted at any step continues from
 where it stopped.
+
+## Install with Helm or Kustomize
+
+The manifest Aient shows at attach is one way to get `aient-connector.yaml`. You can render the same objects from
+Aient's Helm chart or Kustomize base instead, for example to keep the connector in your GitOps repository. Either way,
+the install command from the attach step still generates the key, enrols it and applies `aient-connector.yaml`, so
+render the file before you run the command, in the same directory.
+
+Declare the RBAC that your render installs: the rules of every viewer ClusterRole in it. By default the viewer reads
+Kubernetes' built-in resources without Secrets, the built-in API groups whole, and pod logs in every namespace it is
+bound in (the separate role `aient-kconn-<id>-viewer-logs`). You can remove the logs role and add more API groups.
+
+<Tabs>
+  <Tab title="Helm">
+    ```sh
+    helm repo add aient https://aient-ai.github.io/helm-charts
+    helm template kubernetes-connector aient/kubernetes-connector --version <version> \
+      --namespace aient --set connection.id=<connection ID> > aient-connector.yaml
+    ```
+
+    The chart is also at `oci://ghcr.io/aient-ai/charts/kubernetes-connector`.
+
+    | Value | Default | Effect |
+    | --- | --- | --- |
+    | `logs.enabled` | `true` | The role `aient-kconn-<id>-viewer-logs` (`pods/log`); `false` removes it |
+    | `extraApiGroups` | `[]` | Adds the role `aient-kconn-<id>-viewer-extra`, which reads these API groups, such as your operators' CRDs |
+    | `namespaces` | `[]` | Binds the viewer roles only in these namespaces instead of cluster-wide |
+    | `networkPolicy.cilium.enabled` | `false` | Uses a CiliumNetworkPolicy; see [Restrict egress on Cilium](#restrict-egress-on-cilium) |
+    | `viewer.rules` | built-in reads | Replaces the core viewer role's rules |
+
+    To see the roles you declare, add `--show-only templates/viewer.yaml`. The chart is signed with cosign; its
+    README gives the `cosign verify` command.
+  </Tab>
+  <Tab title="Kustomize">
+    Copy `kustomize/kubernetes-connector/examples/connection` from
+    [github.com/aient-ai/helm-charts](https://github.com/aient-ai/helm-charts), set `AIENT_CONNECTION_ID`, and point
+    it at a commit of that repository:
+
+    ```yaml
+    resources:
+    - https://github.com/aient-ai/helm-charts//kustomize/kubernetes-connector/base?ref=<commit>
+    components:
+    # - https://github.com/aient-ai/helm-charts//kustomize/kubernetes-connector/components/without-logs?ref=<commit>
+    # - https://github.com/aient-ai/helm-charts//kustomize/kubernetes-connector/components/cilium-egress?ref=<commit>
+    - https://github.com/aient-ai/helm-charts//kustomize/kubernetes-connector/components/connection?ref=<commit>
+    ```
+
+    Then `kustomize build . > aient-connector.yaml`. The components are `without-logs`, `extra-api-groups`,
+    `namespace-scoped` and `cilium-egress`. List `connection` last: it sets every per-connection name from your
+    connection ID. Pin a commit, not a tag; tags are signed with gitsign.
+  </Tab>
+</Tabs>
+
+Keep the names the render produces. Aient compares the viewer's username with `aient-kconn-<id>`, and a renamed
+viewer shows *Viewer identity differs*.
+
+### Restrict egress on Cilium
+
+A standard NetworkPolicy cannot name a host, so the connector's policy allows TCP 443 and 6443 to any address. On a
+cluster that runs Cilium, the Cilium option replaces it with a CiliumNetworkPolicy that allows:
+
+- DNS to the cluster's `kube-dns` pods, through Cilium's DNS proxy;
+- TCP 443 only to `kube-broker.aient.ai`, matched by name (`toFQDNs`);
+- TCP 443 and 6443 only to the `kube-apiserver` entity, which also covers API servers on the host network, as on
+  k3s.
+
+The policy admits no ingress. `toFQDNs` matches only addresses the pod resolved through the DNS proxy, so the DNS rule
+proxies every lookup; it admits any name because the resolver tries the pod's search domains first. Only the
+connections are limited.
 
 ## Change, rotate and remove
 
