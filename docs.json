@@ -139,7 +139,8 @@
           "reference/sdk-server",
           "reference/sdk-browser",
           "reference/sourcemaps-cli",
-          "reference/event-registry"
+          "reference/event-registry",
+          "reference/kubernetes-aient-viewer"
         ]
       },
       {
@@ -160,6 +161,7 @@
             ]
           },
           "ai-tools/customer-mcp-connections",
+          "ai-tools/kubernetes-connections",
           "agentic-x402",
           "agent-commerce"
         ],

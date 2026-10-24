@@ -1,0 +1,229 @@
+---
+title: "Kubernetes connections"
+description: "Let Aient's agents read one of your Kubernetes clusters through a connector you install, without giving Aient a Kubernetes credential."
+---
+
+# Kubernetes connections
+
+A Kubernetes connection lets the agents in one Aient environment read a cluster you operate. You install a small
+connector in the cluster. It dials out to Aient over HTTPS, so the cluster needs no inbound access, and Aient never
+holds a Kubernetes credential.
+
+Every connection is **read-only**. When an agent runs `kubectl`, Aient's gateway checks the request first. The
+connector then mints a short-lived token for a dedicated viewer ServiceAccount and sends the request to your API
+server. Your cluster's own RBAC decides what that viewer can read, and your audit log records every request under it.
+
+<Info>
+  A connection belongs to one environment. A cluster attached to Production is not visible to agents working in
+  Development.
+</Info>
+
+## What agents can do
+
+Today, **Threads** use a connection. When a Thread's agent runs in a native Aient sandbox, Aient writes a kubeconfig
+with one context per enabled connection, named after the connection. The agent runs stock `kubectl`:
+
+```sh
+kubectl --context prod get pods -n payments
+kubectl --context prod describe deployment checkout -n payments
+kubectl --context prod logs deployment/checkout -n payments --tail=200
+```
+
+Aient's gateway admits only reads (`get` and `list`). It refuses:
+
+- every write, such as `apply`, `delete`, `scale` or `patch`;
+- streams: `--watch`, `logs -f`, `exec`, `attach`, `port-forward` and `proxy`.
+
+A refused request reaches neither the connector nor your cluster.
+
+Each `kubectl` invocation uses one connection. The connector mints a separate viewer token for each command; the
+token is valid for 10 minutes and is discarded when the command ends. Before a response leaves the cluster, the
+connector removes credential-shaped values from it, such as PEM blocks, known token formats, URL passwords and
+`last-applied-configuration`.
+
+A connection can also be marked for problem investigation. That setting is accepted, but no investigation agent reads
+clusters yet.
+
+## Before you start
+
+- You are an owner or admin of the Aient organisation.
+- You can run `kubectl` against the cluster with rights to create a namespace, Secrets, ServiceAccounts, Roles,
+  ClusterRoles and their bindings, a Deployment and a NetworkPolicy. Kubernetes lets you create and bind the viewer's
+  ClusterRole only if you hold its permissions yourself, or have `escalate` and `bind`.
+- The machine where you install has Bash, `kubectl`, `curl` and an OpenSSL that can generate Ed25519 keys
+  (`openssl genpkey -algorithm ed25519`). It must reach `https://aient.ai`.
+- Pods in the cluster can pull `ghcr.io/aient-ai/kubernetes-connector` and open outbound HTTPS to
+  `kube-broker.aient.ai`. The connector also needs DNS and the Kubernetes API (TCP 443 or 6443).
+
+## Choose the RBAC you declare
+
+When you attach a cluster, you declare the RBAC its viewer gets: one or more `Role` or `ClusterRole` documents in YAML
+or JSON. Aient merges their rules into one declaration. This declaration is the boundary:
+
+- the install manifest creates a ClusterRole with exactly these rules and binds it to the viewer;
+- after install, the connector measures what the viewer can really do;
+- Aient refuses to enable the connection if the viewer can do more than you declared, for example because another
+  binding in the cluster also grants it access.
+
+Start from Aient's published read-only template, [`aient-viewer.yaml`](/reference/kubernetes-aient-viewer). It reads
+the common built-in and operator resources, and pod logs. It leaves out Secrets, and other resources whose contents can
+carry secret material. Remove any group you do not want agents to read.
+
+The declaration must not use YAML anchors or aliases (`&name` / `*name`). Aient refuses them so that a small upload
+cannot expand into a large declaration. Expand them before you paste.
+
+### High-risk access
+
+If the measured viewer can read Secrets (`secrets get` or `secrets list`), the connection shows that access as high
+risk. You must name each high-risk capability when you confirm. Other dangerous rights, such as `exec`, `attach`,
+`port-forward`, proxies, impersonation, token creation, `escalate` and `bind`, never need confirming: the gateway
+refuses them whatever your RBAC grants.
+
+## Attach a cluster
+
+### In the Aient app
+
+1. Open **Settings → Environments**, choose the environment, and select **Kubernetes**.
+2. Select **Attach a cluster**. Enter a cluster name, such as `prod`, and paste the RBAC for the viewer. The name is
+   lowercase letters, digits and hyphens, unique in the environment. Agents select the cluster by this name.
+3. Select **Attach**. Aient shows the install manifest and the install command **once**. Download the manifest as
+   `aient-connector.yaml` and copy the command, then select **I have saved them**.
+4. On a machine where `kubectl` reaches the cluster, run the command in the directory that holds
+   `aient-connector.yaml`.
+5. Open the connection's **Read-back**. Within a few minutes, the state moves from *Waiting for the connector* to
+   *Measuring the viewer*, then to *Ready to confirm*.
+6. Review the read-back: the viewer's username, the cluster UID, and any high-risk access. Tick each high-risk item,
+   then select **Confirm and enable**.
+
+The connection starts disabled and stays disabled until you confirm.
+
+### Through Aient's MCP server
+
+An assistant connected to `https://aient.ai/mcp` with write scope can run the same flow:
+
+| Step | Tool |
+| --- | --- |
+| Attach and get the install | `create_kubernetes_connection` (`name`, `rbac`, optional `agentUses`) |
+| Read the state and the read-back | `get_kubernetes_connection`, `list_kubernetes_connections` |
+| Enable | `confirm_kubernetes_connection` with the `revision` and `declaredPolicyHash` you read, and every name in `highRiskToAcknowledge` |
+| Issue a new enrolment code | `rotate_kubernetes_connection_enrolment` |
+| Replace the declared RBAC | `set_kubernetes_connection_policy` |
+
+Confirmation is refused if the connection changed since you read it. Read it again and retry.
+
+## What the install command does
+
+The command is a Bash script. It carries the one-time enrolment code, and Aient keeps only a digest of that code.
+Treat the command as a secret until it has run. The script:
+
+1. creates the namespace `aient` if it does not exist;
+2. generates an Ed25519 key and stores it in the Secret `aient/aient-connector-key`. If that Secret already exists,
+   the script reuses its key instead;
+3. sends the **public** key with the enrolment code to `https://aient.ai/api/kubernetes-connections/enrol`;
+4. applies `aient-connector.yaml`;
+5. records the public key on the connector Deployment, so the connector restarts when the key changes.
+
+The private key never leaves your cluster's Secret. The script deletes its local copy when it exits.
+
+The manifest creates these objects in namespace `aient`:
+
+| Object | Purpose |
+| --- | --- |
+| ServiceAccount `aient-connector` | Runs the connector. Its only right is to mint tokens for the viewer. |
+| ServiceAccount `aient-kconn-<id>` | The viewer: the identity every agent request uses. It mounts no token of its own. |
+| Secret `aient-kconn-<id>-anchor` | Empty. Every viewer token is bound to it. |
+| Role and RoleBinding `aient-connector-mint` | `create serviceaccounts/token`, for the viewer only. |
+| ClusterRole and ClusterRoleBinding `aient-kconn-<id>-viewer` | Your declared RBAC, bound to the viewer. |
+| ConfigMap `aient-connection` | The broker URL and the connection ID. |
+| Deployment `aient-kube-connector` | One non-root replica with a read-only root filesystem. |
+| NetworkPolicy `aient-kube-connector` | No ingress. Egress only to cluster DNS and TCP 443 and 6443. |
+
+The script can be run again. A repeat run after success changes nothing. A run interrupted at any step continues from
+where it stopped.
+
+## Change, rotate and remove
+
+**Change the declared RBAC.** Select **Change RBAC** (or call `set_kubernetes_connection_policy`) and paste the new
+declaration. The connection is disabled at once. Aient returns a new manifest without a new enrolment code. Apply it
+with `kubectl apply -f aient-connector.yaml`, wait for the read-back, and confirm again.
+
+**Get a new enrolment code.** Select **New enrolment code** (or call `rotate_kubernetes_connection_enrolment`) when a
+code was lost or exposed, or to reinstall the connector. The old code stops working immediately. Run the new install
+command. An installed connector keeps its key; the new run reuses it.
+
+**Replace the connector's key.** Delete the key Secret, issue a new enrolment code, and run the new install command:
+
+```sh
+kubectl -n aient delete secret aient-connector-key
+```
+
+The script generates a new key, enrols it, and restarts the connector with it.
+
+**Cut off access from the cluster.** Delete the anchor Secret. Every viewer token is bound to it, so all of them stop
+working within about 10 seconds, and the connector cannot mint new ones:
+
+```sh
+kubectl -n aient delete secret aient-kconn-<id>-anchor
+```
+
+To remove the connector entirely, delete what the manifest created and the key Secret:
+
+```sh
+kubectl delete -f aient-connector.yaml
+kubectl -n aient delete secret aient-connector-key
+```
+
+Removing a connection from Aient itself is not available yet. A connection whose connector is gone cannot serve any
+request. To stop agents from using it at once, change its RBAC: that disables it until you confirm again.
+
+## Troubleshooting
+
+### The state stays at *Waiting for the connector*
+
+The connector has not enrolled. Check that the install command finished without an error. If the enrol step answered
+`401`, the code was already used, replaced, or mistyped: issue a new enrolment code and run the new command. A `429`
+means too many enrolment attempts from your address (more than 10 in 10 minutes); wait and retry.
+
+### The state stays at *Measuring the viewer*
+
+The connector enrolled but has not reached Aient. Check the pod and its logs:
+
+```sh
+kubectl -n aient get pods -l app.kubernetes.io/name=aient-kube-connector
+kubectl -n aient logs deployment/aient-kube-connector --tail=100
+```
+
+Look for an image pull error, a missing `aient-connector-key` Secret, or `broker session ended; reconnecting`. The last
+means it cannot hold a session with `kube-broker.aient.ai`: check egress to that host on TCP 443, including any
+NetworkPolicy or proxy of your own. The connector retries with backoff, waiting at most 30 seconds between attempts.
+
+### *Viewer identity differs* (`identity_mismatch`)
+
+The connector measured a different identity from the viewer Aient expects,
+`system:serviceaccount:aient:aient-kconn-<id>`. This happens when the manifest was edited (for example, the viewer
+ServiceAccount renamed), or when the install used a manifest from another connection. Apply the manifest for this
+connection unchanged. To get it again without a new code,
+use **Change RBAC** with the same RBAC. Then restart the connector so it measures again:
+
+```sh
+kubectl -n aient rollout restart deployment/aient-kube-connector
+```
+
+### *Exceeds the declared RBAC* (`exceeds_policy`)
+
+The viewer can do more than you declared. The read-back lists each extra grant. Remove the binding that grants it in
+the cluster, or declare it with **Change RBAC**. A connection that drifts beyond its declaration later is disabled.
+
+### `kubectl` errors in a Thread
+
+| `kubectl` reports | Meaning |
+| --- | --- |
+| `this environment has no Kubernetes connection named "…"` (404) | No enabled connection with that name serves Threads in this environment. |
+| `this connection is read-only: Aient's Kubernetes gateway admits get and list` (403) | The command writes. |
+| `Aient's Kubernetes gateway refuses streams (…)` (403) | The command watches, follows, or opens a session. Drop `--watch` or `-f`. |
+| `this Kubernetes connection is not enabled and validated` (403) | Confirm the connection, or confirm it again after an RBAC change. |
+| `the Kubernetes connection answered unavailable: not_connected` (503) | The connector has no session with Aient right now. |
+| `the Kubernetes connection answered unavailable: hub_unreachable` (503) | Aient's connector hub is briefly unavailable, for example while it restarts. |
+
+The two `503` answers are transient while Aient restarts its connector hub: the connector reconnects on its own
+within about 30 seconds. Retry the command. If `not_connected` persists, check the connector as described above.
