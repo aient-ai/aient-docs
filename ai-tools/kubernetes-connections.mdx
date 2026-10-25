@@ -210,6 +210,11 @@ The policy admits no ingress. `toFQDNs` matches only addresses the pod resolved 
 proxies every lookup; it admits any name because the resolver tries the pod's search domains first. Only the
 connections are limited.
 
+Switching a running connector to this policy costs one broker reconnect. Its open connection was set up before the
+policy existed, so Cilium has no record of the broker's address and drops that connection; the connector logs
+`broker session ended`, resolves the name again through the DNS proxy, and reconnects. Expect this once, a few minutes
+after the switch.
+
 ## Change, rotate and remove
 
 **Change the declared RBAC.** Select **Change RBAC** (or call `set_kubernetes_connection_policy`) and paste the new
