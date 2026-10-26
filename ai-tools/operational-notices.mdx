@@ -1,0 +1,39 @@
+---
+title: "Tell Aient about maintenance and incidents"
+description: "Record operational notices through MCP so Aient can consider expected failures during triage and investigation."
+---
+
+# Tell Aient about maintenance and incidents
+
+Before a rollout or maintenance window, tell Aient what you expect to happen in that environment. You can also record an ongoing incident or provider outage. Aient reads overlapping notices during triage and investigation and records whether the evidence explains a Problem.
+
+Connect your assistant to `https://aient.ai/mcp` with your own OAuth sign-in and approve `aient.mcp.write` to post or end a notice. Agent-issued tokens cannot write notices. Read access is enough to list them. See [MCP setup](/ai-tools#discover-the-mcp-server).
+
+## Record a notice
+
+Call `post_operational_notice` with a unique `requestId`, a `kind` and a short `summary`. Choose exactly one environment using `environmentSlug` or `environmentId`; omit both only when your connection is already pinned to that environment.
+
+```json
+{
+  "environmentSlug": "prod",
+  "requestId": "checkout-rollout-2026-10-25-01",
+  "kind": "rollout",
+  "summary": "Rolling out the checkout service",
+  "scope": { "services": ["checkout"] },
+  "expectedSymptoms": ["Brief connection resets while old instances stop"]
+}
+```
+
+Use the names and symptoms that apply to your work. Supported kinds are `maintenance`, `rollout`, `incident`, `provider_outage` and `note`. Optional scope lists identify hosts, nodes, namespaces, services or workloads. Add `detail` when the summary needs context.
+
+`startsAt` defaults to now. Set it to schedule a future notice, and set `expectedEndAt` to the expected finish. Both use ISO 8601 timestamps with a timezone, and the expected end must follow the start. Without an expected end, the notice lasts at most 24 hours from its start.
+
+Save the returned `notice.id`. If the response is lost, repeat the same request with the same `requestId`. An exact retry returns the existing notice; changed content under that ID returns a conflict.
+
+## Read and end notices
+
+Call `list_operational_notices` with the environment selector to inspect the operations log. Results are ordered by start time, newest first. Optionally filter `states` to `scheduled`, `active`, `ended` or `retracted`; `limit` defaults to 20 and can be at most 100.
+
+When the work finishes, call `end_operational_notice` with the saved ID as `noticeId` and an optional `outcome`. `endedAt` defaults to now; an explicit end cannot be in the future. Ending is recorded once, so retrying returns the existing result. An environment-pinned connection cannot end another environment's notice.
+
+An elapsed expected end marks the notice ended even if you have not called the end tool. Ending a notice does not establish that the service recovered. Notices supply context; posting one does not mute or close Problems.
