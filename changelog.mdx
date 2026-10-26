@@ -3,6 +3,20 @@ title: Changelog
 description: Release notes for Aient covering new features, SDK updates, webhook changes, integrations, and bug fixes shipped each week to the platform.
 ---
 
+<Update label="2026-10-26" description="Week of October 26">
+
+## Updates
+
+**Keep workspace sync moving.** Aient CLI 0.11.31 retries a failed Git-cache sync through a direct transfer and waits up to 15 minutes while the sandbox prepares the workspace. Repeating a sync at the same commit skips unchanged work or replaces a changed remote workspace. See [sync recovery](/ai-tools/cli/run-and-sync#recover-an-interrupted-workspace-publication).
+
+**Keep installed pnpm dependencies across a sync.** Add `--preserve-node-modules` to `sandbox sync` or `sandbox exec --workspace` to retain existing dependency directories. Run your package installation command when dependency files change. See [dependency preservation](/ai-tools/cli/run-and-sync#keep-installed-pnpm-dependencies).
+
+**Clear obsolete workspace recovery files.** Retained CLI operations now expire after 14 days. Listing operations also removes those whose sandboxes are confirmed deleted; uncertain results keep the files. See [retention and cleanup](/ai-tools/cli/run-and-sync#retention-and-cleanup).
+
+**Give Aient context before planned work.** MCP operational notices describe maintenance, rollouts and incidents in one environment. Aient considers overlapping notices during triage and investigation. Posting a notice does not mute or close Problems. Connect with human OAuth and approve the write scope to post or end one.
+
+</Update>
+
 <Update label="2026-10-19" description="Week of October 19">
 
 ## Updates

@@ -5,7 +5,7 @@ description: "A compact index of current Aient CLI commands and global flags."
 
 # CLI command reference
 
-This page indexes the current customer CLI surface, including Aient CLI 0.11.29. Use `aient COMMAND --help` to confirm the flags supported by your installed version.
+This page indexes the current customer CLI surface, including Aient CLI 0.11.31. Use `aient COMMAND --help` to confirm the flags supported by your installed version.
 
 ## Authentication
 
@@ -39,6 +39,8 @@ See [Authentication and project profiles](/ai-tools/cli/authentication).
 | `aient sandbox logs SANDBOX` | Read a bounded sandbox runtime log snapshot. |
 | `aient sandbox delete SANDBOX` | Delete a sandbox. |
 
+Use `--preserve-node-modules` on `sandbox sync` or `sandbox exec --workspace` to [keep existing pnpm dependencies](/ai-tools/cli/run-and-sync#keep-installed-pnpm-dependencies).
+
 See [Run and synchronise workspaces](/ai-tools/cli/run-and-sync) and [Retained sandbox lifecycle](/ai-tools/cli/retained-sandboxes).
 
 <Warning>
@@ -49,6 +51,7 @@ See [Run and synchronise workspaces](/ai-tools/cli/run-and-sync) and [Retained s
 
 | Command | Purpose |
 | --- | --- |
+| `aient sandbox workspace list [--json]` | List recovery operations and expiry times, and clean up expired or confirmed obsolete copies. |
 | `aient sandbox workspace status OPERATION` | Inspect the current phase of one retained workspace publication. |
 | `aient sandbox workspace resume OPERATION` | Continue that exact interrupted workspace publication. |
 | `aient sandbox workspace discard OPERATION` | Release an uncommitted retained publication after the server confirms it is safe. |

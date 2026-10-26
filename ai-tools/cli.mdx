@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.11.30`
+Current release: `0.11.31`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -300,7 +300,7 @@ aient sandbox workspace resume OPERATION
 aient sandbox workspace discard OPERATION
 ```
 
-`workspace list` is local and makes no authentication or network request. It reports valid operations, logical usage, the capacity boundary, unsafe residue, and copyable recovery commands. New whole-bundle publication fails before upload when the retained total would exceed 10 GiB, less than 1 GiB of filesystem space would remain after copying, or inventory is unsafe or incomplete. There is no count limit, no configuration override, and the CLI does not evict retained operations automatically. Existing receipts remain listable, resumable, and discardable, including when the store is already over limit.
+Retained recovery operations expire after 14 days. `workspace list` reports expiry times, logical usage and recovery commands, removes expired local copies, and checks whether their sandboxes still exist. It removes operations for confirmed deleted sandboxes; uncertain results keep the files. New whole-bundle publication fails before upload when the retained total would exceed 10 GiB, less than 1 GiB of filesystem space would remain after copying, or inventory is unsafe or incomplete. The CLI reclaims obsolete operations before rejecting a full store. There is no count limit and no configuration override. See [retention and cleanup](/ai-tools/cli/run-and-sync#retention-and-cleanup).
 
 Automatic cross-process preparation matching lets a repeated ordinary sync or workspace-backed run resume the exact retained operation when its source generations and authenticated authority still match. For eligible native V3 Git-cache transfers in 0.11.22, recovery preserves the original captured files even after later local edits. See [workspace recovery](/ai-tools/cli/run-and-sync#recover-an-interrupted-workspace-publication) for the allocation and compatibility limits. Unsupported development targets announce the explicit workspace-resume fallback before capture.
 
@@ -333,7 +333,7 @@ aient services apply --file service-mappings.json --apply --json
 
 ## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.11.30.
+The commands documented in this section are the surface shipped in Aient CLI 0.11.31.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
@@ -342,7 +342,7 @@ The commands documented in this section are the surface shipped in Aient CLI 0.1
 - Repeatable `--preserve-remote-dir` retains only exact declared ordinary remote directories; collision and size checks fail locally before upload, and unsupported servers reject explicit preservation.
 - Explicit `--submodules=gitlinks` omits clean exact child checkouts only after recursive local verification and binds the complete parent-index Gitlink boundary into V2 or V3 activation; it does not transfer submodule content.
 - Default snapshots preserve raw uninitialized Gitlink index entries without applying constraints that belong only to the explicit Gitlink manifest; explicit mode continues to require UTF-8 portable paths, reject literal backslashes, and enforce the 512-entry bound.
-- `sandbox workspace list [--json]` reports retained local operation evidence without authentication or network access. New publication is bounded by 10 GiB aggregate logical bytes plus a fixed 1 GiB post-copy filesystem reserve, with no count limit, configuration override, or automatic eviction.
+- `sandbox workspace list [--json]` reports recovery operations and expiry times. It removes expired local copies and checks the service before reclaiming operations for deleted sandboxes. See [retained workspace-operation storage](#retained-workspace-operation-storage) for limits.
 - Idle and timeout cleanup acts only on the exact sandbox revision it evaluated. This protects an accepted concurrent refresh without renewing or extending the operation lease or server-owned hard expiry.
 - Customer create and run support the `small`, `medium`, and `large` product-owned compute classes.
 - Customer-development create advertises `developmentSizeBindingVersion: v2` and accepts only a complete exact `aientSizeBinding=v2`, `aientSizeClass`, `aientSizeSource=requested|environment-default`, and `aientSizeEnvelope=v1|v2` binding. Invalid combinations fail before the control-plane request; legacy explicit V1 and an old server's unbound default remain rollout-only compatibility paths.

@@ -172,9 +172,27 @@ Excludes filter only the explicit non-Git layer and cannot remove tracked Git st
 
 Git activation atomically replaces the destination directory. `--remote-dir` must therefore name a replaceable child on the workspace filesystem, such as `/workspace/repo` or `/workspace/alternate-repo`, never the mounted `/workspace` root itself. Raw upload may target `/workspace` because it does not use Git-directory activation.
 
+### Re-sync at the same commit
+
+From Aient CLI 0.11.31, a sync does nothing when the local capture and remote workspace are unchanged. If the remote workspace has changed, the sync replaces it with the selected local state. If the CLI cannot check for changes, it performs a full sync. Save remote edits you need before synchronising.
+
+### Keep installed pnpm dependencies
+
+Use `--preserve-node-modules` to keep existing pnpm dependency directories across a sync:
+
+```sh
+aient sandbox sync laptop-offload . \
+  --environment development --repository example/widget \
+  --preserve-node-modules
+```
+
+The flag is available from Aient CLI 0.11.31 on `sandbox sync` and `sandbox exec --workspace`. It selects existing `node_modules` directories at the repository root and in `pnpm-workspace.yaml` packages, outside submodules. It does not install or update dependencies; run your package installation command when manifests or the lockfile change.
+
+Preservation requires ordinary remote directories and a server that supports explicit path ownership. The CLI reports directories skipped because they overlap untracked files selected for upload; resolve that overlap before retrying if you need to keep those dependencies.
+
 ### Atomic activation and the workspace fence
 
-Aient constructs and verifies a candidate before activating it as `/workspace/repo`. V3 is selected only from a closed, exactly attested capability, publishes one immutable full-snapshot or retained-delta candidate, and never falls back after selection. Activation replaces the live child on the same filesystem while holding the exclusive workspace fence; the `/workspace` mount point itself is not replaced.
+Aient constructs and verifies a candidate before activating it as `/workspace/repo`. V3 is selected from an explicitly advertised capability and publishes an immutable full-snapshot or retained-delta candidate. CLI 0.11.31 can recover a failed Git-cache transfer by synchronising directly; it still waits for verified activation before starting your command. Activation replaces the live child on the same filesystem while holding the exclusive workspace fence; the `/workspace` mount point itself is not replaced.
 
 `sandbox exec`, `sandbox shell`, and workspace reads hold the shared fence. A sync waits before activation rather than replacing the live tree under an admitted command. Direct file operations currently fail with a busy response instead of waiting.
 
@@ -242,6 +260,10 @@ The overwrite and recovery limits above also apply here: delivery does not confi
 
 ## Recover an interrupted workspace publication
 
+From Aient CLI 0.11.31, a failed Git-cache sync can continue through a direct workspace transfer. The CLI reports the fallback on stderr and retains the cache operation until the direct sync succeeds. If both fail, it reports both errors. Cancellation, authorisation failures and a replaced sandbox still stop the operation.
+
+While the server reports that workspace preparation is busy, the CLI follows its retry hint for up to 15 minutes across preparation, upload, finalisation and activation. No new flag is required. A command starts only after the workspace is active.
+
 Aient CLI 0.11.28 automatically retries supported transient network failures and incomplete responses during workspace transfers. Use the existing `sandbox sync`, workspace-backed `sandbox run`, or `sandbox exec --workspace` command; no new flag is required.
 
 Retries keep the originally captured files and obtain fresh authorisation for the same target and operation. Candidate uploads replay the captured archive. Numbered Git-cache uploads replay only the affected part, so a lost response does not restart the whole pack.
@@ -278,4 +300,11 @@ If you no longer want an uncommitted publication, discard it explicitly:
 aient sandbox workspace discard "${OPERATION_ID}"
 ```
 
-Discard does not remove an activated or activation-pending workspace. On a transport failure or an unsupported helper, the CLI preserves the local receipt so you can retry safely. It removes the receipt only after the server proves that the exact operation was discarded or was already absent.
+Discard does not remove an activated or activation-pending workspace. On a transport failure or an unsupported helper, the CLI preserves the local receipt so you can retry safely. It removes the receipt after the server proves that the exact operation was discarded, was already absent, or its sandbox has been deleted.
+
+
+### Retention and cleanup
+
+From Aient CLI 0.11.31, retained recovery operations expire after 14 days. `workspace list` shows their expiry times and removes expired local copies. It also checks whether their sandboxes still exist and removes operations for confirmed deleted sandboxes. If that check cannot establish absence, the files remain.
+
+The CLI also reclaims obsolete operations when the store is full. A full-store error identifies the limit reached; inspect the list and discard unneeded operations before retrying. Keep another copy of work you need beyond the recovery period.
