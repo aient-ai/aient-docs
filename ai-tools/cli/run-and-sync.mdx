@@ -302,7 +302,6 @@ aient sandbox workspace discard "${OPERATION_ID}"
 
 Discard does not remove an activated or activation-pending workspace. On a transport failure or an unsupported helper, the CLI preserves the local receipt so you can retry safely. It removes the receipt after the server proves that the exact operation was discarded, was already absent, or its sandbox has been deleted.
 
-
 ### Retention and cleanup
 
 From Aient CLI 0.11.31, retained recovery operations expire after 14 days. `workspace list` shows their expiry times and removes expired local copies. It also checks whether their sandboxes still exist and removes operations for confirmed deleted sandboxes. If that check cannot establish absence, the files remain.

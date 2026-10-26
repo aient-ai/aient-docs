@@ -194,6 +194,8 @@ aient sandbox sync retained-sandbox . \
 
 `--preserve-remote-dir` is repeatable explicit authority. Preservation roots must be exact repository-relative non-Git directories and cannot overlap Git content, selected uploads, reset paths, symlinks, files, or one another. A server without explicit path-ownership support rejects preservation instead of silently changing its meaning.
 
+`--preserve-node-modules` adds every pnpm `node_modules` directory that already exists in the sandbox: the root and each package listed in `pnpm-workspace.yaml`, outside submodules. Installed dependencies then survive a repeated sync, and an unchanged workspace stays a no-op.
+
 For a deliberately incomplete parent-only checkout when submodules are initialized locally:
 
 ```sh
