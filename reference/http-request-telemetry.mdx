@@ -1,0 +1,72 @@
+---
+title: "HTTP request telemetry"
+description: "Configure correlated server request logs, HTTP attributes and query redaction in @aient/otel 2.2.0."
+---
+
+# HTTP request telemetry
+
+From `@aient/otel` 2.2.0, the server SDK adds HTTP attributes and a correlated access log to each recorded inbound request. First [configure the server SDK](../quickstart/server), keeping your existing service name, publishable key and release metadata.
+
+```bash
+pnpm add @aient/otel@^2.2.0
+```
+
+## Read a request log
+
+The SDK emits one access log for the outermost HTTP server span, including when a framework creates nested server spans. Its scope is `@aient/otel/http`; its message contains the method, route or path, and status, for example `GET /orders/:id 500`. The log carries the request's trace and span IDs so you can follow it back to the trace.
+
+| Response | Log severity |
+| --- | --- |
+| 5xx, or a failed request without a response | ERROR |
+| 4xx | WARN |
+| Other responses | INFO |
+
+Logs include successful requests, so upgrading increases log volume. Outbound fetch spans receive HTTP attributes but do not produce these server access logs.
+
+The SDK normalises legacy HTTP attributes into stable names such as `http.request.method`, `http.response.status_code`, `url.path`, `url.query`, `http.route`, `server.address` and `client.address`. Available fields depend on your framework and HTTP instrumentation; absent request metadata is not invented.
+
+Each access log includes `http.server.request.duration` in seconds. The SDK also records the duration histogram when a MeterProvider is configured, for example through `metricReaders`.
+
+## Configure request telemetry
+
+Add `httpRequestTelemetry` to your existing `registerOTel` configuration. Access logging is on by default. To turn off these logs and their duration histogram while retaining HTTP span attributes:
+
+```ts
+httpRequestTelemetry: {
+  accessLogs: false,
+},
+```
+
+The SDK replaces selected sensitive query values with `REDACTED`, preserving their keys and other values. The default list covers signed-URL credentials and common keys such as `access_token`, `refresh_token`, `id_token`, `client_secret`, `api_key`, `apikey`, `password` and `token`.
+
+`sensitiveQueryParameters` matches keys case-sensitively and **replaces** the default list. To add an application-specific key while keeping the defaults, import the list and use it in your existing configuration:
+
+```ts
+import { DEFAULT_SENSITIVE_QUERY_PARAMETERS } from '@aient/otel/http-request-telemetry'
+
+// Inside registerOTel({ ... }):
+httpRequestTelemetry: {
+  sensitiveQueryParameters: [...DEFAULT_SENSITIVE_QUERY_PARAMETERS, 'session'],
+},
+```
+
+Redaction covers query values in HTTP URL attributes, including `url.query`, `url.full`, `http.url` and `http.target`. It does not remove sensitive data from arbitrary attributes, headers or application log messages. Review the values your application records, particularly before adding header capture.
+
+## Supply request metadata
+
+Next.js on Vercel supplies request context. For other Node.js servers, configure standard HTTP server instrumentation before loading the server or framework. For example, add this instrumentation to your existing `registerOTel` configuration:
+
+```ts
+import { HttpInstrumentation } from '@opentelemetry/instrumentation-http'
+
+// Inside registerOTel({ ... }):
+instrumentations: ['auto', new HttpInstrumentation({
+  headersToSpanAttributes: {
+    server: { responseHeaders: ['content-length'] },
+  },
+})],
+```
+
+Install `@opentelemetry/instrumentation-http` as a direct dependency if you use that import. Capturing `content-length` lets the SDK derive `http.response.body.size` when the response provides it; it is not a measurement of every byte sent.
+
+After upgrading, send a successful request and a controlled failing request. Check their log severity, matching trace IDs, route or path, and redacted query values. These instructions cover the server package; [browser setup](../quickstart/browser) has its own configuration.
