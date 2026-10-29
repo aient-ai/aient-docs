@@ -1,0 +1,48 @@
+---
+title: "Browser HTTP request telemetry"
+description: "Configure fetch and XHR request logs, HTTP attributes and query redaction in @aient/otel-browser 0.7.2."
+---
+
+# Browser HTTP request telemetry
+
+`@aient/otel-browser` 0.7.2 adds stable HTTP attributes and a correlated access log to recorded fetch and XMLHttpRequest spans. Start with the [browser quickstart](../quickstart/browser), keeping your existing publishable key, service name and release metadata.
+
+```bash
+pnpm add @aient/otel-browser@^0.7.2
+```
+
+## Follow a browser request
+
+Each recorded request produces an access log with the span's trace and span IDs, available HTTP attributes and `http.client.request.duration` in seconds. Its message contains the method, host, path and status, for example `GET api.example.com/orders 200`.
+
+| Response | Log severity |
+| --- | --- |
+| 5xx, or a failed request without a response | ERROR |
+| 4xx | WARN |
+| Other responses | INFO |
+
+Logs include successful requests, so upgrading increases log volume. Request attributes include available values for `http.request.method`, `url.full`, `url.path`, `url.query`, `server.address`, `server.port`, `http.response.status_code` and `error.type`. Available fields depend on the browser and instrumentation.
+
+## Control access logs
+
+To stop these request logs, add this option to your existing `registerOTelBrowser` configuration:
+
+```ts
+httpRequestTelemetry: {
+  accessLogs: false,
+},
+```
+
+HTTP span attributes remain enabled. In 0.7.2, this switch also leaves duration histogram recording enabled; exporting those metrics requires a MeterProvider configured by your application.
+
+## Review query redaction
+
+The SDK removes URL credentials and replaces configured sensitive query values with `REDACTED`, preserving keys and other values. For example, `?q=shoes&token=secret` becomes `?q=shoes&token=REDACTED`. Referrer URL attributes receive the same redaction before spans and request logs are exported.
+
+The browser and server use the same default sensitive keys and case-sensitive replacement rule. See [query redaction](./http-request-telemetry#configure-request-telemetry) for the defaults and limits. Setting `httpRequestTelemetry.sensitiveQueryParameters` replaces the default list; include every key your application needs to protect. Leaving it unset keeps the defaults.
+
+This does not scrub arbitrary attributes, headers or application log messages. Review application-specific sensitive keys before upgrading.
+
+## Verify the upgrade
+
+Trigger a successful request and a controlled failing request. Check log severity, matching trace IDs, request paths and redacted query values. If you disable access logs, confirm that the HTTP spans still arrive. [Server request telemetry](./http-request-telemetry) has its own configuration.
