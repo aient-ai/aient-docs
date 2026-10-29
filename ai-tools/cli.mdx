@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.11.31`
+Current release: `0.11.34`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -304,9 +304,102 @@ aient sandbox workspace discard OPERATION
 
 Retained recovery operations expire after 14 days. `workspace list` reports expiry times, logical usage and recovery commands, removes expired local copies, and checks whether their sandboxes still exist. It removes operations for confirmed deleted sandboxes; uncertain results keep the files. New whole-bundle publication fails before upload when the retained total would exceed 10 GiB, less than 1 GiB of filesystem space would remain after copying, or inventory is unsafe or incomplete. The CLI reclaims obsolete operations before rejecting a full store. There is no count limit and no configuration override. See [retention and cleanup](/ai-tools/cli/run-and-sync#retention-and-cleanup).
 
+On supported V2 workspaces, new syncs retain the validated original allocation and workspace identity. After interrupted publication, `sandbox workspace resume OPERATION` can continue the same operation and revision from a fresh CLI process on a compatible sandbox. Resume rechecks the original target and customer authority; it continues publication only and does not run the requested command. Older records missing the original allocation identity remain preserved and cannot be resumed through this path. Older clients refuse the new V2 recovery records before mutation and preserve their bytes; use this release to resume them.
+
 Automatic cross-process preparation matching lets a repeated ordinary sync or workspace-backed run resume the exact retained operation when its source generations and authenticated authority still match. For eligible native V3 Git-cache transfers in 0.11.22, recovery preserves the original captured files even after later local edits. See [workspace recovery](/ai-tools/cli/run-and-sync#recover-an-interrupted-workspace-publication) for the allocation and compatibility limits. Unsupported development targets announce the explicit workspace-resume fallback before capture.
 
 This boundary does not change broad non-Git selection or temporary staging. Continue to use precise `--include` and `--exclude` rules; selector and temporary-staging bloat remain separate work.
+
+## Native Claude Code and Codex sessions
+
+Continue a stopped local native session in an existing Aient sandbox, then bring
+its conversation and Git worktree back to a new local checkout. Claude handoffs
+include the selected parent's saved subagents. Stop the local agent before
+capturing its session; native files remain the conversation authority.
+
+Use an authenticated Aient profile and a sandbox you own. Install the pinned
+native tools, then teleport the selected saved session:
+
+```sh
+aient --profile NAME sandbox session setup native-work --agent claude
+aient --profile NAME sandbox session teleport native-work /absolute/local/worktree \
+  --agent claude --session NATIVE_SESSION_UUID
+```
+
+Use `--agent codex` for Codex or `setup --agent both` to install both tools.
+The native agent uses your native login. `--config-dir`, `--credential-file`
+and `--keychain-service` select a custom native store.
+
+The execution budget defaults to eight hours. Choose another finite budget
+with `--budget 8h`; it must fit the sandbox's remaining lifetime. In the native
+terminal, press tmux's `Ctrl-B`, then `D` to detach. You can close the local
+terminal and reconnect to the same running process:
+
+```sh
+aient --profile NAME sandbox session attach native-work --agent claude
+aient --profile NAME sandbox session status native-work --agent claude
+```
+
+The CLI requests 24-hour sandbox retention, capped at the existing hard expiry
+of 24 hours from sandbox creation. This leaves a finite recovery window after
+the command ends; an older sandbox has less time remaining. Return before that
+expiry: surviving execution metadata cannot recover an expired sandbox.
+
+Reattachment never starts a replacement or resets the execution deadline.
+`teleport --detach` starts without attaching. `session watch native-work`
+runs a separate local observer.
+
+Add `--sync` to `teleport`, `attach` or `watch` for optional continuous
+synchronization of regular source files in both directions while that local
+observer is running:
+
+```sh
+aient --profile NAME sandbox session attach native-work --agent claude --sync
+```
+
+The handoff retains its source selection: tracked files stay selected, ordinary
+nonignored new files are included, `--include` adds declared ignored paths,
+and `--exclude` omits matching non-Git paths. Explicitly selected submodules
+retain their selected namespaces. The watcher propagates new files, deletions,
+renames and mode changes. Overlapping edits use timestamp-based save ordering
+with guest-clock normalization; equal times choose the remote copy.
+Synchronization is per file and does not merge concurrent edits. Git metadata
+and live symlink changes remain outside the watcher. Files above 32 MiB are
+reported and suspended without reading their bodies; other files continue.
+Full handoff and return preserve larger files within workspace transfer limits.
+A sleeping laptop has no running observer to copy files.
+
+Exit the remote agent with `/exit` or `Ctrl-D`, then return its saved state:
+
+```sh
+aient --profile NAME sandbox session return native-work --agent claude --resume
+```
+
+Return creates a new local checkout beside the original. It preserves remote
+Git commits, staged and unstaged changes, deletions, nonignored new files and
+initialized child repositories. Use `--output /absolute/new/checkout` to choose
+the destination. Omit `--resume` to print the exact local native resume command.
+Verified return inputs survive interruption; a completed return retries offline
+only while its destination still matches. Later local edits and the original
+checkout are preserved. After timeout or cancellation with `session stop`, use
+the same return command to recover the last persisted conversation and files.
+Return requires a recorded native process identity and fresh proof that it and
+its process group and terminal session have no live writers. Missing proof,
+a live writer or an unknown execution outcome refuses capture. Recovery does
+not promise to restore an interrupted model turn or unsaved progress.
+
+Native tools perform OAuth refresh. While attached or watching, the CLI saves
+accepted native credential updates to a private host backup and propagates
+them to tracked sandboxes with the same native login and Aient identity.
+Reconnect catches up unavailable sandboxes. Claude updates follow increasing
+credential expiry; changed Codex credentials follow arrival order. Return
+carries accepted credentials into an isolated local native configuration.
+Credentials travel separately from source code and conversation history.
+Adapted AgentBox code retains its MIT notice in `LICENSE.agentbox`.
+
+These commands require a compatible Aient sandbox terminal service. They move
+saved history and files; the remote native process remains bounded by its
+execution budget and the sandbox's finite lifetime.
 
 ## Environment secrets
 
@@ -335,7 +428,7 @@ aient services apply --file service-mappings.json --apply --json
 
 ## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.11.31.
+The commands documented in this section are the surface shipped in Aient CLI 0.11.34.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
