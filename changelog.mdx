@@ -7,6 +7,8 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 
 ## Updates
 
+**Follow server requests from logs to traces.** `@aient/otel` 2.2.2 includes correlated access logs for recorded inbound HTTP requests, including successful responses, with stable HTTP attributes and configurable query redaction. Duration metrics remain enabled when access logs are disabled, and referrer URLs receive credential redaction. Review log volume and application-specific sensitive query keys when upgrading. See [HTTP request telemetry](/reference/http-request-telemetry) for configuration and verification.
+
 **Keep workspace sync moving.** Aient CLI 0.11.31 retries a failed Git-cache sync through a direct transfer and waits up to 15 minutes while the sandbox prepares the workspace. Repeating a sync at the same commit skips unchanged work or replaces a changed remote workspace. See [sync recovery](/ai-tools/cli/run-and-sync#recover-an-interrupted-workspace-publication).
 
 **Keep installed pnpm dependencies across a sync.** Add `--preserve-node-modules` to `sandbox sync` or `sandbox exec --workspace` to retain existing dependency directories. Run your package installation command when dependency files change. See [dependency preservation](/ai-tools/cli/run-and-sync#keep-installed-pnpm-dependencies).
@@ -23,7 +25,7 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 
 **Recognise incomplete command output.** Aient CLI 0.11.29 reports when a reconnect skips output that the server no longer retains. It keeps the retained tail separate from stdout and exits with status 74, even if the command succeeded. Inspect the original execution before deciding whether it is safe to rerun. See [output recovery](/ai-tools/cli/executions-and-files#incomplete-output-after-a-reconnect).
 
-**Resolve conflicting sandbox options.** Reusing a sandbox name with different size, CPU, memory or environment options now returns a clear conflict. Retry with the original options or choose a different name. See [sandbox-name recovery](/ai-tools/cli/troubleshooting#sandbox-allocation-terms-conflict).
+**Resolve conflicting sandbox options.** Reusing a sandbox name with different size, CPU, memory or environment options now returns a clear conflict. Retry with the original options or choose a different name. See [sandbox-name recovery](/ai-tools/cli/troubleshooting#sandbox_allocation_terms_conflict).
 
 **Update external-failure queries for the SDK.** The failure helpers in `@aient/otel` 2.1.1 write `aient.external.*` attributes. Update queries that use `glimt.external.*`, keeping a fallback for older telemetry. The helpers attach the external system, operation and error to an existing span. See [external-service failures](/reference/external-failures).
 
