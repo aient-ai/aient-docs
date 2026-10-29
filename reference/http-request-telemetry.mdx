@@ -1,6 +1,6 @@
 ---
 title: "HTTP request telemetry"
-description: "Configure correlated server request logs, HTTP attributes and query redaction in @aient/otel 2.2.0."
+description: "Configure correlated server request logs, HTTP attributes and query redaction in @aient/otel 2.2.2."
 ---
 
 # HTTP request telemetry
@@ -8,7 +8,7 @@ description: "Configure correlated server request logs, HTTP attributes and quer
 From `@aient/otel` 2.2.0, the server SDK adds HTTP attributes and a correlated access log to each recorded inbound request. First [configure the server SDK](../quickstart/server), keeping your existing service name, publishable key and release metadata.
 
 ```bash
-pnpm add @aient/otel@^2.2.0
+pnpm add @aient/otel@^2.2.2
 ```
 
 ## Read a request log
@@ -29,13 +29,15 @@ Each access log includes `http.server.request.duration` in seconds. The SDK also
 
 ## Configure request telemetry
 
-Add `httpRequestTelemetry` to your existing `registerOTel` configuration. Access logging is on by default. To turn off these logs and their duration histogram while retaining HTTP span attributes:
+Add `httpRequestTelemetry` to your existing `registerOTel` configuration. Access logging is on by default. In 2.2.2 and later, turning it off preserves HTTP span attributes and duration histograms:
 
 ```ts
 httpRequestTelemetry: {
   accessLogs: false,
 },
 ```
+
+Version 2.2.0 also disables the duration histogram when `accessLogs` is `false`; upgrade to 2.2.2 to keep metrics independent of logging.
 
 The SDK replaces selected sensitive query values with `REDACTED`, preserving their keys and other values. The default list covers signed-URL credentials and common keys such as `access_token`, `refresh_token`, `id_token`, `client_secret`, `api_key`, `apikey`, `password` and `token`.
 
@@ -50,7 +52,7 @@ httpRequestTelemetry: {
 },
 ```
 
-Redaction covers query values in HTTP URL attributes, including `url.query`, `url.full`, `http.url` and `http.target`. It does not remove sensitive data from arbitrary attributes, headers or application log messages. Review the values your application records, particularly before adding header capture.
+Redaction covers query values in HTTP URL attributes, including `url.query`, `url.full`, `http.url` and `http.target`. In 2.2.2, referrer attributes also have URL credentials and configured sensitive query values redacted in spans, access logs and application log request context. It does not remove sensitive data from arbitrary attributes, headers or application log messages. Review the values your application records, particularly before adding header capture.
 
 ## Supply request metadata
 
