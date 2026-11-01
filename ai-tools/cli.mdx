@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.11.31`
+Current release: `0.11.37`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -160,6 +160,8 @@ Environment/repository-bound retained calls must repeat both selectors; reposito
 
 `exec --workspace PATH` accepts ordinary sync source flags and runs in the synchronized directory unless `--workdir` is explicit. A failed sync never starts the command; `sandbox workspace resume` resumes publication only, never execution. The sandbox keeps its existing owner and retention policy; sync may renew its lease. This command neither creates nor releases it. `--detach` waits for sync and execution acceptance. For this combined command, `--timing-json` reports synchronization only, not command execution or output latency.
 
+`sandbox run` and `sandbox exec --workspace` also accept `--workspace-commit` with a full Git commit ID. The selected committed tree and its selected submodule Gitlinks sync without staged, unstaged, or untracked source edits. Exact-commit mode requires the default remote directory and cannot combine with extra-file selections, resets, or automatic node_modules preservation. If private HTTPS submodule acquisition needs a global credential helper or URL rewrite, initialize the submodule with your normal Git setup or configure an SSH submodule URL override.
+
 To select ignored and untracked non-Git paths broadly, omit regular AppleDouble sidecars, and subtract explicit exclusions:
 
 ```sh
@@ -304,6 +306,12 @@ aient sandbox workspace discard OPERATION
 
 Retained recovery operations expire after 14 days. `workspace list` reports expiry times, logical usage and recovery commands, removes expired local copies, and checks whether their sandboxes still exist. It removes operations for confirmed deleted sandboxes; uncertain results keep the files. New whole-bundle publication fails before upload when the retained total would exceed 10 GiB, less than 1 GiB of filesystem space would remain after copying, or inventory is unsafe or incomplete. The CLI reclaims obsolete operations before rejecting a full store. There is no count limit and no configuration override. See [retention and cleanup](/ai-tools/cli/run-and-sync#retention-and-cleanup).
 
+On supported V2 workspaces, new syncs retain the validated original allocation and workspace identity. After interrupted publication, `sandbox workspace resume OPERATION` can continue the same operation and revision from a fresh CLI process on a compatible sandbox. Resume rechecks the original target and customer authority; it continues publication only and does not run the requested command. Older records missing the original allocation identity remain preserved and cannot be resumed through this path. Older clients refuse the new V2 recovery records before mutation and preserve their bytes; use this release to resume them.
+
+`aient sandbox create --env KEY=VALUE` (repeatable) sets an environment variable for the sandbox's processes. The values are stored with the sandbox and are not secret; use environment secrets for credentials. A sandbox whose start-up keeps failing ends `failed`, and the create prints its reason.
+
+When one selected submodule cannot use the Git cache (a network, DNS or sign-in discovery failure, an unavailable server, or a repository with no cache authority), that submodule uploads directly on its own while the root keeps its cached delta, instead of the whole workspace uploading. A cancellation, a changed capture, or an authoritative refusal of that repository (HTTP 401, 403, 409, or 404 other than an unregistered repository) still stops the cache operation. The root cache lookup and root seed start retry network failures up to three attempts.
+
 Automatic cross-process preparation matching lets a repeated ordinary sync or workspace-backed run resume the exact retained operation when its source generations and authenticated authority still match. For eligible native V3 Git-cache transfers in 0.11.22, recovery preserves the original captured files even after later local edits. See [workspace recovery](/ai-tools/cli/run-and-sync#recover-an-interrupted-workspace-publication) for the allocation and compatibility limits. Unsupported development targets announce the explicit workspace-resume fallback before capture.
 
 This boundary does not change broad non-Git selection or temporary staging. Continue to use precise `--include` and `--exclude` rules; selector and temporary-staging bloat remain separate work.
@@ -335,7 +343,7 @@ aient services apply --file service-mappings.json --apply --json
 
 ## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.11.31.
+The commands documented in this section are the surface shipped in Aient CLI 0.11.37.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
