@@ -308,6 +308,10 @@ aient sandbox workspace discard OPERATION
 
 When one selected submodule cannot use the Git cache (a network, DNS or sign-in discovery failure, an unavailable server, or a repository with no cache authority), that submodule uploads directly on its own while the root keeps its cached delta, instead of the whole workspace uploading. A cancellation, a changed capture, or an authoritative refusal of that repository (HTTP 401, 403, 409, or 404 other than an unregistered repository) still stops the cache operation. The root cache lookup and root seed start retry network failures up to three attempts.
 
+## Pull request reviews
+
+`aient review OWNER/REPO#NUMBER` asks aient-cto[bot] for an independent review of a pull request's current head, posted as a GitHub review: an approval, a change request with inline comments, or a comment without a verdict. While it waits it prints progress (`queued`, then `reviewing`), then the outcome and the review's link (`--no-wait` returns once the review is requested, `--json` prints the review). A repeat for the same head returns the review already given, at once. It needs the repository connected to your organisation and the Aient CTO GitHub App installed on it, and uses the `aient.agent.write` scope (plus `aient.agent.read` to wait). When no review can be given, it says what to do and exits non-zero.
+
 ## Environment secrets
 
 Organisation owners and administrators can replace an encrypted environment secret after consenting to the dedicated write capability:
