@@ -216,7 +216,7 @@ aient --timeout 20m --verbose sandbox sync laptop-offload .
 
 `--verbose` prints safe request correlation and detailed progress; it does not print credentials.
 
-An interrupted upload does not resume from its last reported byte. See [transfer recovery](#recover-an-interrupted-workspace-publication) for automatic retries and retained-operation recovery.
+An interrupted upload does not resume from its last reported byte. See [interrupted sync recovery](#recover-from-an-interrupted-workspace-sync) for automatic retries and what to do when a sync stops.
 
 ## Experimental selected-file live sync
 
@@ -258,7 +258,7 @@ An exact path, byte count, SHA-256 acknowledgement, and successful command compl
 
 The overwrite and recovery limits above also apply here: delivery does not confirm application readiness or browser hot reload. Use [Agent checkout sync](/ai-tools/cli#sync-selected-files-into-an-agent-checkout) for a one-shot update to an Agent-owned checkout.
 
-## Recover an interrupted workspace publication
+## Recover from an interrupted workspace sync
 
 From Aient CLI 0.11.31, a failed Git-cache sync can continue through a direct workspace transfer. The CLI reports the fallback on stderr and retains the cache operation until the direct sync succeeds. If both fail, it reports both errors. Cancellation, authorisation failures and a replaced sandbox still stop the operation.
 
@@ -270,40 +270,27 @@ Retries keep the originally captured files and obtain fresh authorisation for th
 
 Retries are bounded. Cancellation and authorisation failures stop the transfer. Partially streamed downloads and other mutations are not automatically replayed after an ambiguous failure. Selected-file Agent sync and experimental live sync keep their existing recovery limits.
 
-If the command exits after publication starts, the CLI retains the operation and its captured files. Inspect the recorded operation before starting a new publication:
+Workspace operations live in `~/.aient/workspace-operations` only while the command that started them runs. When a `sync`, `run` or `exec --workspace` operation ends, whether it activated, failed, was rejected or was cancelled, nothing of it is kept there. An operation that did not activate first gets one best-effort discard on the sandbox, bounded to 10 seconds and sent even after Ctrl-C; if that discard fails, the CLI prints one line and the sandbox expires the operation. A failed sync never starts the command, and `sandbox run` deletes its sandbox after a failed sync unless you pass `--keep`.
+
+When a sync starts, the CLI prints:
+
+```text
+Workspace operation OPERATION_ID started; if it is interrupted, rerun this command to sync again.
+```
+
+If a sync fails or is interrupted, rerun the same command. The rerun syncs the worktree as it is now, including edits made since the interrupted attempt; nothing is resumed.
+
+Only a killed CLI leaves a record behind. The next sync or `sandbox workspace list` removes every record no running CLI holds, including copies that earlier releases kept for resume. `workspace list` shows the store without authentication or network access:
 
 ```sh
 aient sandbox workspace list
 ```
 
-Use its operation ID to check the publication:
+While a record is still present, you can check its operation on the sandbox, or release an uncommitted publication:
 
 ```sh
 aient sandbox workspace status "${OPERATION_ID}"
-```
-
-Resume the exact candidate, revision, and retained artefacts when the operation remains incomplete:
-
-```sh
-aient sandbox workspace resume "${OPERATION_ID}"
-```
-
-`workspace resume` continues publication only; it does not run the original command.
-
-For eligible native V3 Git-cache transfers in 0.11.22, repeating the original command can recover the retained operation even after you edit local files. Recovery uses the original captured files. Publish later edits in a subsequent sync after recovery completes.
-
-Recovery, lease refresh, and cleanup remain tied to the original allocation and workspace. A replacement sandbox with the same name is rejected before mutation. Older retained Git-cache captures without an allocation UUID remain readable, but cannot be resumed with mutations; their saved bytes are preserved.
-
-If you no longer want an uncommitted publication, discard it explicitly:
-
-```sh
 aient sandbox workspace discard "${OPERATION_ID}"
 ```
 
-Discard does not remove an activated or activation-pending workspace. On a transport failure or an unsupported helper, the CLI preserves the local receipt so you can retry safely. It removes the receipt after the server proves that the exact operation was discarded, was already absent, or its sandbox has been deleted.
-
-### Retention and cleanup
-
-From Aient CLI 0.11.31, retained recovery operations expire after 14 days. `workspace list` shows their expiry times and removes expired local copies. It also checks whether their sandboxes still exist and removes operations for confirmed deleted sandboxes. If that check cannot establish absence, the files remain.
-
-The CLI also reclaims obsolete operations when the store is full. A full-store error identifies the limit reached; inspect the list and discard unneeded operations before retrying. Keep another copy of work you need beyond the recovery period.
+Discard does not remove an activated or activation-pending workspace. On a transport failure, the CLI keeps the local record so you can retry; it removes it after the server proves that the exact operation was discarded, was already absent, or its sandbox has been deleted.

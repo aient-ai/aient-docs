@@ -17,6 +17,7 @@ declaration. The gateway admits only `get` and `list`, whatever `watch` grants.
 # Do not edit: change policy.yaml and run the generator with --write.
 #
 # Excluded API groups:
+#   sandbox.aient.ai: Sandbox create.envVars retains customer credentials; native owners are not shared diagnostic data
 #   helm.cattle.io: a k3s HelmChart carries chart values inline in valuesContent, which can hold credentials; little diagnostic value
 #   authentication.k8s.io: create-only review APIs; nothing to read
 #   authorization.k8s.io: create-only review APIs; nothing to read
@@ -27,7 +28,7 @@ kind: ClusterRole
 metadata:
   name: aient-viewer
   annotations:
-    aient.ai/viewer-excluded-groups: authentication.k8s.io,authorization.k8s.io,helm.cattle.io
+    aient.ai/viewer-excluded-groups: authentication.k8s.io,authorization.k8s.io,helm.cattle.io,sandbox.aient.ai
     aient.ai/viewer-denied-resources: aquasecurity.github.io/exposedsecretreports
 rules:
   - apiGroups:
