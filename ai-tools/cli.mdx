@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.11.38`
+Current release: `0.11.39`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -46,7 +46,7 @@ Find a reconnectable Agent Thread or attach to one:
 aient agent list [--search QUERY] [--status all|active|closed] [--include-archived] [--limit 1-100] [--cursor CURSOR] [--json]
 aient agent status THREAD [--json]
 aient agent events THREAD [--follow] [--json]
-aient agent message THREAD MESSAGE... [--operation-id UUID] [--immediate] [--json]
+aient agent message THREAD MESSAGE... [--operation-id UUID] [--immediate] [--capability computer-use] [--json]
 aient agent respond THREAD INTERACTION ANSWER... [--operation-id UUID] [--json]
 aient agent cancel THREAD [--operation-id UUID] [--json]
 aient agent chat THREAD
@@ -59,6 +59,8 @@ aient agent execution cancel EXECUTION [--json]
 `agent list` accepts an exact Thread ID or title query plus explicit status, archive, page-size, and cursor filters. Its human continuation command preserves the active filters; `--json` emits one versioned page. List, status, and events require `aient.agent.read`; messages, answers, explicit cancellation, and chat mutations require `aient.agent.write`. `status --json` emits one deterministic document. `events --follow --json` emits JSONL and can resume after a durable sequence. Stable Thread, task, message, interaction, operation, sandbox, and execution identifiers preserve the reconnect path after terminal or network loss.
 
 `--immediate` requires one explicit stable operation UUID; an ordinary message may omit it and let the CLI generate one. Reuse an explicit UUID only for an exact retry. Exact text and delivery mode return `duplicate`; changed text or mode returns `operation_conflict`. Immediate delivery never cancels or replaces the active task or changes its tool scope. The receipt reports `steered`, `started`, `queued`, or `duplicate`; incompatible active-task origin or attachment plans fail with `cooperative_steering_scope_mismatch`.
+
+`--capability computer-use` selects compact browser and Linux desktop accessibility observations, native input and optional screenshots for the task created by this message. It queues behind active work, rejects `--immediate`, and leaves later ordinary messages using Agent defaults. The runtime manages setup, recording and cleanup; existing permissions and sandbox admission still apply. An exact retry must preserve the message, operation ID and capability selection.
 
 Inside `agent chat`, enter `! COMMAND` to run a supervised shell command in the environment and sandbox frozen from the latest rendered Agent status. The CLI shows the target and preallocated execution UUID before output, passes no workstation process environment or local repository inference, and sends no Agent message. Reconnect by passing the exact `EXECUTION` identifier to the execution commands above. Ctrl-C in ordinary chat detaches without cancelling Agent work; Ctrl-C in the active remote-command view explicitly requests cancellation of that exact execution. This release requires an existing `THREAD`; it does not start a new Agent Thread.
 
@@ -339,7 +341,7 @@ aient services apply --file service-mappings.json --apply --json
 
 ## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.11.38.
+The commands documented in this section are the surface shipped in Aient CLI 0.11.39.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
