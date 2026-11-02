@@ -106,7 +106,7 @@ aient --timeout 20m --verbose sandbox sync laptop-offload .
 
 Reuse an environment-bound customer sandbox with `sandbox sync SANDBOX . --environment ENV --repository OWNER/REPO`, repeating its original selectors.
 
-An interrupted upload does not continue from its last reported byte. Inspect and [recover the retained workspace operation](/ai-tools/cli/run-and-sync#recover-an-interrupted-workspace-publication). Eligible native V3 Git-cache recovery in 0.11.22 preserves the original captured files, including when later local edits exist.
+An interrupted upload does not continue from its last reported byte. Rerun the same command: it syncs the worktree as it is now. See [interrupted sync recovery](/ai-tools/cli/run-and-sync#recover-from-an-interrupted-workspace-sync).
 
 ## Connection ended during `sandbox exec`
 

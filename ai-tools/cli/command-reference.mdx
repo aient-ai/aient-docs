@@ -47,16 +47,15 @@ See [Run and synchronise workspaces](/ai-tools/cli/run-and-sync) and [Retained s
   An environment-bound customer sandbox requires `--environment` on `status`, `wait`, and `logs`, and its original environment and repository selectors on `sync`, `exec`, and `execution`. `files` and `shell` apply only to sandboxes without an environment binding.
 </Warning>
 
-## Retained workspace operations
+## Workspace operations
 
 | Command | Purpose |
 | --- | --- |
-| `aient sandbox workspace list [--json]` | List recovery operations and expiry times, and clean up expired or confirmed obsolete copies. |
-| `aient sandbox workspace status OPERATION` | Inspect the current phase of one retained workspace publication. |
-| `aient sandbox workspace resume OPERATION` | Continue that exact interrupted workspace publication. |
-| `aient sandbox workspace discard OPERATION` | Release an uncommitted retained publication after the server confirms it is safe. |
+| `aient sandbox workspace list [--json]` | List operations other CLI processes are running, and remove records a killed CLI left behind. |
+| `aient sandbox workspace status OPERATION` | Inspect the remote phase of a workspace operation that is still recorded. |
+| `aient sandbox workspace discard OPERATION` | Release an uncommitted publication after the server confirms it is safe. |
 
-These commands use the immutable local receipt created by a workspace-backed `sandbox run` or `sandbox sync`. They never rebuild a new operation under the same ID. See [Run and synchronise workspaces](/ai-tools/cli/run-and-sync#recover-an-interrupted-workspace-publication).
+A workspace-backed `sandbox run`, `sandbox exec --workspace` or `sandbox sync` keeps its operation record only while it runs. To recover from a failed or interrupted sync, rerun the command; it syncs the worktree as it is now. See [Run and synchronise workspaces](/ai-tools/cli/run-and-sync#recover-from-an-interrupted-workspace-sync).
 
 ## Agent worktree reads
 
