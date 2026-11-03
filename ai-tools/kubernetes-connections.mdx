@@ -41,9 +41,6 @@ token is valid for 10 minutes and is discarded when the command ends. Before a r
 connector removes credential-shaped values from it, such as PEM blocks, known token formats, URL passwords and
 `last-applied-configuration`.
 
-A connection can also be marked for problem investigation. That setting is accepted, but no investigation agent reads
-clusters yet.
-
 ## Before you start
 
 - You are an owner or admin of the Aient organisation.
@@ -131,9 +128,8 @@ Argo CD or Flux.
    The same chart is at `oci://ghcr.io/aient-ai/charts/kubernetes-connector`.
 3. Run the install command in the same directory.
 
-The chart never creates the key Secret `aient-connector-key`; the install command does. `helm install` releases are not
-supported yet. The chart's README lists its values, and the repository's README shows how to verify the signed
-releases.
+The chart never creates the key Secret `aient-connector-key`; the install command creates it and applies the rendered
+file. The chart's README lists its values, and the repository's README shows how to verify the signed releases.
 
 ## What the install command does
 
@@ -197,8 +193,8 @@ kubectl delete -f aient-connector.yaml
 kubectl -n aient delete secret aient-connector-key
 ```
 
-Removing a connection from Aient itself is not available yet. A connection whose connector is gone cannot serve any
-request. To stop agents from using it at once, change its RBAC: that disables it until you confirm again.
+A connection whose connector is gone cannot serve any request. To stop agents from using a connection at once, change
+its RBAC: that disables it until you confirm again.
 
 ## Troubleshooting
 
