@@ -111,6 +111,30 @@ An assistant connected to `https://aient.ai/mcp` with write scope can run the sa
 
 Confirmation is refused if the connection changed since you read it. Read it again and retry.
 
+### With Helm or Kustomize
+
+The connector is also published as a Helm chart and a Kustomize tree in the public
+[aient-ai/helm-charts](https://github.com/aient-ai/helm-charts) repository. Use them when you want to render
+`aient-connector.yaml` yourself, for example to set values, scope the viewer to some namespaces, or deploy through
+Argo CD or Flux.
+
+1. Attach the cluster as above. Declare the RBAC that the chart renders for your values; print it with
+   `helm template ... --show-only templates/viewer.yaml`.
+2. Render the chart for the connection into the file the install command applies:
+
+   ```sh
+   helm repo add aient https://aient-ai.github.io/helm-charts
+   helm template kubernetes-connector aient/kubernetes-connector --version <version> \
+     --namespace aient --set connection.id=<connection ID> > aient-connector.yaml
+   ```
+
+   The same chart is at `oci://ghcr.io/aient-ai/charts/kubernetes-connector`.
+3. Run the install command in the same directory.
+
+The chart never creates the key Secret `aient-connector-key`; the install command does. `helm install` releases are not
+supported yet. The chart's README lists its values, and the repository's README shows how to verify the signed
+releases.
+
 ## What the install command does
 
 The command is a Bash script. It carries the one-time enrolment code, and Aient keeps only a digest of that code.
