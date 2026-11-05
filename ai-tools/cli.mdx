@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.11.41`
+Current release: `0.12.2`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -314,6 +314,214 @@ When one selected submodule cannot use the Git cache (a network, DNS or sign-in 
 
 `aient review OWNER/REPO#NUMBER` asks aient-cto[bot] for an independent review of a pull request's current head, posted as a GitHub review: an approval, a change request with inline comments, or a comment without a verdict. While it waits it prints progress (`queued`, then `reviewing`), then the outcome and the review's link (`--no-wait` returns once the review is requested, `--json` prints the review). A repeat for the same head returns the review already given, at once. It needs the repository connected to your organisation and the Aient CTO GitHub App installed on it, and uses the `aient.agent.write` scope (plus `aient.agent.read` to wait). When no review can be given, it says what to do and exits non-zero.
 
+## Native Claude Code and Codex sessions
+
+Continue a stopped local native session in an existing Aient sandbox, then bring
+its saved conversation and selected Git worktrees back to a fresh local destination.
+Claude handoffs include the selected parent's saved subagents and checkpointed
+Team teammates. Native files remain the conversation authority.
+
+In `teleport <sandbox> [<workspace>]`, `<sandbox>` is a required sandbox name
+and `[<workspace>]` is an optional local checkout path. The examples use
+`native-work` as the sandbox name. Before exiting Claude, run `/status` in the
+parent and copy its full **Session ID** UUID, or name it with `/rename fix-login`.
+Pass the UUID or a unique saved name in this checkout with `--session`; a name
+must match exactly and uniquely. The resolved UUID remains the handoff identity.
+Omit `--session` to select the latest saved parent in that checkout.
+
+For a Claude Team, save its checkpoint while the parent and teammates are still
+live. Obtain each selected split teammate's actual Session ID from `/status`
+and repeat `--teammate-session NAME=UUID` for every selected split member:
+
+```sh
+aient --profile NAME sandbox session checkpoint /absolute/local/worktree \
+  --session "fix-login" \
+  --teammate-session "worker-one=<worker-session-uuid>"
+```
+
+The checkpoint prints its private path and exact teleport command, including
+`--team-checkpoint`. In-process teammates come from the parent's saved sidecars;
+ordinary saved subagents do not need a Team checkpoint. Exit every local
+teammate and the parent before running the printed Team teleport command.
+The Team adapter is qualified for Claude Code 2.1.312 remotely and 2.1.314
+locally. A 2.1.318 source journey has also been exercised through these
+remote/local versions; this does not qualify every other source version or
+terminal-backend combination. It restores selected saved members and tracks new
+teammates Claude creates inside the mapped workspace. New saved histories, unstarted reservations
+and their associated worktrees return under execution/checkpoint provenance
+checks; roots outside the mapped namespaces are rejected.
+
+Use an authenticated Aient profile and a sandbox you own. Install the pinned
+native tools, then teleport the stopped selected session (for Teams, use the
+checkpoint's printed command):
+
+```sh
+aient --profile NAME sandbox session setup native-work --agent claude
+aient --profile NAME sandbox session teleport native-work /absolute/local/worktree \
+  --agent claude --session "fix-login"
+```
+
+Use `--agent codex` for Codex or `setup --agent both` to install both tools.
+The native agent uses your native login. `--config-dir`, `--credential-file`
+and `--keychain-service` select a custom native store.
+
+New handoffs use `/workspace/repo` as one envelope, with checkouts under `trees/`.
+A single-checkout handoff uses `/workspace/repo/trees/root`. Selected sibling
+checkouts preserve their relative layout beneath their common source ancestor,
+so the primary checkout can have a different path under `trees/`. Use `pwd` in
+the attached native session to find its mapped checkout, then run
+`git worktree list` from that path. Both agents can include additional canonical
+Git worktree roots with repeatable `--worktree PATH` options; every added root
+must share the primary checkout's Git common directory:
+
+```sh
+aient --profile NAME sandbox session teleport native-work /absolute/local/worktree \
+  --agent claude --session "fix-login" --worktree /absolute/local/other-checkout
+```
+
+For Claude, verified native-associated ordinary and Team worktrees are included
+automatically. Other worktrees registered in Git are not selected merely because
+they exist. Added roots use ordinary nonignored selection, exclusions, reset and
+selected-submodule options. Primary-relative `--include` patterns stay limited to
+the primary checkout; they do not copy matching ignored files from added roots.
+For a Team, add these flags to the checkpoint's printed teleport command.
+
+Claude's default project auto memory also travels with the saved session: its
+complete `MEMORY.md` index and topic files shared by the repository's worktrees.
+Returned memory stays in the isolated returned Claude config, preserving other
+laptop sessions' canonical memory. `--sync` watches selected workspace files, not
+config memory. This default-memory scope does not promise custom memory locations
+or per-agent memory overrides.
+
+Native conversations, including Claude's saved subagents and Team teammates,
+remain behind retained sandbox executions; they are not imported as first-class Aient chats or Agent Task history. Use
+`session status` to inspect the execution, and `session attach` or native tools
+to inspect the conversations.
+
+The execution budget defaults to eight hours. Choose another finite budget
+with `--budget 8h`; it must fit the sandbox's remaining lifetime. In the native
+terminal, press tmux's `Ctrl-B`, then `D` to detach. You can close the local
+terminal and reconnect to the same running process:
+
+```sh
+aient --profile NAME sandbox session attach native-work --agent claude
+aient --profile NAME sandbox session status native-work --agent claude
+```
+
+The CLI requests 24-hour sandbox retention, capped at the existing hard expiry
+of 24 hours from sandbox creation. This leaves a finite recovery window after
+the command ends; an older sandbox has less time remaining. Return before that
+expiry: surviving execution metadata cannot recover an expired sandbox.
+
+Reattachment never starts a replacement or resets the execution deadline.
+`teleport --detach` starts without attaching. `session watch native-work`
+runs a separate local observer. Add the native session UUID or execution ID as
+`session attach native-work <native-id>` when more than one retained session
+matches.
+
+Add `--sync` to `teleport`, `attach` or `watch` for optional continuous
+synchronization of regular source files in both directions while that local
+observer is running:
+
+```sh
+aient --profile NAME sandbox session attach native-work --agent claude --sync
+```
+
+The handoff retains its source selection: tracked files stay selected, ordinary
+nonignored new files are included, `--include` adds declared ignored paths,
+and `--exclude` omits matching non-Git paths. Explicitly selected submodules
+retain their selected namespaces. The watcher propagates new files, deletions,
+renames and mode changes. Overlapping edits use timestamp-based save ordering
+with guest-clock normalization; equal times choose the remote copy.
+If both sides changed and one deleted the file, the edit wins because the
+deletion time is unknown; a deletion with no other change still propagates.
+Synchronization is per file and does not merge concurrent edits. Git metadata
+and live symlink changes remain outside the watcher. Files above 32 MiB are
+reported and suspended without reading their bodies; other files continue.
+Full handoff and return preserve larger files within workspace transfer limits.
+A sleeping laptop has no running observer to copy files.
+
+The watcher covers only the worktrees selected at handoff. Worktrees created
+later stay outside it, even if an include pattern matches their files. New
+associated roots return with the full group; returning and teleporting again
+selects them for the next watcher.
+
+Exit the remote agent with `/exit` or `Ctrl-D`. For a Team, exit every remote
+teammate and the parent; stopping only the parent is insufficient. Then stop
+the retained execution to confirm its native writers have stopped and close
+any retained tmux pane before returning:
+
+```sh
+aient --profile NAME sandbox session stop native-work --agent claude
+aient --profile NAME sandbox session return native-work --agent claude --resume
+```
+
+Return creates a fresh local envelope beside the original, preserving every
+associated checkout's remote Git commits, staged and unstaged changes, deletions,
+nonignored new files and selected initialized child repositories.
+`--output /absolute/new/envelope` names that envelope, preserving the checkout
+layout under `trees/`. Resume selects the mapped primary checkout, which need
+not be `trees/root`. `--resume` launches the local native agent there and resumes
+the saved conversation. Omitting it completes the download and prints a resume
+command. Team export needs no local Claude binary: it prints an Aient
+`session return ... --resume` command, which requires qualified Claude Code
+2.1.314 when you choose to resume.
+Verified return inputs survive interruption; a completed return retries offline
+only while its destination still matches. Later local edits and the original
+checkout are preserved. After timeout or cancellation with `session stop`, use
+the same return command to recover the last persisted conversation and files.
+Return requires a recorded native process identity and fresh proof that it and
+its process group and terminal session have no live writers. Missing proof,
+a live writer or an unknown execution outcome refuses capture. Recovery does
+not promise to restore an interrupted model turn or unsaved progress.
+
+Native tools perform OAuth refresh. While attached or watching, the CLI saves
+accepted native credential updates to a private host backup and propagates
+them to tracked sandboxes with the same native login and Aient identity.
+Reconnect catches up unavailable sandboxes. Claude updates follow increasing
+credential expiry; changed Codex credentials follow arrival order. Return
+carries accepted credentials into an isolated local native configuration.
+Credentials travel separately from source code and conversation history.
+
+Claude login transfers contain only `claudeAiOauth`. Each destination retains its
+own MCP OAuth entries and other independent native fields. A new Claude handoff
+binds the exact login to its provider account and organization; different accounts
+have separate private backups and propagation targets. Changing the local login
+keeps the existing sandbox sessions bound to their original account. Changed login
+records require matching account proof before propagation. If that proof is
+unavailable, affected credential stores remain intact while terminal access and
+workspace synchronization continue. Return preserves the selected sandbox login
+inside its fresh isolated configuration and preserves the canonical local login
+when safe write-back cannot be established. If the canonical Claude login has
+both tokens blank or missing, Aient leaves it signed out instead of restoring it
+from a sandbox or backup. Same-account guest updates can still enter the private
+backup; return uses the accepted login in its isolated configuration without
+changing the canonical login. A saved login may still require native sign-in.
+
+A cleared Claude login or a missing native login file no longer blocks returning
+saved work. Return preserves the conversation, selected worktrees and isolated
+configuration. It uses the session's existing accepted private backup when
+available; otherwise it saves the work without a login and prints native sign-in
+guidance. Claude's backup remains bound to the same account and organization.
+This does not restore a blank canonical login or guarantee that a saved refresh
+token remains usable. Malformed, partially populated and unsafe credential
+stores still refuse return.
+
+An attached or watching Aient observer maintains the selected shared login. It
+may restore a managed guest whose valid JSON contains a `claudeAiOauth` object
+with both access and refresh tokens absent, null or blank, using only an
+unexpired login proven to belong to the same account and organization. The
+guest's MCP OAuth entries and other independent native fields stay intact.
+Native `/logout` does not untrack that managed login: stop all Aient observers
+for the login to leave the guest signed out. Valid logins for a different
+account and malformed credential stores are preserved.
+
+Adapted AgentBox code retains its MIT notice in `LICENSE.agentbox`.
+
+These commands require a compatible Aient sandbox terminal service. They move
+saved history and files; the remote native process remains bounded by its
+execution budget and the sandbox's finite lifetime.
+
 ## Environment secrets
 
 Organisation owners and administrators can replace an encrypted environment secret after consenting to the dedicated write capability:
@@ -341,7 +549,7 @@ aient services apply --file service-mappings.json --apply --json
 
 ## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.11.41.
+The commands documented in this section are the surface shipped in Aient CLI 0.12.2.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
