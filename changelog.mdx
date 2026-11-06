@@ -7,6 +7,8 @@ description: Release notes for Aient covering new features, SDK updates, webhook
 
 ## Updates
 
+**Follow browser requests from logs to traces.** `@aient/otel-browser` 0.7.2 adds correlated logs and stable HTTP attributes for recorded fetch and XHR requests, including successful responses. Query and referrer URL redaction protect configured credential values. See [browser HTTP request telemetry](/reference/browser-http-request-telemetry) to review log volume, configure redaction and disable access logs while retaining spans.
+
 **Follow server requests from logs to traces.** `@aient/otel` 2.2.2 includes correlated access logs for recorded inbound HTTP requests, including successful responses, with stable HTTP attributes and configurable query redaction. Duration metrics remain enabled when access logs are disabled, and referrer URLs receive credential redaction. Review log volume and application-specific sensitive query keys when upgrading. See [HTTP request telemetry](/reference/http-request-telemetry) for configuration and verification.
 
 **Keep workspace sync moving.** Aient CLI 0.11.31 retries a failed Git-cache sync through a direct transfer and waits up to 15 minutes while the sandbox prepares the workspace. Repeating a sync at the same commit skips unchanged work or replaces a changed remote workspace. See [sync recovery](/ai-tools/cli/run-and-sync#recover-an-interrupted-workspace-publication).
