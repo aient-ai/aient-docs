@@ -7,7 +7,7 @@ description: "Authenticate per project, offload a local workspace, and operate i
 
 The `aient` command runs local development work in isolated remote sandboxes. The current release is available as a static binary for macOS and Linux on Intel and Arm.
 
-Current release: `0.11.41`
+Current release: `0.11.42`
 
 <CardGroup cols={2}>
   <Card title="Authentication and projects" icon="key" href="/ai-tools/cli/authentication">
@@ -298,7 +298,7 @@ Existing finite sandbox leases and hard expiry apply.
 
 ## Workspace operations
 
-Workspace operations live in `~/.aient/workspace-operations` only while the command that started them runs. When a `sync`, `run` or `exec --workspace` operation ends, whether it activated, failed or was cancelled, nothing of it is kept there. If a sync is interrupted, rerun the command: it syncs the worktree as it is now; nothing is resumed. `sandbox run` deletes its sandbox after a failed sync unless `--keep` is given. Removing the local record can itself time out or fail, for example while another process holds the store lock for more than 10 seconds. That never changes the result: the CLI prints one line saying the record could not be removed yet, a synced workspace stays synced, `sandbox run` still runs its command, and the next sync or `sandbox workspace list` removes the record. Otherwise only a killed CLI leaves a directory behind, and the next sync or `sandbox workspace list` removes it if this version created it. Records that older aient CLIs created are kept, because those releases took no lock that shows whether they are still in use; delete one by hand once no older CLI is running. `list` shows the store without authentication or network access; `status` and `discard` reconcile the server side of an operation that is still recorded:
+Workspace operations live in `~/.aient/workspace-operations` only while the command that started them runs. When a `sync`, `run` or `exec --workspace` operation ends, whether it activated, failed or was cancelled, nothing of it is kept there. If a sync is interrupted, rerun the command: it syncs the worktree as it is now; nothing is resumed. `sandbox run` deletes its sandbox after a failed sync unless `--keep` is given. Removing the local record can itself time out or fail, for example while another process holds the store lock for more than 10 seconds. That never changes the result: the CLI prints one line saying the record could not be removed yet, a synced workspace stays synced, `sandbox run` still runs its command, and the next sync or `sandbox workspace list` removes the record. Otherwise only a killed CLI leaves a directory behind, and the next sync or `sandbox workspace list` removes it if this version created it. Records that older aient CLIs created are kept, because those releases took no lock that shows whether they are still in use; delete one by hand once no older CLI is running. On a filesystem that cannot store extended attributes, such as tmpfs before Linux 6.6 or some container overlays, the CLI cannot mark the directories it uses, so it keeps whatever a killed CLI left there and says so; delete those by hand once no aient command is running. `list` shows the store without authentication or network access; `status` and `discard` reconcile the server side of an operation that is still recorded:
 
 ```sh
 aient sandbox workspace list [--json]
@@ -341,7 +341,7 @@ aient services apply --file service-mappings.json --apply --json
 
 ## Current release boundary
 
-The commands documented in this section are the surface shipped in Aient CLI 0.11.41.
+The commands documented in this section are the surface shipped in Aient CLI 0.11.42.
 
 - Environment-bound `status`, `wait`, and `logs` resolve the repeated environment selector through the authenticated profile.
 - Exclude-only workspace selection starts from the broad eligible non-Git inventory, keeps Git state authoritative, omits regular macOS AppleDouble `._*` files by default, and applies only caller-supplied exclusions beyond that documented filter.
