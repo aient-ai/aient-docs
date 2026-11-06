@@ -42,6 +42,16 @@ Customer MCP management adds `mcp_connections:read` and `mcp_connections:manage`
 `aient auth login` again if an existing profile receives `403` for `aient environment mcp` after
 upgrading to a CLI release that includes those commands.
 
+## Upgrade project access
+
+Aient CLI 0.11.41 fixes project-access renewal failures near sign-in token expiry. After upgrading the CLI, reinstall managed access once in each configured repository so its background service uses the new binary:
+
+```sh
+aient --profile NAME auth export --store-in-project
+```
+
+Use the profile that owns the project. The renewer retries temporary failures with increasing waits of up to one minute. On macOS, inspect `renewer.log` beside the project definition if access lapses; on Linux, inspect the user service journal with `journalctl --user`. The Linux preview boundary above still applies.
+
 ## `aient auth status`
 
 Verify the selected login and display its issuer, organisation, and granted scopes:

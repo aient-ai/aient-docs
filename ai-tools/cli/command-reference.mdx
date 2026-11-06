@@ -5,7 +5,7 @@ description: "A compact index of current Aient CLI commands and global flags."
 
 # CLI command reference
 
-This page indexes the current customer CLI surface, including Aient CLI 0.11.31. Use `aient COMMAND --help` to confirm the flags supported by your installed version.
+This page indexes the customer CLI commands through Aient CLI 0.11.42. Use `aient COMMAND --help` to confirm the flags supported by your installed version.
 
 ## Authentication
 
@@ -46,6 +46,17 @@ See [Run and synchronise workspaces](/ai-tools/cli/run-and-sync) and [Retained s
 <Warning>
   An environment-bound customer sandbox requires `--environment` on `status`, `wait`, and `logs`, and its original environment and repository selectors on `sync`, `exec`, and `execution`. `files` and `shell` apply only to sandboxes without an environment binding.
 </Warning>
+
+Use `--workspace-commit COMMIT` on `sandbox run` or `sandbox exec --workspace` to [run a committed tree without local edits](/ai-tools/cli/run-and-sync#run-a-specific-commit).
+
+## Reviews and Agent tasks
+
+| Command | Purpose |
+| --- | --- |
+| `aient review OWNER/REPO#NUMBER [--no-wait] [--json]` | Request an independent GitHub review of the current PR head. Requires the connected repository and installed Aient CTO GitHub App. |
+| `aient agent message THREAD MESSAGE --capability computer-use` | Queue a browser or desktop task with the Agent's existing permissions. Cannot be combined with `--immediate`. |
+
+See [pull request reviews](/ai-tools/cli#pull-request-reviews) and [Agent conversations](/ai-tools/cli#customer-agent-conversations) for scopes, retry behaviour and task limits.
 
 ## Workspace operations
 

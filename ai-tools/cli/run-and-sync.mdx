@@ -60,6 +60,21 @@ Repository candidates are inferred from sanitised `origin` and `upstream` remote
 
 Changing a local remote cannot grant repository access. Every provider operation is re-authorised against the authenticated organisation, active GitHub App installation, and current repository permissions.
 
+### Run a specific commit
+
+From Aient CLI 0.11.37, `sandbox run` and `sandbox exec --workspace` accept `--workspace-commit` with a full lowercase SHA-1 commit ID:
+
+```sh
+aient sandbox run --environment development --workspace . \
+  --workspace-commit "$(git rev-parse HEAD)" -- pnpm test
+```
+
+The sandbox receives that committed tree without staged, unstaged or untracked local edits. Selected submodules use the Gitlinks recorded in the commit, even when their local checkouts differ. Your local worktree stays unchanged.
+
+This mode requires `/workspace/repo` and cannot be combined with `--include`, `--exclude`, `--reset-remote-dir` or `--preserve-node-modules`. Use `--preserve-remote-dir` if you need to retain explicitly selected remote directories.
+
+If a selected submodule needs missing objects from a private HTTPS repository, initialise it with your normal Git configuration first, or configure an SSH submodule URL override. This acquisition does not use global Git credential helpers, global URL rewrites or `GIT_SSH_COMMAND`; a normal SSH agent works for trusted module URLs.
+
 ### Git SSH trust bootstrap
 
 By default, `sandbox run` selects SSH hosts only from the chosen repository's `origin`, `upstream`, and root `.gitmodules`. It copies matching public records already present in the host user's standard `known_hosts` files and atomically merges them into the sandbox user's `~/.ssh/known_hosts`. Existing unrelated sandbox entries are preserved.
@@ -270,7 +285,11 @@ Retries keep the originally captured files and obtain fresh authorisation for th
 
 Retries are bounded. Cancellation and authorisation failures stop the transfer. Partially streamed downloads and other mutations are not automatically replayed after an ambiguous failure. Selected-file Agent sync and experimental live sync keep their existing recovery limits.
 
-Workspace operations live in `~/.aient/workspace-operations` only while the command that started them runs. When a `sync`, `run` or `exec --workspace` operation ends, whether it activated, failed, was rejected or was cancelled, nothing of it is kept there. An operation that did not activate first gets one best-effort discard on the sandbox, bounded to 10 seconds and sent even after Ctrl-C; if that discard fails, the CLI prints one line and the sandbox expires the operation. A failed sync never starts the command, and `sandbox run` deletes its sandbox after a failed sync unless you pass `--keep`.
+From Aient CLI 0.11.38, workspace operations in `~/.aient/workspace-operations` are temporary. When a `sync`, `run` or `exec --workspace` operation ends, the CLI removes its local record and captured files.
+
+Cleanup can fail or time out; from 0.11.40, that prints a warning without changing the command result. A synced workspace stays synced, and `sandbox run` still runs its command and follows its normal sandbox cleanup policy.
+
+An operation that did not activate first gets one best-effort discard on the sandbox, bounded to 10 seconds and sent even after Ctrl-C; if that discard fails, the CLI prints one line and the sandbox expires the operation. A failed sync never starts the command, and `sandbox run` deletes its sandbox after a failed sync unless you pass `--keep`.
 
 When a sync starts, the CLI prints:
 
@@ -280,7 +299,9 @@ Workspace operation OPERATION_ID started; if it is interrupted, rerun this comma
 
 If a sync fails or is interrupted, rerun the same command. The rerun syncs the worktree as it is now, including edits made since the interrupted attempt; nothing is resumed.
 
-Only a killed CLI leaves a record behind. The next sync or `sandbox workspace list` removes every record no running CLI holds, including copies that earlier releases kept for resume. `workspace list` shows the store without authentication or network access:
+A killed CLI or failed cleanup can leave a record behind. The next sync or `sandbox workspace list` removes eligible records whose owning processes have stopped. Records from older versions without ownership locks are kept; remove them manually only after those older CLIs have stopped. In 0.11.42, deleting large leftovers no longer holds the shared store lock, so other workspace commands can continue.
+
+On filesystems that cannot store extended attributes, the CLI cannot mark its directories and leaves abandoned copies in place. It names each retained directory and tells you to remove it manually once no Aient command is running. `workspace list` shows the store without authentication or network access:
 
 ```sh
 aient sandbox workspace list
