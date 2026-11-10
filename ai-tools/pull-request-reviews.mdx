@@ -37,3 +37,7 @@ It posts an approval, a change request with inline comments, or a comment withou
 
 A change is critical when its pull request carries the `critical` label. Anyone who can label the pull request can add
 it, for example to make sure aient-cto reviews the latest commit before an agent merges.
+
+Aient does not decide on its own that a change in your repository is critical: it does not classify your changes by
+the files they touch, and it never adds the label itself. The label is the only signal. Removing it makes the change
+ordinary again, so an approval of an earlier commit counts once more.
