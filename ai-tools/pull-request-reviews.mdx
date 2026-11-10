@@ -1,0 +1,39 @@
+---
+title: "Pull request reviews"
+description: "Which review an Aient agent needs before it merges a pull request on its own, who gives it, and what makes a change critical."
+---
+
+# Pull request reviews
+
+When **Automatic agentic merging** is on for an environment, the fixing agent may merge its own pull request once CI
+passes and the change has an independent review. This page says which review counts.
+
+## The reviewer
+
+**aient-cto** reviews pull requests for Aient. It is a separate GitHub App,
+[Aient CTO](https://github.com/apps/aient-cto/installations/new), so its reviews come from `aient-cto[bot]`, not from
+the agent that wrote the change. Install it on each repository whose pull requests Aient agents may merge.
+
+You can ask for its review of any pull request yourself:
+
+```sh
+aient review OWNER/REPO#NUMBER
+```
+
+It posts an approval, a change request with inline comments, or a comment without a verdict.
+
+## What counts before an agent merges
+
+- **An ordinary change needs one approval.** An approval from aient-cto of any commit of the pull request is enough.
+  It stays valid when later commits are pushed to the same pull request.
+- **A critical change needs an approval of its latest commit.** An approval also covers later commits that change no
+  file, such as an empty commit pushed to rerun CI.
+- **A request for changes always blocks.** It stays until aient-cto reviews the pull request again, also after later
+  pushes. A comment without a verdict does not lift it. A person who can dismiss reviews on GitHub can dismiss it.
+- **A person's approval** counts only for the exact commit the person approved.
+- **CI must pass** on the latest commit, and your repository's own branch rules still apply.
+
+## What makes a change critical
+
+A change is critical when its pull request carries the `critical` label. Anyone who can label the pull request can add
+it, for example to make sure aient-cto reviews the latest commit before an agent merges.

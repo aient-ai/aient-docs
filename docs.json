@@ -162,6 +162,7 @@
           },
           "ai-tools/customer-mcp-connections",
           "ai-tools/kubernetes-connections",
+          "ai-tools/pull-request-reviews",
           "agentic-x402",
           "agent-commerce"
         ],
