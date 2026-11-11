@@ -3,6 +3,18 @@ title: Changelog
 description: Weekly Aient release notes covering new features, SDK updates, integrations and fixes.
 ---
 
+<Update label="2026-11-09" description="Week of November 9">
+
+## Updates
+
+**Download a whole sandbox directory.** Aient CLI 0.12.6 adds directory downloads to `sandbox files get` and `sandbox run --download`. The CLI checks the complete transfer before installing the local directory. If a download fails, `sandbox run` keeps the sandbox and prints a retry command. See [directory downloads](/ai-tools/cli/executions-and-files#aient-sandbox-files-get) for destination rules and limits.
+
+**Resume project access after sleep.** Aient CLI 0.12.5 asks the project's background renewer for a fresh token when its access token has expired, then waits up to 45 seconds. Commands run just after the computer wakes can continue without another sign-in. See [project access](/ai-tools/cli/authentication#upgrade-project-access).
+
+**Synchronise while Git maintenance runs.** Aient CLI 0.12.4 keeps workspace sync from failing when another worktree runs `git gc`, `git repack` or automatic maintenance. It also reports transfer phases for large file uploads. See [workspace sync recovery](/ai-tools/cli/run-and-sync#recover-from-an-interrupted-workspace-sync).
+
+</Update>
+
 <Update label="2026-11-02" description="Week of November 2">
 
 ## Updates

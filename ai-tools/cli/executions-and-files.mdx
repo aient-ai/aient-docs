@@ -113,14 +113,36 @@ Directory excludes support `/`-separated `*`, `**`, and `?` globs. The CLI rejec
 
 ### `aient sandbox files get`
 
-Download one explicit remote file:
+Download one explicit remote file, or a directory with Aient CLI 0.12.6 or later:
 
 ```sh
 aient sandbox files get \
   laptop-offload /workspace/artifacts/report.json ./report.json
 ```
 
-Directory download is not part of this command.
+```sh
+aient --timeout 15m sandbox files get \
+  laptop-offload /workspace/artifacts ./artifacts
+```
+
+A file is written to the local path, or inside it when that path is an existing directory. A remote directory's contents fill the local destination. The destination must be absent, empty, or contain the identical tree; repeating an identical download leaves it unchanged. A different non-empty destination is refused, so choose a new path instead of overwriting local work.
+
+Directory downloads need both `aient.sandbox.files` and `aient.sandbox.exec` scopes and a compatible sandbox runtime. Older runtimes may reject directory reads; a CLI upgrade alone does not update an existing sandbox.
+
+The CLI verifies the complete stream and unpacks into a temporary sibling before installing the directory. It rejects unsafe archive paths, links that escape the directory, device files, and names that collide on the local filesystem. The limits are 8 GiB unpacked and 250,000 entries. Private workspace state is excluded.
+
+`--timeout` bounds the transfer, so increase it for a large directory. If a download fails, the sandbox remains available within its lease. Correct the reported cause and retry before the lease expires.
+
+### Download command results
+
+Use `sandbox run --download REMOTE=LOCAL` to collect a file or directory after a command:
+
+```sh
+aient sandbox run --environment development \
+  --download /workspace/repo/test-results=./test-results -- pnpm test
+```
+
+The same destination rules and limits apply. If the download fails, `sandbox run` keeps the sandbox and prints a retry command, its approximate lease expiry and a delete command. Follow the printed retry, including its environment and repository selectors. Delete the retained sandbox when you have recovered the files.
 
 ### `aient sandbox files ls`
 
