@@ -5,7 +5,7 @@ description: "A compact index of current Aient CLI commands and global flags."
 
 # CLI command reference
 
-This page indexes the customer CLI commands through Aient CLI 0.11.42. Use `aient COMMAND --help` to confirm the flags supported by your installed version.
+This page indexes the customer CLI commands through Aient CLI 0.12.6. Use `aient COMMAND --help` to confirm the flags supported by your installed version.
 
 ## Authentication
 
@@ -110,9 +110,11 @@ Repeat the original `--environment` and `--repository` selectors on every execut
 | Command | Purpose |
 | --- | --- |
 | `aient sandbox files put SANDBOX LOCAL_PATH ABSOLUTE_REMOTE_DIRECTORY` | Upload one file or directory. |
-| `aient sandbox files get SANDBOX ABSOLUTE_REMOTE_FILE LOCAL_PATH` | Download one file. |
+| `aient sandbox files get SANDBOX ABSOLUTE_REMOTE_PATH LOCAL_PATH` | Download one file or directory. |
 | `aient sandbox files ls SANDBOX [ABSOLUTE_REMOTE_DIRECTORY]` | List a directory. |
 | `aient sandbox files rm SANDBOX ABSOLUTE_REMOTE_PATH` | Remove a path. |
+
+See [file and directory downloads](/ai-tools/cli/executions-and-files#aient-sandbox-files-get) for scopes, destination rules and limits.
 
 ## Utility commands
 

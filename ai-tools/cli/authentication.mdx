@@ -44,11 +44,13 @@ upgrading to a CLI release that includes those commands.
 
 ## Upgrade project access
 
-Aient CLI 0.11.41 fixes project-access renewal failures near sign-in token expiry. After upgrading the CLI, reinstall managed access once in each configured repository so its background service uses the new binary:
+Current CLI releases move the project's background renewer onto a newer installed release when you run a command in that project. This preserves the existing renewal cutoff. If the move fails, the previous renewer stays running and the CLI reports the failure. To repair managed access explicitly, run:
 
 ```sh
 aient --profile NAME auth export --store-in-project
 ```
+
+From Aient CLI 0.12.5, a command that finds an expired managed project token asks the background renewer to renew it and waits up to 45 seconds. This covers tokens that expire while the computer sleeps, including projects opened through a symlink. If renewal cannot complete, the command reports the failure; it does not switch to another identity.
 
 Use the profile that owns the project. The renewer retries temporary failures with increasing waits of up to one minute. On macOS, inspect `renewer.log` beside the project definition if access lapses; on Linux, inspect the user service journal with `journalctl --user`. The Linux preview boundary above still applies.
 
@@ -62,7 +64,7 @@ aient auth status --profile client-a
 aient auth status --all
 ```
 
-`auth status --all` displays local metadata for every profile without refreshing credentials. A status check for a selected refresh-backed profile verifies the live session. From a configured project with no explicit profile, status discovers the repository-private access envelope, verifies its product context, and reports safe lease metadata without reading host refresh authority. A present invalid or expired project envelope fails closed instead of falling back to a host profile. An explicit `--profile` selects the host recovery view, including derived managed-service health.
+`auth status --all` displays local metadata for every profile without refreshing credentials. A status check for a selected refresh-backed profile verifies the live session. From a configured project with no explicit profile, status discovers the repository-private access envelope, verifies its product context, and reports safe lease metadata without reading host refresh authority. An expired managed project envelope first gets the renewal attempt described above. An invalid envelope, or one that remains expired, fails closed instead of falling back to a host profile. An explicit `--profile` selects the host recovery view, including derived managed-service health.
 
 ## `aient auth logout`
 
