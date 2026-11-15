@@ -87,6 +87,13 @@
         "root": "index"
       },
       {
+        "group": "Remediation",
+        "icon": "wrench",
+        "pages": [
+          "remediation/priorities"
+        ]
+      },
+      {
         "group": "Webhooks",
         "icon": "webhook",
         "pages": [

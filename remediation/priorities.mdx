@@ -1,0 +1,89 @@
+---
+title: "Priorities and automatic remediation"
+description: "How Aient sets a Problem's priority from its severity, a CISA KEV listing and dependency reach, and how your organisation's automatic remediation level decides which Problems Aient starts fixing on its own."
+---
+
+Every Problem in Aient has a severity and a priority. They answer different questions, and only priority decides
+when Aient acts.
+
+## Severity and priority
+
+- **Severity** describes impact: how much the Problem hurts. It follows its source: the advisory's own rating for a
+  vulnerability, triage for an error, or a person who sets it. Aient never raises a severity to bring a Problem over
+  your automatic remediation level.
+- **Priority**, from p0 to p3, says when to act. p0 is the most urgent. Priority decides whether Aient starts a fix on
+  its own, and in what order.
+
+## What each priority means
+
+| Priority | When to act | Examples |
+| --- | --- | --- |
+| p0 | Act now: damage is likely or already happening. | Critical errors, malware, critical vulnerabilities on the CISA Known Exploited list, and vulnerabilities used in ransomware. |
+| p1 | Act today: serious impact, or a vulnerability attackers are exploiting. | High-severity errors, critical vulnerabilities, and vulnerabilities on the CISA Known Exploited list in a runtime dependency. |
+| p2 | Plan this week: real impact, but not urgent. | Medium-severity errors and high-severity vulnerabilities. |
+| p3 | When convenient: low impact. | Low-severity errors, medium and low vulnerabilities, and most findings in development-only dependencies. |
+
+## How Aient sets priority
+
+**Errors** take their priority from severity: critical is p0, high p1, medium p2 and low p3.
+
+**Vulnerabilities** start one level lower, because a CVSS score describes what could happen, not what is happening:
+CRITICAL is p1, HIGH p2, MEDIUM and LOW p3. Then, in this order:
+
+1. **Exploited in the wild.** A vulnerability on CISA's [Known Exploited Vulnerabilities](https://www.cisa.gov/known-exploited-vulnerabilities-catalog)
+   (KEV) list moves up one level, to at least p1. A KEV entry with known ransomware use is p0, and so is malware.
+2. **Development-only dependency.** A dependency used only in development, test or build moves down one level.
+   Malware is the exception, because install scripts run on developer machines and CI runners.
+
+Because the steps apply in that order, a KEV-listed development-only dependency ends one level below the same
+finding in a runtime dependency.
+
+| Finding | Priority |
+| --- | --- |
+| HIGH, runtime dependency | p2 |
+| HIGH, runtime, on the KEV list | p1 |
+| MEDIUM, runtime, on the KEV list | p1 |
+| CRITICAL, runtime, on the KEV list | p0 |
+| CRITICAL, development-only | p2 |
+| HIGH, development-only, on the KEV list | p2 |
+| Known ransomware use on the KEV list, development-only | p1 |
+| Malware, development-only | p0 |
+
+Aient applies this mapping to every organisation.
+
+## Change a Problem's priority
+
+You can set a Problem's priority on the Problem page, for many Problems at once from the Problem list, or with the
+MCP tool `update_problem_priority`.
+
+A priority a person sets stays. New evidence does not overwrite it. An agent's change is an override that triage may
+replace later; when an agent tries to change a priority a person set, the change is refused and the agent is told to
+ask a member.
+
+The history next to a Problem's severity lists every recorded change to its priority and severity: the old and new
+value, what made the change (a person, an agent, triage, Aient's rules, a CISA KEV listing or an advisory revision),
+through which surface, and when.
+
+## Automatic remediation level
+
+Your organisation chooses the lowest priority that Aient fixes on its own. Find it under **Settings → Pull Request
+Config → Automatic remediation**. Owners and admins can change it; every member can see it.
+
+| Level | What Aient fixes on its own |
+| --- | --- |
+| p0 only | Only the most urgent Problems. Lowest agent cost. |
+| p0 and p1 (default) | Also serious errors and actively exploited vulnerabilities. |
+| p0 to p2 | Also medium errors and high-severity vulnerabilities. Higher agent cost. |
+| Every priority | Every open Problem. Highest agent cost. |
+
+The setting shows how many open Problems are at each priority, so you can see what a level covers before you save it.
+
+- Problems below the level stay open and visible. Any member can still ask for a fix with **Request fix** on the
+  Problem, or with the MCP tool `request_problem_remediation`.
+- The level changes order and cost, not authority. Every fix still goes through your pull request review and merge
+  rules.
+- When several Problems qualify and your organisation is already running its maximum number of fixes in parallel, Aient
+  starts the highest-priority Problem as soon as a slot frees up.
+
+Agents read and set the level with the MCP tools `get_auto_remediation_threshold` and
+`set_auto_remediation_threshold`. Setting it requires an owner or admin signed in through OAuth.
