@@ -1,0 +1,101 @@
+---
+title: "React Native and Expo"
+description: "Send traces, structured logs and JavaScript exceptions from native React Native apps."
+---
+
+Use `@aient/otel-browser/react-native` in the JavaScript bootstrap for your iOS
+and Android app. The SDK sends OTLP traces and logs to Aient using native
+`fetch`. It has no native module installation step.
+
+## Install
+
+```bash
+npm install @aient/otel-browser@^0.10.0 @opentelemetry/api@~1.10.0
+```
+
+## Configure the app bootstrap
+
+Use the app's existing build configuration and initialize one sender per JavaScript
+runtime. In Expo, read the `EXPO_PUBLIC_*` values with static property access so
+Metro inlines them. In bare React Native, supply the same options through your
+existing build configuration.
+
+```ts
+// telemetry.ts
+import { AppState } from 'react-native'
+import { registerOTelReactNative } from '@aient/otel-browser/react-native'
+
+const publishableKey = process.env.EXPO_PUBLIC_AIENT_PUBLISHABLE_KEY
+
+export const telemetry = publishableKey
+  ? registerOTelReactNative({
+      serviceName: 'mobile',
+      publishableKey,
+      release: {
+        commit: process.env.EXPO_PUBLIC_COMMIT_SHA,
+        branch: process.env.EXPO_PUBLIC_COMMIT_REF,
+        environment: process.env.EXPO_PUBLIC_AIENT_ENV,
+      },
+    })
+  : undefined
+
+AppState.addEventListener('change', state => {
+  if (state === 'background') void telemetry?.forceFlush().catch(() => {})
+})
+```
+
+Import this module from the native entry point before registering app and background
+tasks. Reuse the same module in headless tasks and await a best-effort
+`forceFlush()` before returning from short-lived work. The OS can suspend the
+runtime before the request finishes. Use `shutdown()` when disposing of the sender.
+
+Use a publishable ingest key for the target Aient environment. Anything under
+`EXPO_PUBLIC_` is visible in the app bundle. Keep upload keys and other
+credentials in CI. Set the full Git commit of the code in each native build and
+each OTA update in `EXPO_PUBLIC_COMMIT_SHA`, along with its branch and environment.
+Use the Git commit of the OTA bundle when an update replaces the embedded bundle.
+
+## Record work and errors
+
+Use the SDK's scoped tracer and logger in your application code. Pass context
+explicitly when correlating logs and child spans across asynchronous work.
+
+```ts
+import { ROOT_CONTEXT, SeverityNumber, trace } from '@opentelemetry/api'
+import { telemetry } from './telemetry'
+
+export async function refreshFeed() {
+  const span = telemetry?.getTracer('mobile.feed').startSpan('feed.refresh')
+  try {
+    const feed = await loadFeed()
+    telemetry?.getLogger('mobile.feed').emit({
+      severityText: 'INFO',
+      severityNumber: SeverityNumber.INFO,
+      body: 'Feed refreshed',
+      context: span ? trace.setSpan(ROOT_CONTEXT, span) : ROOT_CONTEXT,
+    })
+    return feed
+  } catch (error) {
+    telemetry?.captureException(error, span)
+    throw error
+  } finally {
+    span?.end()
+  }
+}
+```
+
+Bridge your existing logger and JavaScript error-reporting callbacks where
+appropriate. Call `captureException` once for each error you want Aient to
+receive. It emits an error log with the JavaScript stack and marks a supplied
+span as failed. Existing crash reporters can continue to handle native crashes.
+The SDK instruments the operations you wire into it and exports their traces
+and logs. Retain the matching Metro/Hermes source maps for each artifact in
+your release pipeline. Aient receives the raw JavaScript stack from this SDK.
+
+## Verify
+
+Run the app in a simulator or on a device with your preview environment key.
+Trigger a traced operation and a handled JavaScript exception, then flush.
+Check Aient for the service, release commit and both records. The exception
+log and its span should have the same trace ID. Repeat for each app entry
+point that runs in a separate JavaScript runtime.
