@@ -78,6 +78,7 @@
           "quickstart/opentelemetry",
           "quickstart/server",
           "quickstart/browser",
+          "quickstart/react-native",
           "vercel/drain",
           "aws/firehose",
           "source-maps/upload",
