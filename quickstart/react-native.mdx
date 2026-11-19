@@ -7,6 +7,8 @@ Use `@aient/otel-browser/react-native` in the JavaScript bootstrap for your iOS
 and Android app. The SDK sends OTLP traces and logs to Aient using native
 `fetch`. It has no native module installation step.
 
+The native entry point requires [Metro package exports](https://metrobundler.dev/docs/package-exports/), which React Native enables by default starting with 0.79. Aient tested Expo 57 with React Native 0.86.3 and Hermes.
+
 ## Install
 
 ```bash
