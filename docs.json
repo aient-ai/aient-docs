@@ -145,6 +145,13 @@
         ]
       },
       {
+        "group": "Security",
+        "icon": "shield-check",
+        "pages": [
+          "security/not-affected-statements"
+        ]
+      },
+      {
         "group": "AI Tools",
         "icon": "bot",
         "pages": [

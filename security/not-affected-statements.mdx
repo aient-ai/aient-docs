@@ -1,0 +1,131 @@
+---
+title: "Not-affected statements"
+description: "Tell Aient a vulnerability does not affect you by committing an OpenVEX statement under .vex/ on your default branch. Aient closes the finding as not affected and reopens it when the statement stops applying."
+---
+
+# Not-affected statements
+
+When a dependency finding does not affect your software, record why in an [OpenVEX](https://openvex.dev) statement
+in your repository. Once it is on your default branch, Aient closes the finding as **not affected** instead of
+proposing a fix. The finding reopens on its own when the statement stops applying: you delete it, the package moves
+to another version, or its review date passes.
+
+<Note>
+  This page describes repository OpenVEX statements as they land in Aient's OpenVEX release. The
+  [changelog](/changelog) records that release.
+</Note>
+
+## Where statements live
+
+Aient reads `.vex/*.openvex.json` at the root of each repository it monitors, on the **default branch**, at the
+commit it scans. This is the [VEX Hub](https://github.com/aquasecurity/vexhub) convention, so the same files work with
+Trivy and other VEX-aware scanners.
+
+- Files on other branches, in pull requests, or under other paths change nothing.
+- Name the files as you like, for example one per service: `.vex/api.openvex.json`, `.vex/worker.openvex.json`.
+- A file Aient cannot parse covers nothing. The finding stays open, so a typo never hides a vulnerability.
+
+## Merging is the acceptance
+
+A statement takes effect when it merges to your default branch. Your repository's own review is the approval:
+branch protection, required reviewers, and `CODEOWNERS`. Aient does not review the statement again.
+
+A not-affected statement accepts a risk on your organisation's behalf, so give `.vex/` an owner who reviews it:
+
+```text CODEOWNERS
+/.vex/ @your-org/security
+```
+
+## Write a statement
+
+This statement says `example-parser@2.4.1`, as locked in `acme/api`, is not affected by the advisory `GHSA-xxxx-xxxx-xxxx`:
+
+```json .vex/api.openvex.json
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/acme/api/.vex/api.openvex.json",
+  "author": "Acme Security <security@acme.example>",
+  "timestamp": "2026-11-23T09:00:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": { "name": "GHSA-xxxx-xxxx-xxxx", "aliases": ["CVE-YYYY-NNNNN"] },
+      "products": [
+        {
+          "@id": "pkg:github/acme/api",
+          "subcomponents": [{ "@id": "pkg:npm/example-parser@2.4.1" }]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "The advisory affects example-parser's streaming API. This repository calls only parse() on complete, size-limited buffers and never imports the streaming module.",
+      "status_notes": "review_by=2027-02-23"
+    }
+  ]
+}
+```
+
+- **`vulnerability`**: the advisory's ID in `name`, with any other IDs in `aliases`. A finding matches when its
+  advisory ID or one of its aliases equals one of these.
+- **`status`** and **`justification`**: `not_affected` with one of OpenVEX's justifications:
+  `component_not_present`, `vulnerable_code_not_present`, `vulnerable_code_not_in_execute_path`,
+  `vulnerable_code_cannot_be_controlled_by_adversary` or `inline_mitigations_already_exist`.
+- **`impact_statement`**: why. Aient shows it on the Problem, and auditors read it later, so name the evidence.
+- **`timestamp`**: when the statement was made. The statement's own timestamp wins over the document's.
+
+## Name the product
+
+The product says what the statement is about, and a statement counts only for a product its repository owns.
+
+| Finding | Product `@id` | Subcomponent |
+| --- | --- | --- |
+| A package in the repository's lockfiles | `pkg:github/<owner>/<repo>`, the repository itself | The package URL at its exact locked version, for example `pkg:npm/example-parser@2.4.1` |
+| A package inside a container image | `pkg:oci/<image>`, for example `pkg:oci/api?repository_url=ghcr.io/acme/api` | The package URL at the exact version the image ships |
+
+- **Exact versions only.** A statement for `example-parser@2.4.1` does not cover `example-parser@2.4.2`. When you upgrade, the old
+  statement stops covering, and the new version is a new finding. Delete the stale statement in the same pull request.
+- **Lockfile statements count only in their own repository.** A `pkg:github/acme/api` statement in `acme/worker`
+  covers nothing.
+- **Image statements count only from a repository Aient attributes the image to**, the repository that builds it.
+- **A renamed repository** no longer matches its old `pkg:github` name. Update the product, or the findings reopen.
+
+## Review dates
+
+Write `review_by=YYYY-MM-DD` in `status_notes` to make a statement expire. Aient compares the date with the time of
+each scan: from the first scan after that date, the statement covers nothing and the finding reopens. Renew it by
+merging a new date, with fresh evidence.
+
+A statement without `review_by` covers until you remove it or the package version changes. Aient lists every such
+statement among your standing exceptions, so none stays out of sight.
+
+## When the finding reopens
+
+A finding closed as not affected reopens on the next scan when any of these happen:
+
+- the statement is deleted, or its file no longer parses;
+- the locked version changes to one the statement does not name;
+- its `review_by` date passes;
+- a newer statement for the same product and vulnerability says `affected` or `under_investigation`.
+
+Within one repository, the newest statement for a product and vulnerability decides. On equal timestamps, the status
+other than `not_affected` wins, so a tie never closes a finding.
+
+## Conflicts between repositories
+
+Several repositories can claim the same image. If any of them says `affected` or `under_investigation` while another
+says `not_affected`, **affected wins** and the finding stays open. The Problem shows both files, with each one's path,
+commit and statement, so the owners can agree on one answer.
+
+## Accepted risk is not "not affected"
+
+OpenVEX has no status for "affected, and we accept it". If the vulnerability does affect you and you choose not to
+fix it, record an `affected` statement with an `action_statement` that says what you do instead, and mark the Problem
+**won't fix** or mute it in Aient. Keep `not_affected` for findings that cannot be exploited in your software.
+
+## Use the same files with scanners
+
+The files are standard OpenVEX, so other tools read them too:
+
+```sh
+trivy image --vex .vex/api.openvex.json ghcr.io/acme/api:1.4.2
+```
