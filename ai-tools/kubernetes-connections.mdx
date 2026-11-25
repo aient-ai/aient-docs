@@ -18,10 +18,25 @@ server. Your cluster's own RBAC decides what that viewer can read, and your audi
   Development.
 </Info>
 
+## Choose what a connection is used for
+
+Each connection serves one or more agent uses. A new connection serves all three:
+
+| Use | In the app | What it allows |
+| --- | --- | --- |
+| `problem_investigation` | Problem investigations | Aient's investigation of a Problem reads the cluster. |
+| `threads` | Threads and remediation | Agents in Threads and remediations run `kubectl` against the cluster. |
+| `security_findings` | Security findings (Trivy) | Aient reads the cluster's Trivy vulnerability reports and opens security Problems from them. See [Security findings from Trivy](#security-findings-from-trivy). |
+
+To turn a use off, open the connection under **Settings → Environments → Kubernetes** and clear it, or call
+`set_kubernetes_connection_agent_uses` with the `revision` and `agentUses` you read. Owners and admins can change the
+uses, and at least one must stay on. Only the uses change: the RBAC, the connector and the confirmation stay as they
+are. A use you remove is refused on the next request that needs it.
+
 ## What agents can do
 
-Today, **Threads** use a connection. When a Thread's agent runs in a native Aient sandbox, Aient writes a kubeconfig
-with one context per enabled connection, named after the connection. The agent runs stock `kubectl`:
+When a Thread's agent runs in a native Aient sandbox, Aient writes a kubeconfig with one context per enabled
+connection that serves Threads, named after the connection. The agent runs stock `kubectl`:
 
 ```sh
 kubectl --context prod get pods -n payments
@@ -40,6 +55,28 @@ Each `kubectl` invocation uses one connection. The connector mints a separate vi
 token is valid for 10 minutes and is discarded when the command ends. Before a response leaves the cluster, the
 connector removes credential-shaped values from it, such as PEM blocks, known token formats, URL passwords and
 `last-applied-configuration`.
+
+## Security findings from Trivy
+
+If [Trivy Operator](https://aquasecurity.github.io/trivy-operator/) runs in the cluster, Aient reads its
+VulnerabilityReports through each connection that serves `security_findings`, about once an hour. It records the
+vulnerabilities of the images that are running as security findings, and opens one Problem per image with HIGH or
+CRITICAL vulnerabilities, or any listed in CISA's Known Exploited Vulnerabilities catalog. The Problem remediates like
+any other: Aient's agent finds where the image is pinned or deployed and proposes the update. When an image stops
+running, its findings resolve.
+
+Aient reads with the connection's viewer, so your declared RBAC decides what it can see. The published
+[`aient-viewer.yaml`](/reference/kubernetes-aient-viewer) template covers every read:
+
+| Read | Why |
+| --- | --- |
+| `list` `vulnerabilityreports` (`aquasecurity.github.io`) | The reports. Aient reads their metadata every hour and the full reports only when they changed, or once a day. |
+| `list` `pods` | Which images are running: only their reports count. |
+| `list` `deployments` (`apps`), `get` the `trivy-operator` ConfigMap | The operator's excluded namespaces and skipped labels. Without them, images the operator skips count as not scanned. |
+
+A cluster without Trivy Operator does not serve VulnerabilityReports. Aient then reads nothing further and records
+nothing for it. If the viewer may not read the reports or the pods, Aient records a failed scan when the failures
+start and once a day while they last, and no finding changes.
 
 ## Before you start
 

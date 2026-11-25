@@ -3,6 +3,14 @@ title: Changelog
 description: Weekly Aient release notes covering new features, SDK updates, integrations and fixes.
 ---
 
+<Update label="2026-11-23" description="Week of November 23">
+
+## Updates
+
+**Security findings from your clusters' Trivy reports.** Every Kubernetes connection now serves the `security_findings` agent use, and new connections get it by default. Where Trivy Operator runs, Aient reads its vulnerability reports through the connection about once an hour. It opens one Problem per running image with qualifying findings, and remediates it like any other Problem. Clusters without Trivy Operator are left alone. Turn the use off per connection under **Settings → Environments → Kubernetes**, or with `set_kubernetes_connection_agent_uses`. See [security findings from Trivy](/ai-tools/kubernetes-connections#security-findings-from-trivy).
+
+</Update>
+
 <Update label="2026-11-09" description="Week of November 9">
 
 ## Updates
